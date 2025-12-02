@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Effects Tool</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/controls.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1>Pixel Effects Tool</h1>
+        <div class="header-links">
+            <a href="#about" class="header-link">About</a>
+            <a href="https://github.com" class="header-link" target="_blank">GitHub</a>
+        </div>
+    </header>
+
+    <main class="app-container">
+        <!-- Controls Panel -->
+        <aside class="control-panel">
+            <!-- Upload Section -->
+            <section class="control-section">
+                <h2>Upload Image</h2>
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-prompt">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        <p>Drag & drop an image here</p>
+                        <p class="upload-hint">or</p>
+                        <button type="button" class="btn btn-secondary" id="filePickerBtn">Choose File</button>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+                <div class="image-info" id="imageInfo" style="display: none;">
+                    <img id="imageThumbnail" class="image-thumbnail" alt="Uploaded preview">
+                    <div class="image-meta">
+                        <p id="imageDimensions"></p>
+                        <button type="button" class="btn btn-small btn-danger" id="clearImageBtn">Clear</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Mode Selection -->
+            <section class="control-section">
+                <h2>Mode</h2>
+                <div class="mode-selector">
+                    <label class="mode-option">
+                        <input type="radio" name="mode" value="shapes" checked>
+                        <span class="mode-label">
+                            <span class="mode-icon">🔷</span>
+                            <span>Shapes</span>
+                        </span>
+                    </label>
+                    <label class="mode-option">
+                        <input type="radio" name="mode" value="ascii">
+                        <span class="mode-label">
+                            <span class="mode-icon">📝</span>
+                            <span>ASCII</span>
+                        </span>
+                    </label>
+                </div>
+            </section>
+
+            <!-- Common Parameters -->
+            <section class="control-section">
+                <h2>Common Settings</h2>
+
+                <div class="control-group">
+                    <label for="resolution">
+                        Resolution: <span id="resolutionValue">50</span>
+                    </label>
+                    <input type="range" id="resolution" min="10" max="200" value="50" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label for="samplingMethod">Sampling Method</label>
+                    <select id="samplingMethod" class="select">
+                        <option value="grid">Grid</option>
+                        <option value="random">Random</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="colorMode">Color Mode</label>
+                    <select id="colorMode" class="select">
+                        <option value="original">Original Colors</option>
+                        <option value="grayscale">Grayscale</option>
+                        <option value="duotone">Duotone</option>
+                    </select>
+                </div>
+
+                <div class="control-group" id="duotoneControls" style="display: none;">
+                    <label for="duotoneDark">Dark Color</label>
+                    <input type="color" id="duotoneDark" value="#000000" class="color-picker">
+
+                    <label for="duotoneLight">Light Color</label>
+                    <input type="color" id="duotoneLight" value="#ffffff" class="color-picker">
+                </div>
+            </section>
+
+            <!-- Shape-Specific Parameters -->
+            <section class="control-section" id="shapeControls">
+                <h2>Shape Settings</h2>
+
+                <div class="control-group">
+                    <label for="shapeType">Shape Type</label>
+                    <select id="shapeType" class="select">
+                        <option value="circle">Circle</option>
+                        <option value="square">Square</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="diamond">Diamond</option>
+                        <option value="star">Star</option>
+                        <option value="cross">Cross</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="shapeSize">
+                        Base Size: <span id="shapeSizeValue">10</span>px
+                    </label>
+                    <input type="range" id="shapeSize" min="1" max="50" value="10" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sizeBrightness">
+                        Scale size by brightness
+                    </label>
+                </div>
+
+                <div class="control-group" id="sizeRangeControls" style="display: none;">
+                    <label for="sizeMin">
+                        Min Size: <span id="sizeMinValue">0.3</span>x
+                    </label>
+                    <input type="range" id="sizeMin" min="0.1" max="1" step="0.1" value="0.3" class="slider">
+
+                    <label for="sizeMax">
+                        Max Size: <span id="sizeMaxValue">1.5</span>x
+                    </label>
+                    <input type="range" id="sizeMax" min="1" max="3" step="0.1" value="1.5" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label for="rotation">
+                        Rotation: <span id="rotationValue">0</span>°
+                    </label>
+                    <input type="range" id="rotation" min="0" max="360" value="0" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rotationRandom">
+                        Random rotation
+                    </label>
+                </div>
+
+                <div class="control-group" id="rotationRangeControl" style="display: none;">
+                    <label for="rotationRange">
+                        Rotation Range: <span id="rotationRangeValue">180</span>°
+                    </label>
+                    <input type="range" id="rotationRange" min="0" max="180" value="180" class="slider">
+                </div>
+            </section>
+
+            <!-- ASCII-Specific Parameters -->
+            <section class="control-section" id="asciiControls" style="display: none;">
+                <h2>ASCII Settings</h2>
+
+                <div class="control-group">
+                    <label for="asciiCharset">Character Set</label>
+                    <select id="asciiCharset" class="select">
+                        <option value="standard"> .:-=+*#%@</option>
+                        <option value="blocks"> ░▒▓█</option>
+                        <option value="numeric"> 123456789</option>
+                        <option value="binary"> 01</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+
+                <div class="control-group" id="customCharsetControl" style="display: none;">
+                    <label for="customCharset">Custom Characters</label>
+                    <input type="text" id="customCharset" class="text-input" placeholder="Enter characters...">
+                </div>
+
+                <div class="control-group">
+                    <label for="fontSize">
+                        Font Size: <span id="fontSizeValue">12</span>px
+                    </label>
+                    <input type="range" id="fontSize" min="4" max="32" value="12" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label for="fontFamily">Font Family</label>
+                    <select id="fontFamily" class="select">
+                        <option value="'Courier New', monospace">Courier New</option>
+                        <option value="'Monaco', monospace">Monaco</option>
+                        <option value="'Consolas', monospace">Consolas</option>
+                        <option value="monospace">System Monospace</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="charSpacing">
+                        Character Spacing: <span id="charSpacingValue">1.0</span>x
+                    </label>
+                    <input type="range" id="charSpacing" min="0.8" max="1.5" step="0.1" value="1.0" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="invertBrightness">
+                        Invert brightness
+                    </label>
+                </div>
+            </section>
+
+            <!-- Export Section -->
+            <section class="control-section">
+                <h2>Export</h2>
+                <div class="export-stats" id="exportStats">
+                    <p>Ready to export</p>
+                </div>
+                <div class="export-buttons">
+                    <button type="button" class="btn btn-primary" id="exportSVG" disabled>
+                        Download SVG
+                    </button>
+                    <button type="button" class="btn btn-primary" id="exportPNG" disabled>
+                        Download PNG
+                    </button>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Preview Canvas -->
+        <div class="preview-container">
+            <div class="preview-area">
+                <div class="preview-placeholder" id="previewPlaceholder">
+                    <p>Upload an image to get started</p>
+                </div>
+                <svg id="svgCanvas" class="svg-canvas"></svg>
+                <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Processing...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Hidden canvas for pixel sampling -->
+    <canvas id="hiddenCanvas" style="display: none;"></canvas>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <script src="js/imageProcessor.js"></script>
+    <script src="js/shapes.js"></script>
+    <script src="js/ascii.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/exporter.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
