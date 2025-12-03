@@ -160,6 +160,19 @@ class PixelEffectsApp {
             this.stopsManager.addStop(percentage, 'text', '●');
         });
 
+        // Stop operation buttons
+        document.getElementById('evenSpacingBtn').addEventListener('click', () => {
+            this.stopsManager.applyEvenSpacing();
+        });
+
+        document.getElementById('randomMappingBtn').addEventListener('click', () => {
+            this.stopsManager.shuffleStopValues();
+        });
+
+        document.getElementById('randomPositionBtn').addEventListener('click', () => {
+            this.stopsManager.randomizeStopPositions();
+        });
+
         // Initial render
         this.renderStops();
     }

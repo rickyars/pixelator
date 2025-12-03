@@ -14,23 +14,14 @@ class ASCIIMapper {
             return [];
         }
 
-        // Apply random mapping if enabled (shuffle stop values)
-        if (params.randomMapping) {
-            params.stopsManager.shuffleStopValues();
-        }
-
         // Merge pixels if enabled
         if (params.mergePixels) {
             samples = this.mergeAdjacentPixels(samples, params, stepSize);
         }
 
-        // Map each sample to a stop
+        // Map each sample to a stop based on brightness
         const elements = samples.map(sample => {
-            // Random position = randomly pick stops, ignore brightness
-            const stop = params.stopsManager.getStopForBrightness(
-                sample.brightness,
-                params.randomPosition
-            );
+            const stop = params.stopsManager.getStopForBrightness(sample.brightness, false);
 
             if (!stop) {
                 return null;

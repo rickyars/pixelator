@@ -122,8 +122,31 @@ class StopsManager {
     }
 
     /**
-     * Shuffle the stops' values (for random mapping)
-     * Redistributes characters/images to different brightness levels
+     * Apply even spacing to stops
+     * Redistributes stop percentages evenly from 0 to 100
+     */
+    applyEvenSpacing() {
+        if (this.stops.length === 0) return;
+
+        if (this.stops.length === 1) {
+            this.stops[0].percentage = 50;
+        } else {
+            const step = 100 / (this.stops.length - 1);
+            this.stops.forEach((stop, index) => {
+                stop.percentage = Math.round(index * step);
+            });
+        }
+
+        this.sortStops();
+
+        if (this.onChange) {
+            this.onChange();
+        }
+    }
+
+    /**
+     * Shuffle the stops' values (random mapping)
+     * Redistributes characters/images to different stops
      */
     shuffleStopValues() {
         if (this.stops.length < 2) return;
@@ -143,6 +166,34 @@ class StopsManager {
             stop.value = values[index].value;
             stop.image = values[index].image;
         });
+
+        if (this.onChange) {
+            this.onChange();
+        }
+    }
+
+    /**
+     * Randomize stop positions (random position)
+     * Assigns random percentage values to stops
+     */
+    randomizeStopPositions() {
+        if (this.stops.length === 0) return;
+
+        // Generate random percentages
+        const randomPercentages = [];
+        for (let i = 0; i < this.stops.length; i++) {
+            randomPercentages.push(Math.floor(Math.random() * 101));
+        }
+
+        // Sort to avoid overlaps
+        randomPercentages.sort((a, b) => a - b);
+
+        // Assign to stops
+        this.stops.forEach((stop, index) => {
+            stop.percentage = randomPercentages[index];
+        });
+
+        this.sortStops();
 
         if (this.onChange) {
             this.onChange();

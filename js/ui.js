@@ -122,9 +122,6 @@ class UI {
         });
 
         // ASCII/Image Map controls
-        this.addCheckboxHandler('evenSpacing');
-        this.addCheckboxHandler('randomMapping');
-        this.addCheckboxHandler('randomPosition');
         this.addCheckboxHandler('mergePixels');
         this.addSliderHandler('mergeMin', 'mergeMinValue');
         this.addSliderHandler('mergeMax', 'mergeMaxValue');
@@ -348,9 +345,6 @@ class UI {
             });
         } else if (mode === 'ascii') {
             Object.assign(params, {
-                evenSpacing: document.getElementById('evenSpacing').checked,
-                randomMapping: document.getElementById('randomMapping').checked,
-                randomPosition: document.getElementById('randomPosition').checked,
                 mergePixels: document.getElementById('mergePixels').checked,
                 mergeMin: parseInt(document.getElementById('mergeMin').value),
                 mergeMax: parseInt(document.getElementById('mergeMax').value),
