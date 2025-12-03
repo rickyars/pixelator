@@ -75,27 +75,47 @@ class Renderer {
     }
 
     /**
-     * Render ASCII characters
+     * Render ASCII/Image Map elements
      * @param {Array} samples - Pixel samples
-     * @param {Object} params - ASCII parameters
+     * @param {Object} params - Rendering parameters
      */
     renderASCII(samples, params) {
-        // Process samples with optional pixel merging
-        const textElements = ASCIIMapper.processSamples(samples, params, params.stepSize);
+        // Process samples with stops system
+        const elements = ASCIIMapper.processSamples(samples, params, params.stepSize);
 
-        // Create text elements
-        const texts = this.svg.selectAll('text')
-            .data(textElements)
-            .enter()
-            .append('text')
-            .attr('x', d => d.x)
-            .attr('y', d => d.y)
-            .attr('font-size', d => d.fontSize)
-            .attr('font-family', d => d.fontFamily)
-            .attr('fill', d => d.fill)
-            .attr('dominant-baseline', d => d.dominantBaseline)
-            .attr('text-anchor', d => d.textAnchor)
-            .text(d => d.text);
+        // Separate images and text
+        const images = elements.filter(e => e.type === 'image');
+        const texts = elements.filter(e => e.type === 'text');
+
+        // Render images
+        if (images.length > 0) {
+            this.svg.selectAll('image')
+                .data(images)
+                .enter()
+                .append('image')
+                .attr('x', d => d.x)
+                .attr('y', d => d.y)
+                .attr('width', d => d.width)
+                .attr('height', d => d.height)
+                .attr('href', d => d.image)
+                .attr('preserveAspectRatio', 'none');
+        }
+
+        // Render text
+        if (texts.length > 0) {
+            this.svg.selectAll('text')
+                .data(texts)
+                .enter()
+                .append('text')
+                .attr('x', d => d.x)
+                .attr('y', d => d.y)
+                .attr('font-size', d => d.fontSize)
+                .attr('font-family', d => d.fontFamily)
+                .attr('fill', d => d.fill)
+                .attr('dominant-baseline', 'middle')
+                .attr('text-anchor', 'middle')
+                .text(d => d.text);
+        }
     }
 
     /**

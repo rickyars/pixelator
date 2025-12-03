@@ -1,130 +1,154 @@
 /**
- * ASCIIMapper - Maps brightness values to ASCII characters using image maps
+ * ASCIIMapper - Maps brightness values to characters/images using gradient stops
  */
 class ASCIIMapper {
-    // Image maps - characters ordered from darkest to brightest
-    static IMAGE_MAPS = {
-        standard: [
-            ' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'
-        ],
-        blocks: [
-            ' ', '░', '▒', '▓', '█'
-        ],
-        circles: [
-            ' ', '·', '•', '●', '⬤'
-        ],
-        custom: []
-    };
-
     /**
-     * Map brightness value to a character from image map
-     * @param {number} brightness - Brightness value (0-1)
-     * @param {string} imageMap - Image map to use
-     * @param {boolean} invert - Invert the brightness mapping
-     * @returns {string} Character
-     */
-    static mapBrightness(brightness, imageMap, invert = false) {
-        const map = this.IMAGE_MAPS[imageMap] || this.IMAGE_MAPS.standard;
-
-        if (map.length === 0) {
-            return ' ';
-        }
-
-        const index = Math.floor(brightness * (map.length - 1));
-        const mappedIndex = invert ? map.length - 1 - index : index;
-
-        return map[Math.max(0, Math.min(mappedIndex, map.length - 1))];
-    }
-
-    /**
-     * Generate ASCII text element data with pixel merging support
-     * @param {Object} sample - Pixel sample with color and position data
-     * @param {Object} params - ASCII parameters
-     * @param {number} cellWidth - Width of each character cell
-     * @param {number} cellHeight - Height of each character cell
-     * @returns {Object} Text element data
-     */
-    static generate(sample, params, cellWidth, cellHeight) {
-        // Get image map
-        let imageMap = params.asciiImageMap || 'standard';
-
-        // Handle custom image map
-        if (imageMap === 'custom' && params.customCharset) {
-            this.IMAGE_MAPS.custom = params.customCharset.split('');
-        }
-
-        // Map brightness to character
-        const char = this.mapBrightness(sample.brightness, imageMap, params.invertBrightness);
-
-        // Calculate color
-        const color = ShapeGenerator.getColor(sample, params);
-
-        // If pixel merging is enabled, position characters on a grid
-        let x = sample.x;
-        let y = sample.y;
-
-        if (params.mergePixels && cellWidth && cellHeight) {
-            // Snap to grid
-            const col = Math.floor(sample.x / cellWidth);
-            const row = Math.floor(sample.y / cellHeight);
-            x = col * cellWidth + cellWidth / 2;
-            y = row * cellHeight + cellHeight / 2;
-        }
-
-        return {
-            text: char,
-            x: x,
-            y: y,
-            fontSize: params.fontSize,
-            fontFamily: params.fontFamily,
-            fill: color,
-            dominantBaseline: 'middle',
-            textAnchor: 'middle',
-            gridKey: params.mergePixels ? `${Math.floor(x)}-${Math.floor(y)}` : null
-        };
-    }
-
-    /**
-     * Process samples for ASCII rendering with optional pixel merging
+     * Process samples for image map rendering with stops
      * @param {Array} samples - Raw pixel samples
-     * @param {Object} params - ASCII parameters
-     * @param {number} stepSize - Size of each sampling step
-     * @returns {Array} Processed text elements
+     * @param {Object} params - Rendering parameters
+     * @param {number} stepSize - Size of each grid cell
+     * @returns {Array} Processed elements to render
      */
     static processSamples(samples, params, stepSize) {
-        if (!params.mergePixels) {
-            // No merging - render each sample
-            return samples.map(sample =>
-                this.generate(sample, params, stepSize, stepSize)
-            );
+        if (!params.stopsManager) {
+            return [];
         }
 
-        // With merging - group samples by grid position and average them
-        const cellWidth = stepSize;
-        const cellHeight = stepSize;
-        const grid = new Map();
+        // Apply random positioning if enabled
+        if (params.randomPosition && params.randomPositionAmount > 0) {
+            samples = samples.map(sample => ({
+                ...sample,
+                x: sample.x + (Math.random() - 0.5) * params.randomPositionAmount,
+                y: sample.y + (Math.random() - 0.5) * params.randomPositionAmount
+            }));
+        }
 
-        // Group samples by grid cell
+        // Merge pixels if enabled
+        if (params.mergePixels) {
+            samples = this.mergeAdjacentPixels(samples, params, stepSize);
+        }
+
+        // Map each sample to a stop
+        const elements = samples.map(sample => {
+            const stop = params.stopsManager.getStopForBrightness(
+                sample.brightness,
+                params.randomMapping
+            );
+
+            if (!stop) {
+                return null;
+            }
+
+            return this.createElementFromStop(sample, stop, params, stepSize);
+        }).filter(el => el !== null);
+
+        return elements;
+    }
+
+    /**
+     * Merge adjacent pixels with the same stop
+     * @param {Array} samples - Pixel samples
+     * @param {Object} params - Parameters
+     * @param {number} stepSize - Grid size
+     * @returns {Array} Merged samples
+     */
+    static mergeAdjacentPixels(samples, params, stepSize) {
+        const grid = new Map();
+        const stopsManager = params.stopsManager;
+
+        // Group samples by grid position and stop
         samples.forEach(sample => {
-            const col = Math.floor(sample.x / cellWidth);
-            const row = Math.floor(sample.y / cellHeight);
-            const key = `${col}-${row}`;
+            const col = Math.floor(sample.x / stepSize);
+            const row = Math.floor(sample.y / stepSize);
+            const stop = stopsManager.getStopForBrightness(sample.brightness, false);
+            const key = `${col}-${row}-${stop ? stop.id : 'none'}`;
 
             if (!grid.has(key)) {
-                grid.set(key, []);
+                grid.set(key, {
+                    samples: [],
+                    col: col,
+                    row: row,
+                    stop: stop
+                });
             }
-            grid.get(key).push(sample);
+
+            grid.get(key).samples.push(sample);
         });
 
-        // Average samples in each cell
-        const mergedSamples = [];
-        grid.forEach((cellSamples, key) => {
-            const avgSample = this.averageSamples(cellSamples);
-            const textData = this.generate(avgSample, params, cellWidth, cellHeight);
-            mergedSamples.push(textData);
+        // Try to merge cells
+        const merged = [];
+        const processed = new Set();
+
+        grid.forEach((cell, key) => {
+            if (processed.has(key)) return;
+
+            const mergeSize = this.findMergeSize(cell, grid, params.mergeMin, params.mergeMax, stepSize, processed);
+
+            if (mergeSize > 1) {
+                // Create a merged cell
+                const avgSample = this.averageSamples(cell.samples);
+                avgSample.mergeWidth = mergeSize;
+                avgSample.mergeHeight = mergeSize;
+                merged.push(avgSample);
+
+                // Mark cells as processed
+                for (let r = 0; r < mergeSize; r++) {
+                    for (let c = 0; c < mergeSize; c++) {
+                        const cellKey = `${cell.col + c}-${cell.row + r}-${cell.stop ? cell.stop.id : 'none'}`;
+                        processed.add(cellKey);
+                    }
+                }
+            } else {
+                // Use original sample
+                const avgSample = this.averageSamples(cell.samples);
+                avgSample.mergeWidth = 1;
+                avgSample.mergeHeight = 1;
+                merged.push(avgSample);
+                processed.add(key);
+            }
         });
 
-        return mergedSamples;
+        return merged;
+    }
+
+    /**
+     * Find the maximum square merge size for a cell
+     * @param {Object} cell - Cell to merge
+     * @param {Map} grid - Grid map
+     * @param {number} min - Minimum merge size
+     * @param {number} max - Maximum merge size
+     * @param {number} stepSize - Grid size
+     * @param {Set} processed - Set of processed cells
+     * @returns {number} Merge size
+     */
+    static findMergeSize(cell, grid, min, max, stepSize, processed) {
+        if (!cell.stop) return 1;
+
+        let size = 1;
+
+        // Try to expand the square
+        for (let s = min; s <= max; s++) {
+            let canMerge = true;
+
+            // Check if all cells in the square have the same stop
+            for (let r = 0; r < s && canMerge; r++) {
+                for (let c = 0; c < s && canMerge; c++) {
+                    const checkKey = `${cell.col + c}-${cell.row + r}-${cell.stop.id}`;
+
+                    if (!grid.has(checkKey) || processed.has(checkKey)) {
+                        canMerge = false;
+                    }
+                }
+            }
+
+            if (canMerge) {
+                size = s;
+            } else {
+                break;
+            }
+        }
+
+        return size;
     }
 
     /**
@@ -140,7 +164,9 @@ class ASCIIMapper {
             r: 0,
             g: 0,
             b: 0,
-            brightness: 0
+            brightness: 0,
+            col: samples[0].col,
+            row: samples[0].row
         };
 
         samples.forEach(sample => {
@@ -160,5 +186,39 @@ class ASCIIMapper {
         avg.brightness /= count;
 
         return avg;
+    }
+
+    /**
+     * Create a renderable element from a stop
+     * @param {Object} sample - Pixel sample
+     * @param {Object} stop - Stop object
+     * @param {Object} params - Parameters
+     * @param {number} stepSize - Grid size
+     * @returns {Object} Element data for rendering
+     */
+    static createElementFromStop(sample, stop, params, stepSize) {
+        const size = (sample.mergeWidth || 1) * stepSize * (params.imageSize / 100);
+
+        if (stop.type === 'image' && stop.image) {
+            return {
+                type: 'image',
+                x: sample.x - size / 2,
+                y: sample.y - size / 2,
+                width: size,
+                height: size,
+                image: stop.value // Data URL
+            };
+        } else {
+            // Text/character
+            return {
+                type: 'text',
+                x: sample.x,
+                y: sample.y,
+                text: stop.value || '●',
+                fontSize: size,
+                fontFamily: 'monospace',
+                fill: ShapeGenerator.getColor(sample, params)
+            };
+        }
     }
 }

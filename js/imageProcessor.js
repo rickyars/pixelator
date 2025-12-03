@@ -61,22 +61,24 @@ class ImageProcessor {
 
     /**
      * Sample pixels from the image
-     * @param {number} resolution - Number of samples across width
+     * @param {number} gridSize - Size of each grid cell in pixels
      * @param {string} method - Sampling method: 'grid' or 'random'
      * @returns {Object} Object with samples array and stepSize
      */
-    samplePixels(resolution, method = 'grid') {
+    samplePixels(gridSize, method = 'grid') {
         if (!this.imageData) return { samples: [], stepSize: 0 };
 
         const samples = [];
         const width = this.imageData.width;
         const height = this.imageData.height;
-        const stepSize = width / resolution;
+        const stepSize = gridSize;
+        const cols = Math.ceil(width / gridSize);
+        const rows = Math.ceil(height / gridSize);
 
         if (method === 'grid') {
-            samples.push(...this.sampleGrid(resolution, width, height));
+            samples.push(...this.sampleGridBySize(gridSize, width, height));
         } else if (method === 'random') {
-            samples.push(...this.sampleRandom(resolution, width, height));
+            samples.push(...this.sampleRandomBySize(gridSize, width, height, cols * rows));
         }
 
         return { samples, stepSize };
@@ -137,6 +139,71 @@ class ImageProcessor {
             samples.push({
                 x: x,
                 y: y,
+                ...color,
+                brightness: this.getBrightness(color.r, color.g, color.b)
+            });
+        }
+
+        return samples;
+    }
+
+    /**
+     * Sample pixels in a uniform grid pattern by size
+     * @param {number} gridSize - Size of each grid cell in pixels
+     * @param {number} width - Image width
+     * @param {number} height - Image height
+     * @returns {Array} Array of samples
+     */
+    sampleGridBySize(gridSize, width, height) {
+        const samples = [];
+        const cols = Math.ceil(width / gridSize);
+        const rows = Math.ceil(height / gridSize);
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const x = col * gridSize + gridSize / 2;
+                const y = row * gridSize + gridSize / 2;
+
+                if (x < width && y < height) {
+                    const color = this.getPixelColor(Math.floor(x), Math.floor(y));
+                    samples.push({
+                        x: x,
+                        y: y,
+                        col: col,
+                        row: row,
+                        ...color,
+                        brightness: this.getBrightness(color.r, color.g, color.b)
+                    });
+                }
+            }
+        }
+
+        return samples;
+    }
+
+    /**
+     * Sample pixels randomly by grid size
+     * @param {number} gridSize - Size of each grid cell
+     * @param {number} width - Image width
+     * @param {number} height - Image height
+     * @param {number} count - Number of samples
+     * @returns {Array} Array of samples
+     */
+    sampleRandomBySize(gridSize, width, height, count) {
+        const samples = [];
+
+        for (let i = 0; i < count; i++) {
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            const col = Math.floor(x / gridSize);
+            const row = Math.floor(y / gridSize);
+
+            const color = this.getPixelColor(Math.floor(x), Math.floor(y));
+            samples.push({
+                x: x,
+                y: y,
+                col: col,
+                row: row,
                 ...color,
                 brightness: this.getBrightness(color.r, color.g, color.b)
             });

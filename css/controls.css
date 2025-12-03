@@ -251,3 +251,136 @@ label span[id$="Value"] {
     font-weight: 600;
     font-family: 'SF Mono', 'Monaco', monospace;
 }
+
+/* Stops UI */
+.stops-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.stops-header h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.stops-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-primary);
+}
+
+.stops-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.stops-list::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+.stops-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.stop-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    gap: 0.75rem;
+    transition: background 150ms ease;
+}
+
+.stop-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.stop-item:last-child {
+    border-bottom: none;
+}
+
+.stop-percentage {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 70px;
+}
+
+.stop-percentage input {
+    width: 45px;
+    padding: 0.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.stop-preview {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 150ms ease;
+}
+
+.stop-preview:hover {
+    border-color: var(--accent);
+}
+
+.stop-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.stop-preview-text {
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.stop-type {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+.stop-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.stop-action-btn {
+    padding: 0.25rem 0.5rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 150ms ease;
+}
+
+.stop-action-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.stop-upload-input {
+    display: none;
+}

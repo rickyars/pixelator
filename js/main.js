@@ -6,9 +6,11 @@ class PixelEffectsApp {
         this.imageProcessor = new ImageProcessor();
         this.renderer = new Renderer('svgCanvas');
         this.ui = new UI();
+        this.stopsManager = new StopsManager();
         this.currentSamples = [];
 
         this.initEventHandlers();
+        this.initStopsUI();
     }
 
     /**
@@ -98,12 +100,13 @@ class PixelEffectsApp {
 
                 // Sample pixels - returns { samples, stepSize }
                 const result = this.imageProcessor.samplePixels(
-                    params.resolution,
+                    params.gridSize,
                     params.samplingMethod
                 );
 
                 this.currentSamples = result.samples;
                 params.stepSize = result.stepSize;
+                params.stopsManager = this.stopsManager;
 
                 // Render to SVG
                 this.renderer.render(this.currentSamples, params.mode, params);
@@ -134,6 +137,119 @@ class PixelEffectsApp {
     exportPNG() {
         const svgElement = this.renderer.getSVGElement();
         Exporter.toPNG(svgElement, 2, 'pixel-effects');
+    }
+
+    /**
+     * Initialize stops UI
+     */
+    initStopsUI() {
+        const stopsList = document.getElementById('stopsList');
+        const addStopBtn = document.getElementById('addStop');
+
+        // Render stops
+        this.stopsManager.onChange = () => {
+            this.renderStops();
+            if (this.imageProcessor.image) {
+                this.processAndRender();
+            }
+        };
+
+        // Add stop button
+        addStopBtn.addEventListener('click', () => {
+            const percentage = 50; // Default percentage
+            this.stopsManager.addStop(percentage, 'text', '●');
+        });
+
+        // Initial render
+        this.renderStops();
+    }
+
+    /**
+     * Render stops list
+     */
+    renderStops() {
+        const stopsList = document.getElementById('stopsList');
+        stopsList.innerHTML = '';
+
+        const stops = this.stopsManager.getStops();
+
+        stops.forEach(stop => {
+            const stopItem = document.createElement('div');
+            stopItem.className = 'stop-item';
+
+            // Percentage input
+            const percentageDiv = document.createElement('div');
+            percentageDiv.className = 'stop-percentage';
+
+            const percentageInput = document.createElement('input');
+            percentageInput.type = 'number';
+            percentageInput.min = 0;
+            percentageInput.max = 100;
+            percentageInput.value = stop.percentage;
+            percentageInput.addEventListener('change', (e) => {
+                this.stopsManager.updateStop(stop.id, { percentage: parseInt(e.target.value) });
+            });
+
+            const percentLabel = document.createElement('span');
+            percentLabel.textContent = '%';
+
+            percentageDiv.appendChild(percentageInput);
+            percentageDiv.appendChild(percentLabel);
+
+            // Preview
+            const preview = document.createElement('div');
+            preview.className = 'stop-preview';
+
+            if (stop.type === 'image' && stop.image) {
+                const img = document.createElement('img');
+                img.src = stop.value;
+                preview.appendChild(img);
+            } else {
+                const text = document.createElement('span');
+                text.className = 'stop-preview-text';
+                text.textContent = stop.value || '●';
+                preview.appendChild(text);
+            }
+
+            // Click to upload image
+            preview.addEventListener('click', () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        await this.stopsManager.loadImage(stop.id, file);
+                    }
+                };
+                input.click();
+            });
+
+            // Type label
+            const typeLabel = document.createElement('div');
+            typeLabel.className = 'stop-type';
+            typeLabel.textContent = stop.type === 'image' ? 'Image' : 'Character';
+
+            // Actions
+            const actions = document.createElement('div');
+            actions.className = 'stop-actions';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'stop-action-btn';
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => {
+                this.stopsManager.removeStop(stop.id);
+            });
+
+            actions.appendChild(removeBtn);
+
+            stopItem.appendChild(percentageDiv);
+            stopItem.appendChild(preview);
+            stopItem.appendChild(typeLabel);
+            stopItem.appendChild(actions);
+
+            stopsList.appendChild(stopItem);
+        });
     }
 }
 

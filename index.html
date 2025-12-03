@@ -68,10 +68,10 @@
                 <h2>Common Settings</h2>
 
                 <div class="control-group">
-                    <label for="resolution">
-                        Resolution: <span id="resolutionValue">50</span>
+                    <label for="gridSize">
+                        Grid Size: <span id="gridSizeValue">10</span>px
                     </label>
-                    <input type="range" id="resolution" min="10" max="200" value="50" class="slider">
+                    <input type="range" id="gridSize" min="2" max="100" value="10" class="slider">
                 </div>
 
                 <div class="control-group">
@@ -178,52 +178,69 @@
 
             <!-- ASCII-Specific Parameters -->
             <section class="control-section" id="asciiControls" style="display: none;">
-                <h2>ASCII Settings</h2>
+                <h2>Image Map Settings</h2>
 
-                <div class="control-group">
-                    <label for="asciiImageMap">Image Map</label>
-                    <select id="asciiImageMap" class="select">
-                        <option value="standard">Standard ASCII</option>
-                        <option value="blocks">Block Characters</option>
-                        <option value="circles">Circle Variations</option>
-                        <option value="custom">Custom Characters</option>
-                    </select>
+                <div class="stops-header">
+                    <h3>Stops</h3>
+                    <button type="button" class="btn btn-small" id="addStop">+ Add</button>
                 </div>
 
-                <div class="control-group" id="customCharsetControl" style="display: none;">
-                    <label for="customCharset">Custom Characters</label>
-                    <input type="text" id="customCharset" class="text-input" placeholder="Enter characters...">
+                <div class="stops-list" id="stopsList">
+                    <!-- Stops will be added here dynamically -->
                 </div>
 
                 <div class="control-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="mergePixels" checked>
+                        <input type="checkbox" id="evenSpacing">
+                        Even spacing
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="randomMapping">
+                        Random mapping
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="randomPosition">
+                        Random position
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label for="randomPositionAmount">
+                        Position variance: <span id="randomPositionAmountValue">0</span>px
+                    </label>
+                    <input type="range" id="randomPositionAmount" min="0" max="50" value="0" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="mergePixels">
                         Merge pixels
                     </label>
                 </div>
 
-                <div class="control-group">
-                    <label for="fontSize">
-                        Font Size: <span id="fontSizeValue">12</span>px
+                <div class="control-group" id="mergeControls" style="display: none;">
+                    <label for="mergeMin">
+                        Merge Min: <span id="mergeMinValue">2</span>
                     </label>
-                    <input type="range" id="fontSize" min="4" max="32" value="12" class="slider">
+                    <input type="range" id="mergeMin" min="1" max="10" value="2" class="slider">
+
+                    <label for="mergeMax">
+                        Merge Max: <span id="mergeMaxValue">5</span>
+                    </label>
+                    <input type="range" id="mergeMax" min="1" max="20" value="5" class="slider">
                 </div>
 
                 <div class="control-group">
-                    <label for="fontFamily">Font Family</label>
-                    <select id="fontFamily" class="select">
-                        <option value="'Courier New', monospace">Courier New</option>
-                        <option value="'Monaco', monospace">Monaco</option>
-                        <option value="'Consolas', monospace">Consolas</option>
-                        <option value="monospace">System Monospace</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="invertBrightness">
-                        Invert brightness
+                    <label for="imageSize">
+                        Image Size: <span id="imageSizeValue">100</span>%
                     </label>
+                    <input type="range" id="imageSize" min="10" max="200" value="100" class="slider">
                 </div>
             </section>
 
@@ -266,6 +283,7 @@
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
     <script src="js/imageProcessor.js"></script>
     <script src="js/shapes.js"></script>
+    <script src="js/stopsManager.js"></script>
     <script src="js/ascii.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/exporter.js"></script>

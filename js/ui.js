@@ -82,7 +82,7 @@ class UI {
         });
 
         // Common controls
-        this.addSliderHandler('resolution', 'resolutionValue');
+        this.addSliderHandler('gridSize', 'gridSizeValue');
         this.addSelectHandler('samplingMethod');
         this.addSelectHandler('colorMode');
         this.addColorHandler('duotoneDark');
@@ -121,22 +121,20 @@ class UI {
             this.triggerParameterChange();
         });
 
-        // ASCII controls
-        this.addSelectHandler('asciiImageMap');
+        // ASCII/Image Map controls
+        this.addCheckboxHandler('evenSpacing');
+        this.addCheckboxHandler('randomMapping');
+        this.addCheckboxHandler('randomPosition');
+        this.addSliderHandler('randomPositionAmount', 'randomPositionAmountValue');
         this.addCheckboxHandler('mergePixels');
-        this.addSliderHandler('fontSize', 'fontSizeValue');
-        this.addSelectHandler('fontFamily');
-        this.addCheckboxHandler('invertBrightness');
+        this.addSliderHandler('mergeMin', 'mergeMinValue');
+        this.addSliderHandler('mergeMax', 'mergeMaxValue');
+        this.addSliderHandler('imageSize', 'imageSizeValue');
 
-        // ASCII image map change handler
-        document.getElementById('asciiImageMap').addEventListener('change', (e) => {
-            const customCharsetControl = document.getElementById('customCharsetControl');
-            customCharsetControl.style.display = e.target.value === 'custom' ? 'block' : 'none';
-            this.triggerParameterChange();
-        });
-
-        // Custom charset input
-        document.getElementById('customCharset').addEventListener('input', () => {
+        // Merge pixels toggle
+        document.getElementById('mergePixels').addEventListener('change', (e) => {
+            const mergeControls = document.getElementById('mergeControls');
+            mergeControls.style.display = e.target.checked ? 'block' : 'none';
             this.triggerParameterChange();
         });
     }
@@ -329,7 +327,7 @@ class UI {
 
         const params = {
             mode: mode,
-            resolution: parseInt(document.getElementById('resolution').value),
+            gridSize: parseInt(document.getElementById('gridSize').value),
             samplingMethod: document.getElementById('samplingMethod').value,
             colorMode: document.getElementById('colorMode').value,
             duotoneDark: document.getElementById('duotoneDark').value,
@@ -351,12 +349,14 @@ class UI {
             });
         } else if (mode === 'ascii') {
             Object.assign(params, {
-                asciiImageMap: document.getElementById('asciiImageMap').value,
-                customCharset: document.getElementById('customCharset').value,
+                evenSpacing: document.getElementById('evenSpacing').checked,
+                randomMapping: document.getElementById('randomMapping').checked,
+                randomPosition: document.getElementById('randomPosition').checked,
+                randomPositionAmount: parseFloat(document.getElementById('randomPositionAmount').value),
                 mergePixels: document.getElementById('mergePixels').checked,
-                fontSize: parseFloat(document.getElementById('fontSize').value),
-                fontFamily: document.getElementById('fontFamily').value,
-                invertBrightness: document.getElementById('invertBrightness').checked
+                mergeMin: parseInt(document.getElementById('mergeMin').value),
+                mergeMax: parseInt(document.getElementById('mergeMax').value),
+                imageSize: parseFloat(document.getElementById('imageSize').value)
             });
         }
 
