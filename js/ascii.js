@@ -198,6 +198,13 @@ class ASCIIMapper {
             };
         } else {
             // Text/character
+            // For ASCII, invert brightness for duotone colors
+            // Bright pixels get dark characters (⬤) and should be dark color
+            // Dark pixels get light characters (space) and should be light color
+            const colorSample = params.colorMode === 'duotone'
+                ? { ...sample, brightness: 1 - sample.brightness }
+                : sample;
+
             return {
                 type: 'text',
                 x: sample.x,
@@ -205,7 +212,7 @@ class ASCIIMapper {
                 text: stop.value || '●',
                 fontSize: size,
                 fontFamily: 'monospace',
-                fill: ShapeGenerator.getColor(sample, params)
+                fill: ShapeGenerator.getColor(colorSample, params)
             };
         }
     }
