@@ -35,7 +35,8 @@ class StopsManager {
             percentage: percentage,
             type: type,
             value: value,
-            image: null
+            image: null,
+            color: '#ffffff' // Default white color for text
         };
 
         this.stops.push(stop);
@@ -151,8 +152,13 @@ class StopsManager {
     shuffleStopValues() {
         if (this.stops.length < 2) return;
 
-        // Extract all values
-        const values = this.stops.map(s => ({ type: s.type, value: s.value, image: s.image }));
+        // Extract all values including color
+        const values = this.stops.map(s => ({
+            type: s.type,
+            value: s.value,
+            image: s.image,
+            color: s.color
+        }));
 
         // Shuffle values using Fisher-Yates
         for (let i = values.length - 1; i > 0; i--) {
@@ -165,6 +171,7 @@ class StopsManager {
             stop.type = values[index].type;
             stop.value = values[index].value;
             stop.image = values[index].image;
+            stop.color = values[index].color;
         });
 
         if (this.onChange) {
@@ -220,6 +227,9 @@ class StopsManager {
                         stop.image = img;
                         stop.value = e.target.result; // Store the data URL
 
+                        // Extract color from image
+                        stop.color = this.extractColorFromImage(img);
+
                         if (this.onChange) {
                             this.onChange();
                         }
@@ -240,6 +250,46 @@ class StopsManager {
 
             reader.readAsDataURL(file);
         });
+    }
+
+    /**
+     * Extract a representative color from an image
+     * @param {Image} img - Image element
+     * @returns {string} Hex color string
+     */
+    extractColorFromImage(img) {
+        // Create a temporary canvas to sample the image
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Use a small canvas to get average color
+        const sampleSize = 10;
+        canvas.width = sampleSize;
+        canvas.height = sampleSize;
+
+        // Draw the image scaled down
+        ctx.drawImage(img, 0, 0, sampleSize, sampleSize);
+
+        // Get image data
+        const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize);
+        const data = imageData.data;
+
+        // Calculate average color
+        let r = 0, g = 0, b = 0;
+        const pixelCount = sampleSize * sampleSize;
+
+        for (let i = 0; i < data.length; i += 4) {
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+        }
+
+        r = Math.round(r / pixelCount);
+        g = Math.round(g / pixelCount);
+        b = Math.round(b / pixelCount);
+
+        // Convert to hex
+        return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
     }
 
     /**

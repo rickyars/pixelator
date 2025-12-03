@@ -228,13 +228,16 @@ class UI {
     handleModeChange(mode) {
         const shapeControls = document.getElementById('shapeControls');
         const asciiControls = document.getElementById('asciiControls');
+        const colorModeControl = document.getElementById('colorModeControl');
 
         if (mode === 'shapes') {
             shapeControls.style.display = 'block';
             asciiControls.style.display = 'none';
+            colorModeControl.style.display = 'block';
         } else {
             shapeControls.style.display = 'none';
             asciiControls.style.display = 'block';
+            colorModeControl.style.display = 'none';
         }
 
         this.triggerParameterChange();

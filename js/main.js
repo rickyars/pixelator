@@ -238,11 +238,6 @@ class PixelEffectsApp {
                 input.click();
             });
 
-            // Type label
-            const typeLabel = document.createElement('div');
-            typeLabel.className = 'stop-type';
-            typeLabel.textContent = stop.type === 'image' ? 'Image' : 'Character';
-
             // Actions
             const actions = document.createElement('div');
             actions.className = 'stop-actions';
@@ -258,7 +253,6 @@ class PixelEffectsApp {
 
             stopItem.appendChild(percentageDiv);
             stopItem.appendChild(preview);
-            stopItem.appendChild(typeLabel);
             stopItem.appendChild(actions);
 
             stopsList.appendChild(stopItem);

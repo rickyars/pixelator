@@ -82,21 +82,23 @@
                     </select>
                 </div>
 
-                <div class="control-group">
-                    <label for="colorMode">Color Mode</label>
-                    <select id="colorMode" class="select">
-                        <option value="original">Original Colors</option>
-                        <option value="grayscale">Grayscale</option>
-                        <option value="duotone">Duotone</option>
-                    </select>
-                </div>
+                <div id="colorModeControl">
+                    <div class="control-group">
+                        <label for="colorMode">Color Mode</label>
+                        <select id="colorMode" class="select">
+                            <option value="original">Original Colors</option>
+                            <option value="grayscale">Grayscale</option>
+                            <option value="duotone">Duotone</option>
+                        </select>
+                    </div>
 
-                <div class="control-group" id="duotoneControls" style="display: none;">
-                    <label for="duotoneDark">Dark Color</label>
-                    <input type="color" id="duotoneDark" value="#000000" class="color-picker">
+                    <div class="control-group" id="duotoneControls" style="display: none;">
+                        <label for="duotoneDark">Dark Color</label>
+                        <input type="color" id="duotoneDark" value="#000000" class="color-picker">
 
-                    <label for="duotoneLight">Light Color</label>
-                    <input type="color" id="duotoneLight" value="#ffffff" class="color-picker">
+                        <label for="duotoneLight">Light Color</label>
+                        <input type="color" id="duotoneLight" value="#ffffff" class="color-picker">
+                    </div>
                 </div>
 
                 <div class="control-group">
