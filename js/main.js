@@ -96,11 +96,14 @@ class PixelEffectsApp {
                 params.imageWidth = dimensions.width;
                 params.imageHeight = dimensions.height;
 
-                // Sample pixels
-                this.currentSamples = this.imageProcessor.samplePixels(
+                // Sample pixels - returns { samples, stepSize }
+                const result = this.imageProcessor.samplePixels(
                     params.resolution,
                     params.samplingMethod
                 );
+
+                this.currentSamples = result.samples;
+                params.stepSize = result.stepSize;
 
                 // Render to SVG
                 this.renderer.render(this.currentSamples, params.mode, params);

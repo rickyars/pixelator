@@ -87,6 +87,7 @@ class UI {
         this.addSelectHandler('colorMode');
         this.addColorHandler('duotoneDark');
         this.addColorHandler('duotoneLight');
+        this.addColorHandler('backgroundColor');
 
         // Color mode change handler
         document.getElementById('colorMode').addEventListener('change', (e) => {
@@ -97,18 +98,19 @@ class UI {
 
         // Shape controls
         this.addSelectHandler('shapeType');
-        this.addSliderHandler('shapeSize', 'shapeSizeValue');
-        this.addCheckboxHandler('sizeBrightness');
-        this.addSliderHandler('sizeMin', 'sizeMinValue');
-        this.addSliderHandler('sizeMax', 'sizeMaxValue');
+        this.addCheckboxHandler('scaleEnabled');
+        this.addSliderHandler('scaleMin', 'scaleMinValue');
+        this.addSliderHandler('scaleMax', 'scaleMaxValue');
         this.addSliderHandler('rotation', 'rotationValue');
+        this.addCheckboxHandler('rotationBrightness');
         this.addCheckboxHandler('rotationRandom');
         this.addSliderHandler('rotationRange', 'rotationRangeValue');
+        this.addCheckboxHandler('antiAlias');
 
-        // Size brightness toggle
-        document.getElementById('sizeBrightness').addEventListener('change', (e) => {
-            const sizeRangeControls = document.getElementById('sizeRangeControls');
-            sizeRangeControls.style.display = e.target.checked ? 'block' : 'none';
+        // Scale toggle
+        document.getElementById('scaleEnabled').addEventListener('change', (e) => {
+            const scaleControls = document.getElementById('scaleControls');
+            scaleControls.style.display = e.target.checked ? 'block' : 'none';
             this.triggerParameterChange();
         });
 
@@ -120,14 +122,14 @@ class UI {
         });
 
         // ASCII controls
-        this.addSelectHandler('asciiCharset');
+        this.addSelectHandler('asciiImageMap');
+        this.addCheckboxHandler('mergePixels');
         this.addSliderHandler('fontSize', 'fontSizeValue');
         this.addSelectHandler('fontFamily');
-        this.addSliderHandler('charSpacing', 'charSpacingValue');
         this.addCheckboxHandler('invertBrightness');
 
-        // ASCII charset change handler
-        document.getElementById('asciiCharset').addEventListener('change', (e) => {
+        // ASCII image map change handler
+        document.getElementById('asciiImageMap').addEventListener('change', (e) => {
             const customCharsetControl = document.getElementById('customCharsetControl');
             customCharsetControl.style.display = e.target.value === 'custom' ? 'block' : 'none';
             this.triggerParameterChange();
@@ -331,27 +333,29 @@ class UI {
             samplingMethod: document.getElementById('samplingMethod').value,
             colorMode: document.getElementById('colorMode').value,
             duotoneDark: document.getElementById('duotoneDark').value,
-            duotoneLight: document.getElementById('duotoneLight').value
+            duotoneLight: document.getElementById('duotoneLight').value,
+            backgroundColor: document.getElementById('backgroundColor').value
         };
 
         if (mode === 'shapes') {
             Object.assign(params, {
                 shapeType: document.getElementById('shapeType').value,
-                shapeSize: parseFloat(document.getElementById('shapeSize').value),
-                sizeBrightness: document.getElementById('sizeBrightness').checked,
-                sizeMin: parseFloat(document.getElementById('sizeMin').value),
-                sizeMax: parseFloat(document.getElementById('sizeMax').value),
+                scaleEnabled: document.getElementById('scaleEnabled').checked,
+                scaleMin: parseFloat(document.getElementById('scaleMin').value),
+                scaleMax: parseFloat(document.getElementById('scaleMax').value),
                 rotation: parseFloat(document.getElementById('rotation').value),
+                rotationBrightness: document.getElementById('rotationBrightness').checked,
                 rotationRandom: document.getElementById('rotationRandom').checked,
-                rotationRange: parseFloat(document.getElementById('rotationRange').value)
+                rotationRange: parseFloat(document.getElementById('rotationRange').value),
+                antiAlias: document.getElementById('antiAlias').checked
             });
         } else if (mode === 'ascii') {
             Object.assign(params, {
-                asciiCharset: document.getElementById('asciiCharset').value,
+                asciiImageMap: document.getElementById('asciiImageMap').value,
                 customCharset: document.getElementById('customCharset').value,
+                mergePixels: document.getElementById('mergePixels').checked,
                 fontSize: parseFloat(document.getElementById('fontSize').value),
                 fontFamily: document.getElementById('fontFamily').value,
-                charSpacing: parseFloat(document.getElementById('charSpacing').value),
                 invertBrightness: document.getElementById('invertBrightness').checked
             });
         }

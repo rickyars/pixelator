@@ -27,6 +27,21 @@ class Renderer {
             this.svg.attr('height', params.imageHeight);
         }
 
+        // Set shape-rendering based on anti-alias setting
+        if (params.antiAlias === false) {
+            this.svg.attr('shape-rendering', 'crispEdges');
+        } else {
+            this.svg.attr('shape-rendering', 'auto');
+        }
+
+        // Add background rectangle
+        if (params.backgroundColor) {
+            this.svg.append('rect')
+                .attr('width', params.imageWidth)
+                .attr('height', params.imageHeight)
+                .attr('fill', params.backgroundColor);
+        }
+
         // Render based on mode
         if (mode === 'shapes') {
             this.renderShapes(samples, params);
@@ -65,26 +80,22 @@ class Renderer {
      * @param {Object} params - ASCII parameters
      */
     renderASCII(samples, params) {
+        // Process samples with optional pixel merging
+        const textElements = ASCIIMapper.processSamples(samples, params, params.stepSize);
+
         // Create text elements
         const texts = this.svg.selectAll('text')
-            .data(samples)
+            .data(textElements)
             .enter()
-            .append('text');
-
-        // Apply text attributes
-        texts.each(function(d) {
-            const textData = ASCIIMapper.generate(d, params);
-            d3.select(this)
-                .attr('x', textData.x)
-                .attr('y', textData.y)
-                .attr('font-size', textData.fontSize)
-                .attr('font-family', textData.fontFamily)
-                .attr('fill', textData.fill)
-                .attr('dominant-baseline', textData.dominantBaseline)
-                .attr('text-anchor', textData.textAnchor)
-                .style('letter-spacing', `${(textData.letterSpacing - 1) * textData.fontSize}px`)
-                .text(textData.text);
-        });
+            .append('text')
+            .attr('x', d => d.x)
+            .attr('y', d => d.y)
+            .attr('font-size', d => d.fontSize)
+            .attr('font-family', d => d.fontFamily)
+            .attr('fill', d => d.fill)
+            .attr('dominant-baseline', d => d.dominantBaseline)
+            .attr('text-anchor', d => d.textAnchor)
+            .text(d => d.text);
     }
 
     /**

@@ -98,6 +98,11 @@
                     <label for="duotoneLight">Light Color</label>
                     <input type="color" id="duotoneLight" value="#ffffff" class="color-picker">
                 </div>
+
+                <div class="control-group">
+                    <label for="backgroundColor">Background Color</label>
+                    <input type="color" id="backgroundColor" value="#ffffff" class="color-picker">
+                </div>
             </section>
 
             <!-- Shape-Specific Parameters -->
@@ -117,29 +122,22 @@
                 </div>
 
                 <div class="control-group">
-                    <label for="shapeSize">
-                        Base Size: <span id="shapeSizeValue">10</span>px
-                    </label>
-                    <input type="range" id="shapeSize" min="1" max="50" value="10" class="slider">
-                </div>
-
-                <div class="control-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="sizeBrightness">
-                        Scale size by brightness
+                        <input type="checkbox" id="scaleEnabled" checked>
+                        Scale
                     </label>
                 </div>
 
-                <div class="control-group" id="sizeRangeControls" style="display: none;">
-                    <label for="sizeMin">
-                        Min Size: <span id="sizeMinValue">0.3</span>x
+                <div class="control-group" id="scaleControls">
+                    <label for="scaleMin">
+                        Min: <span id="scaleMinValue">30</span>%
                     </label>
-                    <input type="range" id="sizeMin" min="0.1" max="1" step="0.1" value="0.3" class="slider">
+                    <input type="range" id="scaleMin" min="0" max="100" value="30" class="slider">
 
-                    <label for="sizeMax">
-                        Max Size: <span id="sizeMaxValue">1.5</span>x
+                    <label for="scaleMax">
+                        Max: <span id="scaleMaxValue">100</span>%
                     </label>
-                    <input type="range" id="sizeMax" min="1" max="3" step="0.1" value="1.5" class="slider">
+                    <input type="range" id="scaleMax" min="0" max="100" value="100" class="slider">
                 </div>
 
                 <div class="control-group">
@@ -147,6 +145,13 @@
                         Rotation: <span id="rotationValue">0</span>°
                     </label>
                     <input type="range" id="rotation" min="0" max="360" value="0" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rotationBrightness">
+                        Rotation by brightness
+                    </label>
                 </div>
 
                 <div class="control-group">
@@ -162,6 +167,13 @@
                     </label>
                     <input type="range" id="rotationRange" min="0" max="180" value="180" class="slider">
                 </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="antiAlias">
+                        Anti-alias
+                    </label>
+                </div>
             </section>
 
             <!-- ASCII-Specific Parameters -->
@@ -169,19 +181,25 @@
                 <h2>ASCII Settings</h2>
 
                 <div class="control-group">
-                    <label for="asciiCharset">Character Set</label>
-                    <select id="asciiCharset" class="select">
-                        <option value="standard"> .:-=+*#%@</option>
-                        <option value="blocks"> ░▒▓█</option>
-                        <option value="numeric"> 123456789</option>
-                        <option value="binary"> 01</option>
-                        <option value="custom">Custom</option>
+                    <label for="asciiImageMap">Image Map</label>
+                    <select id="asciiImageMap" class="select">
+                        <option value="standard">Standard ASCII</option>
+                        <option value="blocks">Block Characters</option>
+                        <option value="circles">Circle Variations</option>
+                        <option value="custom">Custom Characters</option>
                     </select>
                 </div>
 
                 <div class="control-group" id="customCharsetControl" style="display: none;">
                     <label for="customCharset">Custom Characters</label>
                     <input type="text" id="customCharset" class="text-input" placeholder="Enter characters...">
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="mergePixels" checked>
+                        Merge pixels
+                    </label>
                 </div>
 
                 <div class="control-group">
@@ -199,13 +217,6 @@
                         <option value="'Consolas', monospace">Consolas</option>
                         <option value="monospace">System Monospace</option>
                     </select>
-                </div>
-
-                <div class="control-group">
-                    <label for="charSpacing">
-                        Character Spacing: <span id="charSpacingValue">1.0</span>x
-                    </label>
-                    <input type="range" id="charSpacing" min="0.8" max="1.5" step="0.1" value="1.0" class="slider">
                 </div>
 
                 <div class="control-group">

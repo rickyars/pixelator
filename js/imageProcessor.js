@@ -63,14 +63,15 @@ class ImageProcessor {
      * Sample pixels from the image
      * @param {number} resolution - Number of samples across width
      * @param {string} method - Sampling method: 'grid' or 'random'
-     * @returns {Array} Array of sample objects with x, y, r, g, b, brightness
+     * @returns {Object} Object with samples array and stepSize
      */
     samplePixels(resolution, method = 'grid') {
-        if (!this.imageData) return [];
+        if (!this.imageData) return { samples: [], stepSize: 0 };
 
         const samples = [];
         const width = this.imageData.width;
         const height = this.imageData.height;
+        const stepSize = width / resolution;
 
         if (method === 'grid') {
             samples.push(...this.sampleGrid(resolution, width, height));
@@ -78,7 +79,7 @@ class ImageProcessor {
             samples.push(...this.sampleRandom(resolution, width, height));
         }
 
-        return samples;
+        return { samples, stepSize };
     }
 
     /**

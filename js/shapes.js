@@ -82,16 +82,23 @@ class ShapeGenerator {
      * @returns {Object} Shape data for rendering
      */
     static generate(sample, params) {
-        // Calculate size based on brightness if enabled
-        let size = params.shapeSize;
-        if (params.sizeBrightness) {
-            const scale = params.sizeMin + (sample.brightness * (params.sizeMax - params.sizeMin));
-            size = params.shapeSize * scale;
+        // Calculate base size from resolution - use the step size from sampling
+        const baseSize = params.stepSize || 10;
+
+        // Calculate size based on scale if enabled
+        let size = baseSize;
+        if (params.scaleEnabled) {
+            const scalePercent = params.scaleMin + (sample.brightness * (params.scaleMax - params.scaleMin));
+            size = baseSize * (scalePercent / 100);
         }
 
         // Calculate rotation
         let rotation = params.rotation;
-        if (params.rotationRandom) {
+
+        // Rotation by brightness takes precedence
+        if (params.rotationBrightness) {
+            rotation = sample.brightness * 360;
+        } else if (params.rotationRandom) {
             rotation += (Math.random() - 0.5) * params.rotationRange;
         }
 
