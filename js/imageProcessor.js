@@ -68,17 +68,19 @@ class ImageProcessor {
     samplePixels(gridSize, method = 'grid') {
         if (!this.imageData) return { samples: [], stepSize: 0 };
 
-        const samples = [];
         const width = this.imageData.width;
         const height = this.imageData.height;
         const stepSize = gridSize;
         const cols = Math.ceil(width / gridSize);
         const rows = Math.ceil(height / gridSize);
 
+        let samples;
         if (method === 'grid') {
-            samples.push(...this.sampleGridBySize(gridSize, width, height));
+            samples = this.sampleGridBySize(gridSize, width, height);
         } else if (method === 'random') {
-            samples.push(...this.sampleRandomBySize(gridSize, width, height, cols * rows));
+            samples = this.sampleRandomBySize(gridSize, width, height, cols * rows);
+        } else {
+            samples = [];
         }
 
         return { samples, stepSize };
