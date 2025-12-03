@@ -87,15 +87,16 @@ class StopsManager {
     /**
      * Get the stop for a given brightness value
      * @param {number} brightness - Brightness value (0-1)
-     * @param {boolean} randomMapping - Whether to randomly assign stops
+     * @param {boolean} randomPosition - Whether to randomly assign stops (ignore brightness)
      * @returns {Object} The appropriate stop
      */
-    getStopForBrightness(brightness, randomMapping = false) {
+    getStopForBrightness(brightness, randomPosition = false) {
         if (this.stops.length === 0) {
             return null;
         }
 
-        if (randomMapping) {
+        // Random position = randomly pick a stop, ignoring brightness
+        if (randomPosition) {
             return this.stops[Math.floor(Math.random() * this.stops.length)];
         }
 
@@ -118,6 +119,34 @@ class StopsManager {
 
         // If we're above the last stop, return it
         return this.stops[this.stops.length - 1];
+    }
+
+    /**
+     * Shuffle the stops' values (for random mapping)
+     * Redistributes characters/images to different brightness levels
+     */
+    shuffleStopValues() {
+        if (this.stops.length < 2) return;
+
+        // Extract all values
+        const values = this.stops.map(s => ({ type: s.type, value: s.value, image: s.image }));
+
+        // Shuffle values using Fisher-Yates
+        for (let i = values.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [values[i], values[j]] = [values[j], values[i]];
+        }
+
+        // Reassign shuffled values to stops
+        this.stops.forEach((stop, index) => {
+            stop.type = values[index].type;
+            stop.value = values[index].value;
+            stop.image = values[index].image;
+        });
+
+        if (this.onChange) {
+            this.onChange();
+        }
     }
 
     /**

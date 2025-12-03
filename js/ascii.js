@@ -14,13 +14,9 @@ class ASCIIMapper {
             return [];
         }
 
-        // Apply random positioning if enabled
-        if (params.randomPosition && params.randomPositionAmount > 0) {
-            samples = samples.map(sample => ({
-                ...sample,
-                x: sample.x + (Math.random() - 0.5) * params.randomPositionAmount,
-                y: sample.y + (Math.random() - 0.5) * params.randomPositionAmount
-            }));
+        // Apply random mapping if enabled (shuffle stop values)
+        if (params.randomMapping) {
+            params.stopsManager.shuffleStopValues();
         }
 
         // Merge pixels if enabled
@@ -30,9 +26,10 @@ class ASCIIMapper {
 
         // Map each sample to a stop
         const elements = samples.map(sample => {
+            // Random position = randomly pick stops, ignore brightness
             const stop = params.stopsManager.getStopForBrightness(
                 sample.brightness,
-                params.randomMapping
+                params.randomPosition
             );
 
             if (!stop) {

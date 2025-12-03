@@ -125,7 +125,6 @@ class UI {
         this.addCheckboxHandler('evenSpacing');
         this.addCheckboxHandler('randomMapping');
         this.addCheckboxHandler('randomPosition');
-        this.addSliderHandler('randomPositionAmount', 'randomPositionAmountValue');
         this.addCheckboxHandler('mergePixels');
         this.addSliderHandler('mergeMin', 'mergeMinValue');
         this.addSliderHandler('mergeMax', 'mergeMaxValue');
@@ -352,7 +351,6 @@ class UI {
                 evenSpacing: document.getElementById('evenSpacing').checked,
                 randomMapping: document.getElementById('randomMapping').checked,
                 randomPosition: document.getElementById('randomPosition').checked,
-                randomPositionAmount: parseFloat(document.getElementById('randomPositionAmount').value),
                 mergePixels: document.getElementById('mergePixels').checked,
                 mergeMin: parseInt(document.getElementById('mergeMin').value),
                 mergeMax: parseInt(document.getElementById('mergeMax').value),
