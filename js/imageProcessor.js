@@ -60,11 +60,16 @@ class ImageProcessor {
 
         // Apply effects in order: posterize first, then dither, then pixelization
         if (effects.posterize && effects.posterizeLevels) {
-            this.applyPosterize(effects.posterizeLevels);
-        }
-
-        if (effects.dither) {
-            this.applyDither();
+            if (effects.dither) {
+                // Apply posterization with dithering (error diffusion)
+                this.applyDitheredPosterize(effects.posterizeLevels);
+            } else {
+                // Apply posterization without dithering
+                this.applyPosterize(effects.posterizeLevels);
+            }
+        } else if (effects.dither) {
+            // Apply dithering with default palette (8 levels per channel)
+            this.applyDitheredPosterize(8);
         }
 
         // Put the processed image data back
@@ -285,48 +290,47 @@ class ImageProcessor {
         const data = this.imageData.data;
         const levelsPerChannel = Math.max(2, Math.min(256, levels));
 
-        // Calculate the multiplier for quantization
-        const multiplier = 255 / (levelsPerChannel - 1);
+        // Calculate step size for quantization
+        const step = 256 / levelsPerChannel;
 
         for (let i = 0; i < data.length; i += 4) {
             // Quantize each color channel independently
-            // Map each channel value to one of the discrete levels
-            data[i] = Math.round(Math.round(data[i] / 255 * (levelsPerChannel - 1)) * multiplier);     // R
-            data[i + 1] = Math.round(Math.round(data[i + 1] / 255 * (levelsPerChannel - 1)) * multiplier); // G
-            data[i + 2] = Math.round(Math.round(data[i + 2] / 255 * (levelsPerChannel - 1)) * multiplier); // B
+            // Adobe Photoshop-style posterization
+            data[i] = Math.floor(data[i] / step) * step;         // R
+            data[i + 1] = Math.floor(data[i + 1] / step) * step; // G
+            data[i + 2] = Math.floor(data[i + 2] / step) * step; // B
             // Alpha channel (i+3) remains unchanged
         }
     }
 
     /**
-     * Apply Floyd-Steinberg dithering with configurable color depth
+     * Apply Floyd-Steinberg dithering with posterization
+     * @param {number} levels - Number of color levels per channel
      */
-    applyDither() {
+    applyDitheredPosterize(levels) {
         if (!this.imageData) return;
 
         const width = this.imageData.width;
         const height = this.imageData.height;
         const data = this.imageData.data;
 
-        // Use a palette of colors for dithering (adjustable)
-        // For now, use a simple palette with multiple levels per channel
-        const levels = 4; // Number of levels per color channel (4 = 64 total colors)
-        const step = 255 / (levels - 1);
+        // Calculate step size for quantization
+        const step = 256 / levels;
 
-        // Process each pixel
+        // Process each pixel from top to bottom, left to right
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const idx = (y * width + x) * 4;
 
-                // Get old pixel values
+                // Get current pixel values (may already include error from previous pixels)
                 const oldR = data[idx];
                 const oldG = data[idx + 1];
                 const oldB = data[idx + 2];
 
-                // Quantize to nearest color in our palette
-                const newR = Math.round(oldR / step) * step;
-                const newG = Math.round(oldG / step) * step;
-                const newB = Math.round(oldB / step) * step;
+                // Quantize to nearest color in the palette
+                const newR = Math.floor(oldR / step) * step;
+                const newG = Math.floor(oldG / step) * step;
+                const newB = Math.floor(oldB / step) * step;
 
                 // Set new pixel values
                 data[idx] = newR;
@@ -338,7 +342,7 @@ class ImageProcessor {
                 const errG = oldG - newG;
                 const errB = oldB - newB;
 
-                // Distribute error to neighboring pixels (Floyd-Steinberg)
+                // Distribute error to neighboring pixels (Floyd-Steinberg weights)
                 // Right pixel (x+1, y) gets 7/16 of error
                 if (x + 1 < width) {
                     const rightIdx = (y * width + (x + 1)) * 4;
