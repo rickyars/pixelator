@@ -15,11 +15,13 @@ class StopsManager {
      * Initialize with default stops
      */
     initializeDefaultStops() {
-        this.addStop(0, 'text', ' ');
-        this.addStop(25, 'text', '·');
-        this.addStop(50, 'text', '•');
-        this.addStop(75, 'text', '●');
-        this.addStop(100, 'text', '⬤');
+        // Classic ASCII density gradient with white-on-black styling
+        this.addStop(0, 'text', ' ', '#ffffff', '#000000');
+        this.addStop(20, 'text', '.', '#888888', '#000000');
+        this.addStop(40, 'text', ':', '#aaaaaa', '#000000');
+        this.addStop(60, 'text', '+', '#cccccc', '#000000');
+        this.addStop(80, 'text', '#', '#eeeeee', '#000000');
+        this.addStop(100, 'text', '@', '#ffffff', '#000000');
     }
 
     /**
