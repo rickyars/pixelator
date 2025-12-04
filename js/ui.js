@@ -112,7 +112,12 @@ class UI {
             this.triggerParameterChange();
         });
 
+        // Shape rotation
+        this.addSliderHandler('rotation', 'rotationValue');
+
         // ASCII/Image Map controls
+        this.addSelectHandler('fontFamily');
+        this.addCheckboxHandler('dropShadow');
         this.addCheckboxHandler('mergePixels');
         this.addSliderHandler('mergeMin', 'mergeMinValue');
         this.addSliderHandler('mergeMax', 'mergeMaxValue');
@@ -353,10 +358,13 @@ class UI {
                 roundedCorners: document.getElementById('roundedCorners').checked,
                 scaleEnabled: document.getElementById('scaleEnabled').checked,
                 scaleMin: parseFloat(document.getElementById('scaleMin').value),
-                scaleMax: parseFloat(document.getElementById('scaleMax').value)
+                scaleMax: parseFloat(document.getElementById('scaleMax').value),
+                rotation: parseFloat(document.getElementById('rotation').value)
             });
         } else if (mode === 'ascii') {
             Object.assign(params, {
+                fontFamily: document.getElementById('fontFamily').value,
+                dropShadow: document.getElementById('dropShadow').checked,
                 mergePixels: document.getElementById('mergePixels').checked,
                 mergeMin: parseInt(document.getElementById('mergeMin').value),
                 mergeMax: parseInt(document.getElementById('mergeMax').value),

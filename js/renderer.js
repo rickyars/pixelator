@@ -30,6 +30,23 @@ class Renderer {
         // Set shape-rendering to auto for smooth edges
         this.svg.attr('shape-rendering', 'auto');
 
+        // Add defs for filters
+        const defs = this.svg.append('defs');
+
+        // Add drop shadow filter
+        const dropShadowFilter = defs.append('filter')
+            .attr('id', 'dropShadow')
+            .attr('x', '-50%')
+            .attr('y', '-50%')
+            .attr('width', '200%')
+            .attr('height', '200%');
+
+        dropShadowFilter.append('feDropShadow')
+            .attr('dx', '2')
+            .attr('dy', '2')
+            .attr('stdDeviation', '2')
+            .attr('flood-color', 'rgba(0,0,0,0.5)');
+
         // Add background rectangle
         if (params.backgroundColor) {
             this.svg.append('rect')
@@ -126,6 +143,7 @@ class Renderer {
                 .attr('fill', d => d.fill)
                 .attr('dominant-baseline', d => this.getTextBaseline(d.anchor))
                 .attr('text-anchor', d => this.getTextAnchor(d.anchor))
+                .attr('filter', d => d.dropShadow ? 'url(#dropShadow)' : null)
                 .text(d => d.text);
         }
     }

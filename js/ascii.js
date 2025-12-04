@@ -228,13 +228,14 @@ class ASCIIMapper {
                 y: sample.y + textOffset.y,
                 text: stop.value || '●',
                 fontSize: size,
-                fontFamily: 'monospace',
+                fontFamily: params.fontFamily || 'monospace',
                 fill: stop.color || '#ffffff',
                 bgColor: stop.bgColor || null,
                 bgX: sample.x + offset.x,
                 bgY: sample.y + offset.y,
                 bgSize: size,
-                anchor: params.anchor
+                anchor: params.anchor,
+                dropShadow: params.dropShadow || false
             };
         }
     }

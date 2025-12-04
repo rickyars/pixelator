@@ -265,9 +265,13 @@ class PixelEffectsApp {
                 fgPicker.className = 'color-picker color-picker-small';
                 fgPicker.value = stop.color || '#ffffff';
                 fgPicker.title = 'Text color';
+                // Preview on input (no re-render)
                 fgPicker.addEventListener('input', (e) => {
-                    this.stopsManager.updateStop(stop.id, { color: e.target.value });
                     charInput.style.color = e.target.value;
+                });
+                // Commit on change (when picker closes)
+                fgPicker.addEventListener('change', (e) => {
+                    this.stopsManager.updateStop(stop.id, { color: e.target.value });
                 });
 
                 const bgPicker = document.createElement('input');
@@ -275,9 +279,13 @@ class PixelEffectsApp {
                 bgPicker.className = 'color-picker color-picker-small';
                 bgPicker.value = stop.bgColor || '#000000';
                 bgPicker.title = 'Background color';
+                // Preview on input (no re-render)
                 bgPicker.addEventListener('input', (e) => {
-                    this.stopsManager.updateStop(stop.id, { bgColor: e.target.value });
                     charInput.style.backgroundColor = e.target.value;
+                });
+                // Commit on change (when picker closes)
+                bgPicker.addEventListener('change', (e) => {
+                    this.stopsManager.updateStop(stop.id, { bgColor: e.target.value });
                 });
 
                 colorPickers.appendChild(fgPicker);

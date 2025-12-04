@@ -513,6 +513,17 @@ label span[id$="Value"] {
     width: auto;
 }
 
+/* Plus button for file upload */
+.btn-plus {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    font-size: 1.5rem;
+    font-weight: 300;
+    line-height: 1;
+    border-radius: 50%;
+}
+
 .color-pair {
     display: flex;
     gap: 2px;

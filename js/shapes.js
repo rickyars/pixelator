@@ -144,9 +144,19 @@ class ShapeGenerator {
         // Get anchor-based offset
         const offset = this.getAnchorOffset(params.anchor, size);
 
+        // Build transform string
+        let transform = `translate(${sample.x + offset.x}, ${sample.y + offset.y})`;
+
+        // Add rotation if specified
+        if (params.rotation && params.rotation !== 0) {
+            const centerX = size / 2;
+            const centerY = size / 2;
+            transform += ` rotate(${params.rotation}, ${centerX}, ${centerY})`;
+        }
+
         return {
             path: path,
-            transform: `translate(${sample.x + offset.x}, ${sample.y + offset.y})`,
+            transform: transform,
             fill: color,
             stroke: params.stroke || 'none',
             strokeWidth: params.strokeWidth || 0

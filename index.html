@@ -32,7 +32,7 @@
                         </svg>
                         <p>Drag & drop an image here</p>
                         <p class="upload-hint">or</p>
-                        <button type="button" class="btn btn-secondary" id="filePickerBtn">Choose File</button>
+                        <button type="button" class="btn btn-secondary btn-plus" id="filePickerBtn">+</button>
                     </div>
                     <input type="file" id="fileInput" accept="image/*" hidden>
                 </div>
@@ -51,7 +51,7 @@
                 <div class="mode-selector">
                     <label class="mode-option">
                         <input type="radio" name="mode" value="shapes" checked>
-                        <span class="mode-label">Shapes</span>
+                        <span class="mode-label">Pixel</span>
                     </label>
                     <label class="mode-option">
                         <input type="radio" name="mode" value="ascii">
@@ -133,7 +133,7 @@
 
                 <div class="control-group">
                     <label for="backgroundColor">Background Color</label>
-                    <input type="color" id="backgroundColor" value="#ffffff" class="color-picker">
+                    <input type="color" id="backgroundColor" value="#000000" class="color-picker">
                 </div>
             </section>
 
@@ -162,15 +162,43 @@
                     <input type="range" id="scaleMin" min="0" max="200" value="50" class="slider">
 
                     <label for="scaleMax">
-                        Max: <span id="scaleMaxValue">100</span>%
+                        Max: <span id="scaleMaxValue">150</span>%
                     </label>
-                    <input type="range" id="scaleMax" min="0" max="200" value="100" class="slider">
+                    <input type="range" id="scaleMax" min="0" max="200" value="150" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label for="rotation">
+                        Rotation: <span id="rotationValue">0</span>°
+                    </label>
+                    <input type="range" id="rotation" min="0" max="360" value="0" class="slider">
                 </div>
             </section>
 
             <!-- ASCII-Specific Parameters -->
             <section class="control-section" id="asciiControls" style="display: none;">
                 <h2>Map Settings</h2>
+
+                <div class="control-group">
+                    <label for="fontFamily">Font</label>
+                    <select id="fontFamily" class="select">
+                        <option value="monospace">Monospace</option>
+                        <option value="'Courier New', monospace">Courier New</option>
+                        <option value="'Lucida Console', monospace">Lucida Console</option>
+                        <option value="Consolas, monospace">Consolas</option>
+                        <option value="sans-serif">Sans Serif</option>
+                        <option value="serif">Serif</option>
+                        <option value="'Comic Sans MS', cursive">Comic Sans</option>
+                        <option value="Impact, sans-serif">Impact</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="dropShadow">
+                        Drop shadow
+                    </label>
+                </div>
 
                 <div class="stops-header">
                     <h3>Brightness Stops</h3>
@@ -185,7 +213,7 @@
                     <label>Stop Operations</label>
                     <div class="button-group">
                         <button type="button" class="btn btn-small btn-secondary" id="evenSpacingBtn">Even Spacing</button>
-                        <button type="button" class="btn btn-small btn-secondary" id="randomMappingBtn">Random Mapping</button>
+                        <button type="button" class="btn btn-small btn-secondary" id="randomMappingBtn">Random Spacing</button>
                         <button type="button" class="btn btn-small btn-secondary" id="randomPositionBtn">Random Position</button>
                     </div>
                 </div>
