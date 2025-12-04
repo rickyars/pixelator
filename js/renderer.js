@@ -27,12 +27,8 @@ class Renderer {
             this.svg.attr('height', params.imageHeight);
         }
 
-        // Set shape-rendering based on anti-alias setting
-        if (params.antiAlias === false) {
-            this.svg.attr('shape-rendering', 'crispEdges');
-        } else {
-            this.svg.attr('shape-rendering', 'auto');
-        }
+        // Set shape-rendering to auto for smooth edges
+        this.svg.attr('shape-rendering', 'auto');
 
         // Add background rectangle
         if (params.backgroundColor) {
@@ -112,10 +108,34 @@ class Renderer {
                 .attr('font-size', d => d.fontSize)
                 .attr('font-family', d => d.fontFamily)
                 .attr('fill', d => d.fill)
-                .attr('dominant-baseline', 'middle')
-                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', d => this.getTextBaseline(d.anchor))
+                .attr('text-anchor', d => this.getTextAnchor(d.anchor))
                 .text(d => d.text);
         }
+    }
+
+    /**
+     * Get SVG text-anchor value from anchor position
+     * @param {string} anchor - Anchor position
+     * @returns {string} SVG text-anchor value
+     */
+    getTextAnchor(anchor) {
+        if (!anchor) return 'middle';
+        if (anchor.includes('left')) return 'start';
+        if (anchor.includes('right')) return 'end';
+        return 'middle';
+    }
+
+    /**
+     * Get SVG dominant-baseline value from anchor position
+     * @param {string} anchor - Anchor position
+     * @returns {string} SVG dominant-baseline value
+     */
+    getTextBaseline(anchor) {
+        if (!anchor) return 'middle';
+        if (anchor.includes('top')) return 'hanging';
+        if (anchor.includes('bottom')) return 'alphabetic';
+        return 'middle';
     }
 
     /**

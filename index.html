@@ -44,21 +44,15 @@
 
             <!-- Mode Selection -->
             <section class="control-section">
-                <h2>Mode</h2>
+                <h2>Render Mode</h2>
                 <div class="mode-selector">
                     <label class="mode-option">
                         <input type="radio" name="mode" value="shapes" checked>
-                        <span class="mode-label">
-                            <span class="mode-icon">🔷</span>
-                            <span>Shapes</span>
-                        </span>
+                        <span class="mode-label">Shapes</span>
                     </label>
                     <label class="mode-option">
                         <input type="radio" name="mode" value="ascii">
-                        <span class="mode-label">
-                            <span class="mode-icon">📝</span>
-                            <span>ASCII</span>
-                        </span>
+                        <span class="mode-label">ASCII</span>
                     </label>
                 </div>
             </section>
@@ -72,6 +66,39 @@
                         Grid Size: <span id="gridSizeValue">10</span>px
                     </label>
                     <input type="range" id="gridSize" min="2" max="100" value="10" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label>Scale Anchor</label>
+                    <div class="anchor-grid" id="anchorGrid">
+                        <button type="button" class="anchor-btn" data-anchor="top-left" title="Top Left">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="top" title="Top">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="top-right" title="Top Right">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="left" title="Left">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn active" data-anchor="center" title="Center">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="right" title="Right">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="bottom-left" title="Bottom Left">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="bottom" title="Bottom">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="bottom-right" title="Bottom Right">
+                            <span class="anchor-dot"></span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="control-group">
@@ -122,65 +149,11 @@
                         <option value="cross">Cross</option>
                     </select>
                 </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="scaleEnabled" checked>
-                        Scale
-                    </label>
-                </div>
-
-                <div class="control-group" id="scaleControls">
-                    <label for="scaleMin">
-                        Min: <span id="scaleMinValue">50</span>%
-                    </label>
-                    <input type="range" id="scaleMin" min="0" max="200" value="50" class="slider">
-
-                    <label for="scaleMax">
-                        Max: <span id="scaleMaxValue">100</span>%
-                    </label>
-                    <input type="range" id="scaleMax" min="0" max="200" value="100" class="slider">
-                </div>
-
-                <div class="control-group">
-                    <label for="rotation">
-                        Rotation: <span id="rotationValue">0</span>°
-                    </label>
-                    <input type="range" id="rotation" min="0" max="360" value="0" class="slider">
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="rotationBrightness">
-                        Rotation by brightness
-                    </label>
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="rotationRandom">
-                        Random rotation
-                    </label>
-                </div>
-
-                <div class="control-group" id="rotationRangeControl" style="display: none;">
-                    <label for="rotationRange">
-                        Rotation Range: <span id="rotationRangeValue">180</span>°
-                    </label>
-                    <input type="range" id="rotationRange" min="0" max="180" value="180" class="slider">
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="antiAlias">
-                        Anti-alias
-                    </label>
-                </div>
             </section>
 
             <!-- ASCII-Specific Parameters -->
             <section class="control-section" id="asciiControls" style="display: none;">
-                <h2>Image Map Settings</h2>
+                <h2>Map Settings</h2>
 
                 <div class="stops-header">
                     <h3>Stops</h3>

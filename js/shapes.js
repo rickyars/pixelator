@@ -76,6 +76,27 @@ class ShapeGenerator {
     }
 
     /**
+     * Calculate anchor offset based on anchor type
+     * @param {string} anchor - Anchor position (center, top-left, etc.)
+     * @param {number} size - Size of the shape
+     * @returns {Object} {x, y} offset values
+     */
+    static getAnchorOffset(anchor, size) {
+        const offsets = {
+            'top-left': { x: 0, y: 0 },
+            'top': { x: -size / 2, y: 0 },
+            'top-right': { x: -size, y: 0 },
+            'left': { x: 0, y: -size / 2 },
+            'center': { x: -size / 2, y: -size / 2 },
+            'right': { x: -size, y: -size / 2 },
+            'bottom-left': { x: 0, y: -size },
+            'bottom': { x: -size / 2, y: -size },
+            'bottom-right': { x: -size, y: -size }
+        };
+        return offsets[anchor] || offsets['center'];
+    }
+
+    /**
      * Generate a shape element with all transformations applied
      * @param {Object} sample - Pixel sample with color and position data
      * @param {Object} params - Shape parameters
@@ -83,24 +104,7 @@ class ShapeGenerator {
      */
     static generate(sample, params) {
         // Calculate base size from resolution - use the step size from sampling
-        const baseSize = params.stepSize || 10;
-
-        // Calculate size based on scale if enabled
-        let size = baseSize;
-        if (params.scaleEnabled) {
-            const scalePercent = params.scaleMin + (sample.brightness * (params.scaleMax - params.scaleMin));
-            size = baseSize * (scalePercent / 100);
-        }
-
-        // Calculate rotation
-        let rotation = params.rotation;
-
-        // Rotation by brightness takes precedence
-        if (params.rotationBrightness) {
-            rotation = sample.brightness * 360;
-        } else if (params.rotationRandom) {
-            rotation += (Math.random() - 0.5) * params.rotationRange;
-        }
+        const size = params.stepSize || 10;
 
         // Get the appropriate shape path
         const shapeFn = this[params.shapeType] || this.circle;
@@ -109,9 +113,12 @@ class ShapeGenerator {
         // Calculate color
         const color = this.getColor(sample, params);
 
+        // Get anchor-based offset
+        const offset = this.getAnchorOffset(params.anchor, size);
+
         return {
             path: path,
-            transform: `translate(${sample.x - size / 2}, ${sample.y - size / 2}) rotate(${rotation}, ${size / 2}, ${size / 2})`,
+            transform: `translate(${sample.x + offset.x}, ${sample.y + offset.y})`,
             fill: color,
             stroke: params.stroke || 'none',
             strokeWidth: params.strokeWidth || 0
