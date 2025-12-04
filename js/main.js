@@ -93,12 +93,8 @@ class PixelEffectsApp {
                 // Get current parameters
                 const params = this.ui.getParameters();
 
-                // Update image effects
-                this.imageProcessor.updateEffects({
-                    dither: params.dither,
-                    posterize: params.posterize,
-                    posterizeLevels: params.posterizeLevels
-                });
+                // Draw image to canvas without effects
+                this.imageProcessor.drawToCanvas({});
 
                 // Get image dimensions
                 const dimensions = this.imageProcessor.getDimensions();
@@ -114,6 +110,38 @@ class PixelEffectsApp {
                 this.currentSamples = result.samples;
                 params.stepSize = result.stepSize;
                 params.stopsManager = this.stopsManager;
+
+                // Apply grid-based effects to samples
+                if (this.currentSamples.length > 0) {
+                    // Calculate grid dimensions from image dimensions and gridSize
+                    const cols = Math.ceil(dimensions.width / params.gridSize);
+                    const rows = Math.ceil(dimensions.height / params.gridSize);
+
+                    // Apply effects in correct order: posterize first, then dither
+                    if (params.posterize && params.posterizeLevels) {
+                        this.imageProcessor.applyPosterizeToSamples(
+                            this.currentSamples,
+                            params.posterizeLevels
+                        );
+
+                        if (params.dither) {
+                            this.imageProcessor.applyDitherToSamples(
+                                this.currentSamples,
+                                cols,
+                                rows,
+                                params.posterizeLevels
+                            );
+                        }
+                    } else if (params.dither) {
+                        // Apply dithering with default palette (8 levels per channel)
+                        this.imageProcessor.applyDitherToSamples(
+                            this.currentSamples,
+                            cols,
+                            rows,
+                            8
+                        );
+                    }
+                }
 
                 // Render to SVG
                 this.renderer.render(this.currentSamples, params.mode, params);
