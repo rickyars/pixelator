@@ -89,8 +89,20 @@ class UI {
         this.addColorHandler('duotoneLight');
         this.addColorHandler('backgroundColor');
 
+        // Effects controls
+        this.addCheckboxHandler('dither');
+        this.addCheckboxHandler('posterize');
+        this.addSliderHandler('posterizeLevels', 'posterizeLevelsValue');
+
         // Anchor grid handler
         this.initAnchorGrid();
+
+        // Posterize toggle
+        document.getElementById('posterize').addEventListener('change', (e) => {
+            const posterizeControls = document.getElementById('posterizeControls');
+            posterizeControls.style.display = e.target.checked ? 'block' : 'none';
+            this.triggerParameterChange();
+        });
 
         // Color mode change handler
         document.getElementById('colorMode').addEventListener('change', (e) => {
@@ -350,7 +362,10 @@ class UI {
             colorMode: document.getElementById('colorMode').value,
             duotoneDark: document.getElementById('duotoneDark').value,
             duotoneLight: document.getElementById('duotoneLight').value,
-            backgroundColor: document.getElementById('backgroundColor').value
+            backgroundColor: document.getElementById('backgroundColor').value,
+            dither: document.getElementById('dither').checked,
+            posterize: document.getElementById('posterize').checked,
+            posterizeLevels: parseInt(document.getElementById('posterizeLevels').value)
         };
 
         if (mode === 'shapes') {

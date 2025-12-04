@@ -93,6 +93,13 @@ class PixelEffectsApp {
                 // Get current parameters
                 const params = this.ui.getParameters();
 
+                // Update image effects
+                this.imageProcessor.updateEffects({
+                    dither: params.dither,
+                    posterize: params.posterize,
+                    posterizeLevels: params.posterizeLevels
+                });
+
                 // Get image dimensions
                 const dimensions = this.imageProcessor.getDimensions();
                 params.imageWidth = dimensions.width;

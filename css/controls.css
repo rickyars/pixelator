@@ -15,6 +15,23 @@
     font-weight: 500;
 }
 
+/* Control Row - for side-by-side controls */
+.control-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    align-items: flex-start;
+}
+
+.control-group-inline {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.control-group-inline label {
+    font-size: 0.8rem;
+}
+
 /* Buttons */
 .btn {
     background: var(--accent);

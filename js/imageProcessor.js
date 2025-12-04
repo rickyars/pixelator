@@ -45,7 +45,7 @@ class ImageProcessor {
     /**
      * Draw the image to the hidden canvas for pixel sampling
      */
-    drawToCanvas() {
+    drawToCanvas(effects = {}) {
         if (!this.image) return;
 
         // Set canvas size to match image
@@ -57,6 +57,18 @@ class ImageProcessor {
 
         // Get image data
         this.imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+
+        // Apply effects
+        if (effects.posterize && effects.posterizeLevels) {
+            this.applyPosterize(effects.posterizeLevels);
+        }
+
+        if (effects.dither) {
+            this.applyDither();
+        }
+
+        // Put the processed image data back
+        this.ctx.putImageData(this.imageData, 0, 0);
     }
 
     /**
@@ -261,5 +273,112 @@ class ImageProcessor {
         this.image = null;
         this.imageData = null;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    /**
+     * Apply posterization effect to reduce color levels
+     * @param {number} levels - Number of color levels (2-256)
+     */
+    applyPosterize(levels) {
+        if (!this.imageData || levels < 2) return;
+
+        const data = this.imageData.data;
+        const step = 255 / (levels - 1);
+
+        for (let i = 0; i < data.length; i += 4) {
+            // Posterize each color channel
+            data[i] = Math.round(data[i] / step) * step;     // R
+            data[i + 1] = Math.round(data[i + 1] / step) * step; // G
+            data[i + 2] = Math.round(data[i + 2] / step) * step; // B
+            // Alpha channel (i+3) remains unchanged
+        }
+    }
+
+    /**
+     * Apply Floyd-Steinberg dithering
+     */
+    applyDither() {
+        if (!this.imageData) return;
+
+        const width = this.imageData.width;
+        const height = this.imageData.height;
+        const data = this.imageData.data;
+
+        // Process each pixel
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const idx = (y * width + x) * 4;
+
+                // Get old pixel values
+                const oldR = data[idx];
+                const oldG = data[idx + 1];
+                const oldB = data[idx + 2];
+
+                // Quantize to nearest color (simple threshold)
+                const newR = oldR < 128 ? 0 : 255;
+                const newG = oldG < 128 ? 0 : 255;
+                const newB = oldB < 128 ? 0 : 255;
+
+                // Set new pixel values
+                data[idx] = newR;
+                data[idx + 1] = newG;
+                data[idx + 2] = newB;
+
+                // Calculate quantization errors
+                const errR = oldR - newR;
+                const errG = oldG - newG;
+                const errB = oldB - newB;
+
+                // Distribute error to neighboring pixels (Floyd-Steinberg)
+                // Right pixel (x+1, y) gets 7/16 of error
+                if (x + 1 < width) {
+                    const rightIdx = (y * width + (x + 1)) * 4;
+                    data[rightIdx] = this.clamp(data[rightIdx] + errR * 7 / 16);
+                    data[rightIdx + 1] = this.clamp(data[rightIdx + 1] + errG * 7 / 16);
+                    data[rightIdx + 2] = this.clamp(data[rightIdx + 2] + errB * 7 / 16);
+                }
+
+                // Bottom-left pixel (x-1, y+1) gets 3/16 of error
+                if (x > 0 && y + 1 < height) {
+                    const blIdx = ((y + 1) * width + (x - 1)) * 4;
+                    data[blIdx] = this.clamp(data[blIdx] + errR * 3 / 16);
+                    data[blIdx + 1] = this.clamp(data[blIdx + 1] + errG * 3 / 16);
+                    data[blIdx + 2] = this.clamp(data[blIdx + 2] + errB * 3 / 16);
+                }
+
+                // Bottom pixel (x, y+1) gets 5/16 of error
+                if (y + 1 < height) {
+                    const bottomIdx = ((y + 1) * width + x) * 4;
+                    data[bottomIdx] = this.clamp(data[bottomIdx] + errR * 5 / 16);
+                    data[bottomIdx + 1] = this.clamp(data[bottomIdx + 1] + errG * 5 / 16);
+                    data[bottomIdx + 2] = this.clamp(data[bottomIdx + 2] + errB * 5 / 16);
+                }
+
+                // Bottom-right pixel (x+1, y+1) gets 1/16 of error
+                if (x + 1 < width && y + 1 < height) {
+                    const brIdx = ((y + 1) * width + (x + 1)) * 4;
+                    data[brIdx] = this.clamp(data[brIdx] + errR * 1 / 16);
+                    data[brIdx + 1] = this.clamp(data[brIdx + 1] + errG * 1 / 16);
+                    data[brIdx + 2] = this.clamp(data[brIdx + 2] + errB * 1 / 16);
+                }
+            }
+        }
+    }
+
+    /**
+     * Clamp a value between 0 and 255
+     * @param {number} value - Value to clamp
+     * @returns {number} Clamped value
+     */
+    clamp(value) {
+        return Math.max(0, Math.min(255, Math.round(value)));
+    }
+
+    /**
+     * Update canvas with effects
+     * @param {Object} effects - Effects to apply
+     */
+    updateEffects(effects) {
+        this.drawToCanvas(effects);
     }
 }
