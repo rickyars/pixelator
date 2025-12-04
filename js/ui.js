@@ -100,7 +100,17 @@ class UI {
         });
 
         // Shape controls
-        this.addSelectHandler('shapeType');
+        this.addCheckboxHandler('roundedCorners');
+        this.addCheckboxHandler('scaleEnabled');
+        this.addSliderHandler('scaleMin', 'scaleMinValue');
+        this.addSliderHandler('scaleMax', 'scaleMaxValue');
+
+        // Scale toggle
+        document.getElementById('scaleEnabled').addEventListener('change', (e) => {
+            const scaleControls = document.getElementById('scaleControls');
+            scaleControls.style.display = e.target.checked ? 'block' : 'none';
+            this.triggerParameterChange();
+        });
 
         // ASCII/Image Map controls
         this.addCheckboxHandler('mergePixels');
@@ -113,6 +123,39 @@ class UI {
             const mergeControls = document.getElementById('mergeControls');
             mergeControls.style.display = e.target.checked ? 'block' : 'none';
             this.triggerParameterChange();
+        });
+
+        // Character add button
+        this.initCharacterInput();
+    }
+
+    /**
+     * Initialize character input for quick stop creation
+     */
+    initCharacterInput() {
+        const addCharBtn = document.getElementById('addCharBtn');
+        const charInput = document.getElementById('charInput');
+        const charColor = document.getElementById('charColor');
+
+        if (!addCharBtn) return;
+
+        addCharBtn.addEventListener('click', () => {
+            const char = charInput.value || '●';
+            const color = charColor.value;
+
+            if (this.onAddCharacterStop) {
+                this.onAddCharacterStop(char, color);
+            }
+
+            // Clear input for next entry
+            charInput.value = '';
+        });
+
+        // Also add on Enter key
+        charInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addCharBtn.click();
+            }
         });
     }
 
@@ -340,7 +383,10 @@ class UI {
 
         if (mode === 'shapes') {
             Object.assign(params, {
-                shapeType: document.getElementById('shapeType').value
+                roundedCorners: document.getElementById('roundedCorners').checked,
+                scaleEnabled: document.getElementById('scaleEnabled').checked,
+                scaleMin: parseFloat(document.getElementById('scaleMin').value),
+                scaleMax: parseFloat(document.getElementById('scaleMax').value)
             });
         } else if (mode === 'ascii') {
             Object.assign(params, {

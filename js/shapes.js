@@ -22,6 +22,26 @@ class ShapeGenerator {
     }
 
     /**
+     * Generate a rounded square path
+     * @param {number} size - Size of the shape
+     * @param {number} radius - Corner radius (defaults to 20% of size)
+     * @returns {string} SVG path data
+     */
+    static roundedSquare(size, radius = null) {
+        const r = radius !== null ? radius : size * 0.2;
+        const clampedR = Math.min(r, size / 2);
+        return `M ${clampedR},0
+                L ${size - clampedR},0
+                Q ${size},0 ${size},${clampedR}
+                L ${size},${size - clampedR}
+                Q ${size},${size} ${size - clampedR},${size}
+                L ${clampedR},${size}
+                Q 0,${size} 0,${size - clampedR}
+                L 0,${clampedR}
+                Q 0,0 ${clampedR},0 Z`;
+    }
+
+    /**
      * Generate a triangle path
      * @param {number} size - Size of the shape
      * @returns {string} SVG path data
@@ -104,11 +124,19 @@ class ShapeGenerator {
      */
     static generate(sample, params) {
         // Calculate base size from resolution - use the step size from sampling
-        const size = params.stepSize || 10;
+        const baseSize = params.stepSize || 10;
 
-        // Get the appropriate shape path
-        const shapeFn = this[params.shapeType] || this.circle;
-        const path = shapeFn(size);
+        // Calculate size based on scale if enabled
+        let size = baseSize;
+        if (params.scaleEnabled) {
+            const scalePercent = params.scaleMin + (sample.brightness * (params.scaleMax - params.scaleMin));
+            size = baseSize * (scalePercent / 100);
+        }
+
+        // Get the appropriate shape path (square or rounded square)
+        const path = params.roundedCorners
+            ? this.roundedSquare(size)
+            : this.square(size);
 
         // Calculate color
         const color = this.getColor(sample, params);

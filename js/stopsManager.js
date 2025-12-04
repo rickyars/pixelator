@@ -27,16 +27,17 @@ class StopsManager {
      * @param {number} percentage - Brightness percentage (0-100)
      * @param {string} type - Type: 'text', 'image', 'shape'
      * @param {*} value - The value (character, image data, or shape type)
+     * @param {string} color - Color for text stops
      * @returns {Object} The created stop
      */
-    addStop(percentage, type = 'text', value = ' ') {
+    addStop(percentage, type = 'text', value = ' ', color = '#ffffff') {
         const stop = {
             id: this.stopIdCounter++,
             percentage: percentage,
             type: type,
             value: value,
             image: null,
-            color: '#ffffff' // Default white color for text
+            color: color
         };
 
         this.stops.push(stop);

@@ -139,21 +139,44 @@
                 <h2>Shape Settings</h2>
 
                 <div class="control-group">
-                    <label for="shapeType">Shape Type</label>
-                    <select id="shapeType" class="select">
-                        <option value="circle">Circle</option>
-                        <option value="square">Square</option>
-                        <option value="triangle">Triangle</option>
-                        <option value="diamond">Diamond</option>
-                        <option value="star">Star</option>
-                        <option value="cross">Cross</option>
-                    </select>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="roundedCorners">
+                        Rounded corners
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="scaleEnabled" checked>
+                        Scale by brightness
+                    </label>
+                </div>
+
+                <div class="control-group" id="scaleControls">
+                    <label for="scaleMin">
+                        Min: <span id="scaleMinValue">50</span>%
+                    </label>
+                    <input type="range" id="scaleMin" min="0" max="200" value="50" class="slider">
+
+                    <label for="scaleMax">
+                        Max: <span id="scaleMaxValue">100</span>%
+                    </label>
+                    <input type="range" id="scaleMax" min="0" max="200" value="100" class="slider">
                 </div>
             </section>
 
             <!-- ASCII-Specific Parameters -->
             <section class="control-section" id="asciiControls" style="display: none;">
                 <h2>Map Settings</h2>
+
+                <div class="control-group">
+                    <label>Quick Add Character</label>
+                    <div class="char-input-row">
+                        <input type="text" id="charInput" class="text-input char-input" maxlength="1" placeholder="●">
+                        <input type="color" id="charColor" value="#ffffff" class="color-picker color-picker-small">
+                        <button type="button" class="btn btn-small" id="addCharBtn">Add</button>
+                    </div>
+                </div>
 
                 <div class="stops-header">
                     <h3>Stops</h3>

@@ -40,6 +40,45 @@ class PixelEffectsApp {
         this.ui.onExportPNG = () => {
             this.exportPNG();
         };
+
+        // Character stop handler
+        this.ui.onAddCharacterStop = (char, color) => {
+            this.addCharacterStop(char, color);
+        };
+    }
+
+    /**
+     * Add a character stop with color
+     */
+    addCharacterStop(char, color) {
+        // Find a reasonable percentage position
+        const stops = this.stopsManager.getStops();
+        let percentage = 50;
+
+        if (stops.length > 0) {
+            // Find the largest gap between stops
+            const sorted = [...stops].sort((a, b) => a.percentage - b.percentage);
+            let maxGap = sorted[0].percentage; // Gap from 0
+            let gapStart = 0;
+
+            for (let i = 0; i < sorted.length - 1; i++) {
+                const gap = sorted[i + 1].percentage - sorted[i].percentage;
+                if (gap > maxGap) {
+                    maxGap = gap;
+                    gapStart = sorted[i].percentage;
+                }
+            }
+
+            // Check gap to 100
+            const endGap = 100 - sorted[sorted.length - 1].percentage;
+            if (endGap > maxGap) {
+                percentage = sorted[sorted.length - 1].percentage + endGap / 2;
+            } else {
+                percentage = gapStart + maxGap / 2;
+            }
+        }
+
+        this.stopsManager.addStop(Math.round(percentage), 'text', char, color);
     }
 
     /**
@@ -221,6 +260,7 @@ class PixelEffectsApp {
                 const text = document.createElement('span');
                 text.className = 'stop-preview-text';
                 text.textContent = stop.value || '●';
+                text.style.color = stop.color || '#ffffff';
                 preview.appendChild(text);
             }
 
@@ -238,6 +278,19 @@ class PixelEffectsApp {
                 input.click();
             });
 
+            // Color picker for text stops
+            let colorPicker = null;
+            if (stop.type !== 'image') {
+                colorPicker = document.createElement('input');
+                colorPicker.type = 'color';
+                colorPicker.className = 'color-picker color-picker-small';
+                colorPicker.value = stop.color || '#ffffff';
+                colorPicker.title = 'Stop color';
+                colorPicker.addEventListener('input', (e) => {
+                    this.stopsManager.updateStop(stop.id, { color: e.target.value });
+                });
+            }
+
             // Actions
             const actions = document.createElement('div');
             actions.className = 'stop-actions';
@@ -253,6 +306,9 @@ class PixelEffectsApp {
 
             stopItem.appendChild(percentageDiv);
             stopItem.appendChild(preview);
+            if (colorPicker) {
+                stopItem.appendChild(colorPicker);
+            }
             stopItem.appendChild(actions);
 
             stopsList.appendChild(stopItem);

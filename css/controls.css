@@ -444,3 +444,29 @@ label span[id$="Value"] {
     flex: 1;
     min-width: calc(50% - 0.25rem);
 }
+
+/* Character Input Row */
+.char-input-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.char-input {
+    width: 48px;
+    text-align: center;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+}
+
+.color-picker-small {
+    width: 40px;
+    height: 36px;
+    padding: 2px;
+    flex-shrink: 0;
+}
+
+.char-input-row .btn {
+    flex-shrink: 0;
+    width: auto;
+}
