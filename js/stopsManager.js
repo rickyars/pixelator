@@ -15,11 +15,13 @@ class StopsManager {
      * Initialize with default stops
      */
     initializeDefaultStops() {
-        this.addStop(0, 'text', ' ');
-        this.addStop(25, 'text', '·');
-        this.addStop(50, 'text', '•');
-        this.addStop(75, 'text', '●');
-        this.addStop(100, 'text', '⬤');
+        // Classic ASCII density gradient with white-on-black styling
+        this.addStop(0, 'text', ' ', '#ffffff', '#000000');
+        this.addStop(20, 'text', '.', '#888888', '#000000');
+        this.addStop(40, 'text', ':', '#aaaaaa', '#000000');
+        this.addStop(60, 'text', '+', '#cccccc', '#000000');
+        this.addStop(80, 'text', '#', '#eeeeee', '#000000');
+        this.addStop(100, 'text', '@', '#ffffff', '#000000');
     }
 
     /**
@@ -27,16 +29,19 @@ class StopsManager {
      * @param {number} percentage - Brightness percentage (0-100)
      * @param {string} type - Type: 'text', 'image', 'shape'
      * @param {*} value - The value (character, image data, or shape type)
+     * @param {string} color - Color for text stops
+     * @param {string} bgColor - Background color for text stops (null = transparent)
      * @returns {Object} The created stop
      */
-    addStop(percentage, type = 'text', value = ' ') {
+    addStop(percentage, type = 'text', value = ' ', color = '#ffffff', bgColor = null) {
         const stop = {
             id: this.stopIdCounter++,
             percentage: percentage,
             type: type,
             value: value,
             image: null,
-            color: '#ffffff' // Default white color for text
+            color: color,
+            bgColor: bgColor
         };
 
         this.stops.push(stop);
@@ -152,12 +157,13 @@ class StopsManager {
     shuffleStopValues() {
         if (this.stops.length < 2) return;
 
-        // Extract all values including color
+        // Extract all values including color and bgColor
         const values = this.stops.map(s => ({
             type: s.type,
             value: s.value,
             image: s.image,
-            color: s.color
+            color: s.color,
+            bgColor: s.bgColor
         }));
 
         // Shuffle values using Fisher-Yates
@@ -172,6 +178,7 @@ class StopsManager {
             stop.value = values[index].value;
             stop.image = values[index].image;
             stop.color = values[index].color;
+            stop.bgColor = values[index].bgColor;
         });
 
         if (this.onChange) {

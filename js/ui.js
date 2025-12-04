@@ -89,6 +89,9 @@ class UI {
         this.addColorHandler('duotoneLight');
         this.addColorHandler('backgroundColor');
 
+        // Anchor grid handler
+        this.initAnchorGrid();
+
         // Color mode change handler
         document.getElementById('colorMode').addEventListener('change', (e) => {
             const duotoneControls = document.getElementById('duotoneControls');
@@ -97,15 +100,10 @@ class UI {
         });
 
         // Shape controls
-        this.addSelectHandler('shapeType');
+        this.addCheckboxHandler('roundedCorners');
         this.addCheckboxHandler('scaleEnabled');
         this.addSliderHandler('scaleMin', 'scaleMinValue');
         this.addSliderHandler('scaleMax', 'scaleMaxValue');
-        this.addSliderHandler('rotation', 'rotationValue');
-        this.addCheckboxHandler('rotationBrightness');
-        this.addCheckboxHandler('rotationRandom');
-        this.addSliderHandler('rotationRange', 'rotationRangeValue');
-        this.addCheckboxHandler('antiAlias');
 
         // Scale toggle
         document.getElementById('scaleEnabled').addEventListener('change', (e) => {
@@ -114,14 +112,12 @@ class UI {
             this.triggerParameterChange();
         });
 
-        // Rotation random toggle
-        document.getElementById('rotationRandom').addEventListener('change', (e) => {
-            const rotationRangeControl = document.getElementById('rotationRangeControl');
-            rotationRangeControl.style.display = e.target.checked ? 'block' : 'none';
-            this.triggerParameterChange();
-        });
+        // Shape rotation
+        this.addSliderHandler('rotation', 'rotationValue');
 
         // ASCII/Image Map controls
+        this.addSelectHandler('fontFamily');
+        this.addCheckboxHandler('dropShadow');
         this.addCheckboxHandler('mergePixels');
         this.addSliderHandler('mergeMin', 'mergeMinValue');
         this.addSliderHandler('mergeMax', 'mergeMaxValue');
@@ -149,6 +145,28 @@ class UI {
             if (this.onExportPNG) {
                 this.onExportPNG();
             }
+        });
+    }
+
+    /**
+     * Initialize anchor grid handlers
+     */
+    initAnchorGrid() {
+        const anchorGrid = document.getElementById('anchorGrid');
+        if (!anchorGrid) return;
+
+        this.selectedAnchor = 'center';
+
+        anchorGrid.addEventListener('click', (e) => {
+            const btn = e.target.closest('.anchor-btn');
+            if (!btn) return;
+
+            // Update active state
+            anchorGrid.querySelectorAll('.anchor-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            this.selectedAnchor = btn.dataset.anchor;
+            this.triggerParameterChange();
         });
     }
 
@@ -327,6 +345,7 @@ class UI {
         const params = {
             mode: mode,
             gridSize: parseInt(document.getElementById('gridSize').value),
+            anchor: this.selectedAnchor || 'center',
             samplingMethod: document.getElementById('samplingMethod').value,
             colorMode: document.getElementById('colorMode').value,
             duotoneDark: document.getElementById('duotoneDark').value,
@@ -336,18 +355,16 @@ class UI {
 
         if (mode === 'shapes') {
             Object.assign(params, {
-                shapeType: document.getElementById('shapeType').value,
+                roundedCorners: document.getElementById('roundedCorners').checked,
                 scaleEnabled: document.getElementById('scaleEnabled').checked,
                 scaleMin: parseFloat(document.getElementById('scaleMin').value),
                 scaleMax: parseFloat(document.getElementById('scaleMax').value),
-                rotation: parseFloat(document.getElementById('rotation').value),
-                rotationBrightness: document.getElementById('rotationBrightness').checked,
-                rotationRandom: document.getElementById('rotationRandom').checked,
-                rotationRange: parseFloat(document.getElementById('rotationRange').value),
-                antiAlias: document.getElementById('antiAlias').checked
+                rotation: parseFloat(document.getElementById('rotation').value)
             });
         } else if (mode === 'ascii') {
             Object.assign(params, {
+                fontFamily: document.getElementById('fontFamily').value,
+                dropShadow: document.getElementById('dropShadow').checked,
                 mergePixels: document.getElementById('mergePixels').checked,
                 mergeMin: parseInt(document.getElementById('mergeMin').value),
                 mergeMax: parseInt(document.getElementById('mergeMax').value),

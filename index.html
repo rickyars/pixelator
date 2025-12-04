@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Effects Tool</title>
+    <title>PIXELATOR</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/controls.css">
 </head>
 <body>
     <header class="app-header">
-        <h1>Pixel Effects Tool</h1>
+        <div class="logo">
+            <pre class="ascii-logo">█▀█ █ ▀▄▀ ██▀ █   ▄▀█ ▀█▀ █▀█ █▀█
+█▀▀ █ █ █ █▄▄ █▄▄ █▀█  █  █▄█ █▀▄</pre>
+        </div>
         <div class="header-links">
             <a href="#about" class="header-link">About</a>
             <a href="https://github.com" class="header-link" target="_blank">GitHub</a>
@@ -29,7 +32,7 @@
                         </svg>
                         <p>Drag & drop an image here</p>
                         <p class="upload-hint">or</p>
-                        <button type="button" class="btn btn-secondary" id="filePickerBtn">Choose File</button>
+                        <button type="button" class="btn btn-secondary btn-plus" id="filePickerBtn">+</button>
                     </div>
                     <input type="file" id="fileInput" accept="image/*" hidden>
                 </div>
@@ -44,21 +47,15 @@
 
             <!-- Mode Selection -->
             <section class="control-section">
-                <h2>Mode</h2>
+                <h2>Render Mode</h2>
                 <div class="mode-selector">
                     <label class="mode-option">
                         <input type="radio" name="mode" value="shapes" checked>
-                        <span class="mode-label">
-                            <span class="mode-icon">🔷</span>
-                            <span>Shapes</span>
-                        </span>
+                        <span class="mode-label">Pixel</span>
                     </label>
                     <label class="mode-option">
                         <input type="radio" name="mode" value="ascii">
-                        <span class="mode-label">
-                            <span class="mode-icon">📝</span>
-                            <span>ASCII</span>
-                        </span>
+                        <span class="mode-label">ASCII</span>
                     </label>
                 </div>
             </section>
@@ -72,6 +69,39 @@
                         Grid Size: <span id="gridSizeValue">10</span>px
                     </label>
                     <input type="range" id="gridSize" min="2" max="100" value="10" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label>Scale Anchor</label>
+                    <div class="anchor-grid" id="anchorGrid">
+                        <button type="button" class="anchor-btn" data-anchor="top-left" title="Top Left">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="top" title="Top">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="top-right" title="Top Right">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="left" title="Left">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn active" data-anchor="center" title="Center">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="right" title="Right">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="bottom-left" title="Bottom Left">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="bottom" title="Bottom">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="bottom-right" title="Bottom Right">
+                            <span class="anchor-dot"></span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="control-group">
@@ -103,7 +133,7 @@
 
                 <div class="control-group">
                     <label for="backgroundColor">Background Color</label>
-                    <input type="color" id="backgroundColor" value="#ffffff" class="color-picker">
+                    <input type="color" id="backgroundColor" value="#000000" class="color-picker">
                 </div>
             </section>
 
@@ -112,21 +142,16 @@
                 <h2>Shape Settings</h2>
 
                 <div class="control-group">
-                    <label for="shapeType">Shape Type</label>
-                    <select id="shapeType" class="select">
-                        <option value="circle">Circle</option>
-                        <option value="square">Square</option>
-                        <option value="triangle">Triangle</option>
-                        <option value="diamond">Diamond</option>
-                        <option value="star">Star</option>
-                        <option value="cross">Cross</option>
-                    </select>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="roundedCorners">
+                        Rounded corners
+                    </label>
                 </div>
 
                 <div class="control-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="scaleEnabled" checked>
-                        Scale
+                        Scale by brightness
                     </label>
                 </div>
 
@@ -137,9 +162,9 @@
                     <input type="range" id="scaleMin" min="0" max="200" value="50" class="slider">
 
                     <label for="scaleMax">
-                        Max: <span id="scaleMaxValue">100</span>%
+                        Max: <span id="scaleMaxValue">150</span>%
                     </label>
-                    <input type="range" id="scaleMax" min="0" max="200" value="100" class="slider">
+                    <input type="range" id="scaleMax" min="0" max="200" value="150" class="slider">
                 </div>
 
                 <div class="control-group">
@@ -148,42 +173,35 @@
                     </label>
                     <input type="range" id="rotation" min="0" max="360" value="0" class="slider">
                 </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="rotationBrightness">
-                        Rotation by brightness
-                    </label>
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="rotationRandom">
-                        Random rotation
-                    </label>
-                </div>
-
-                <div class="control-group" id="rotationRangeControl" style="display: none;">
-                    <label for="rotationRange">
-                        Rotation Range: <span id="rotationRangeValue">180</span>°
-                    </label>
-                    <input type="range" id="rotationRange" min="0" max="180" value="180" class="slider">
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="antiAlias">
-                        Anti-alias
-                    </label>
-                </div>
             </section>
 
             <!-- ASCII-Specific Parameters -->
             <section class="control-section" id="asciiControls" style="display: none;">
-                <h2>Image Map Settings</h2>
+                <h2>Map Settings</h2>
+
+                <div class="control-group">
+                    <label for="fontFamily">Font</label>
+                    <select id="fontFamily" class="select">
+                        <option value="monospace">Monospace</option>
+                        <option value="'Courier New', monospace">Courier New</option>
+                        <option value="'Lucida Console', monospace">Lucida Console</option>
+                        <option value="Consolas, monospace">Consolas</option>
+                        <option value="sans-serif">Sans Serif</option>
+                        <option value="serif">Serif</option>
+                        <option value="'Comic Sans MS', cursive">Comic Sans</option>
+                        <option value="Impact, sans-serif">Impact</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="dropShadow">
+                        Drop shadow
+                    </label>
+                </div>
 
                 <div class="stops-header">
-                    <h3>Stops</h3>
+                    <h3>Brightness Stops</h3>
                     <button type="button" class="btn btn-small" id="addStop">+ Add</button>
                 </div>
 
@@ -195,7 +213,7 @@
                     <label>Stop Operations</label>
                     <div class="button-group">
                         <button type="button" class="btn btn-small btn-secondary" id="evenSpacingBtn">Even Spacing</button>
-                        <button type="button" class="btn btn-small btn-secondary" id="randomMappingBtn">Random Mapping</button>
+                        <button type="button" class="btn btn-small btn-secondary" id="randomMappingBtn">Random Spacing</button>
                         <button type="button" class="btn btn-small btn-secondary" id="randomPositionBtn">Random Position</button>
                     </div>
                 </div>

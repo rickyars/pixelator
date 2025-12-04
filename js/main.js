@@ -209,54 +209,131 @@ class PixelEffectsApp {
             percentageDiv.appendChild(percentageInput);
             percentageDiv.appendChild(percentLabel);
 
-            // Preview
-            const preview = document.createElement('div');
-            preview.className = 'stop-preview';
-
+            // Character/Image display
             if (stop.type === 'image' && stop.image) {
+                // Image preview with option to clear
+                const imagePreview = document.createElement('div');
+                imagePreview.className = 'stop-preview stop-preview-image';
                 const img = document.createElement('img');
                 img.src = stop.value;
-                preview.appendChild(img);
+                imagePreview.appendChild(img);
+
+                // Click to replace image
+                imagePreview.title = 'Click to replace image';
+                imagePreview.addEventListener('click', () => {
+                    this.openImagePicker(stop.id);
+                });
+
+                // Clear button to go back to text
+                const clearImgBtn = document.createElement('button');
+                clearImgBtn.className = 'stop-action-btn';
+                clearImgBtn.textContent = '↩';
+                clearImgBtn.title = 'Use character instead';
+                clearImgBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.stopsManager.updateStop(stop.id, {
+                        type: 'text',
+                        value: '●',
+                        image: null
+                    });
+                });
+
+                stopItem.appendChild(percentageDiv);
+                stopItem.appendChild(imagePreview);
+                stopItem.appendChild(clearImgBtn);
             } else {
-                const text = document.createElement('span');
-                text.className = 'stop-preview-text';
-                text.textContent = stop.value || '●';
-                preview.appendChild(text);
+                // Character input
+                const charInput = document.createElement('input');
+                charInput.type = 'text';
+                charInput.className = 'stop-char-input';
+                charInput.maxLength = 2;
+                charInput.value = stop.value || '●';
+                charInput.style.color = stop.color || '#ffffff';
+                charInput.style.backgroundColor = stop.bgColor || '#000000';
+                charInput.addEventListener('input', (e) => {
+                    if (e.target.value) {
+                        this.stopsManager.updateStop(stop.id, { value: e.target.value });
+                    }
+                });
+
+                // Color pickers
+                const colorPickers = document.createElement('div');
+                colorPickers.className = 'color-pair';
+
+                const fgPicker = document.createElement('input');
+                fgPicker.type = 'color';
+                fgPicker.className = 'color-picker color-picker-small';
+                fgPicker.value = stop.color || '#ffffff';
+                fgPicker.title = 'Text color';
+                // Preview on input (no re-render)
+                fgPicker.addEventListener('input', (e) => {
+                    charInput.style.color = e.target.value;
+                });
+                // Commit on change (when picker closes)
+                fgPicker.addEventListener('change', (e) => {
+                    this.stopsManager.updateStop(stop.id, { color: e.target.value });
+                });
+
+                const bgPicker = document.createElement('input');
+                bgPicker.type = 'color';
+                bgPicker.className = 'color-picker color-picker-small';
+                bgPicker.value = stop.bgColor || '#000000';
+                bgPicker.title = 'Background color';
+                // Preview on input (no re-render)
+                bgPicker.addEventListener('input', (e) => {
+                    charInput.style.backgroundColor = e.target.value;
+                });
+                // Commit on change (when picker closes)
+                bgPicker.addEventListener('change', (e) => {
+                    this.stopsManager.updateStop(stop.id, { bgColor: e.target.value });
+                });
+
+                colorPickers.appendChild(fgPicker);
+                colorPickers.appendChild(bgPicker);
+
+                // Image upload button
+                const imgBtn = document.createElement('button');
+                imgBtn.className = 'stop-action-btn';
+                imgBtn.textContent = '🖼';
+                imgBtn.title = 'Upload image';
+                imgBtn.addEventListener('click', () => {
+                    this.openImagePicker(stop.id);
+                });
+
+                stopItem.appendChild(percentageDiv);
+                stopItem.appendChild(charInput);
+                stopItem.appendChild(colorPickers);
+                stopItem.appendChild(imgBtn);
             }
 
-            // Click to upload image
-            preview.addEventListener('click', () => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        await this.stopsManager.loadImage(stop.id, file);
-                    }
-                };
-                input.click();
-            });
-
-            // Actions
-            const actions = document.createElement('div');
-            actions.className = 'stop-actions';
-
+            // Remove button (always last)
             const removeBtn = document.createElement('button');
-            removeBtn.className = 'stop-action-btn';
+            removeBtn.className = 'stop-action-btn stop-remove-btn';
             removeBtn.textContent = '×';
+            removeBtn.title = 'Remove stop';
             removeBtn.addEventListener('click', () => {
                 this.stopsManager.removeStop(stop.id);
             });
 
-            actions.appendChild(removeBtn);
-
-            stopItem.appendChild(percentageDiv);
-            stopItem.appendChild(preview);
-            stopItem.appendChild(actions);
-
+            stopItem.appendChild(removeBtn);
             stopsList.appendChild(stopItem);
         });
+    }
+
+    /**
+     * Open image picker for a stop
+     */
+    openImagePicker(stopId) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                await this.stopsManager.loadImage(stopId, file);
+            }
+        };
+        input.click();
     }
 }
 

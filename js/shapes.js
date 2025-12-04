@@ -22,6 +22,26 @@ class ShapeGenerator {
     }
 
     /**
+     * Generate a rounded square path
+     * @param {number} size - Size of the shape
+     * @param {number} radius - Corner radius (defaults to 20% of size)
+     * @returns {string} SVG path data
+     */
+    static roundedSquare(size, radius = null) {
+        const r = radius !== null ? radius : size * 0.2;
+        const clampedR = Math.min(r, size / 2);
+        return `M ${clampedR},0
+                L ${size - clampedR},0
+                Q ${size},0 ${size},${clampedR}
+                L ${size},${size - clampedR}
+                Q ${size},${size} ${size - clampedR},${size}
+                L ${clampedR},${size}
+                Q 0,${size} 0,${size - clampedR}
+                L 0,${clampedR}
+                Q 0,0 ${clampedR},0 Z`;
+    }
+
+    /**
      * Generate a triangle path
      * @param {number} size - Size of the shape
      * @returns {string} SVG path data
@@ -76,6 +96,27 @@ class ShapeGenerator {
     }
 
     /**
+     * Calculate anchor offset based on anchor type
+     * @param {string} anchor - Anchor position (center, top-left, etc.)
+     * @param {number} size - Size of the shape
+     * @returns {Object} {x, y} offset values
+     */
+    static getAnchorOffset(anchor, size) {
+        const offsets = {
+            'top-left': { x: 0, y: 0 },
+            'top': { x: -size / 2, y: 0 },
+            'top-right': { x: -size, y: 0 },
+            'left': { x: 0, y: -size / 2 },
+            'center': { x: -size / 2, y: -size / 2 },
+            'right': { x: -size, y: -size / 2 },
+            'bottom-left': { x: 0, y: -size },
+            'bottom': { x: -size / 2, y: -size },
+            'bottom-right': { x: -size, y: -size }
+        };
+        return offsets[anchor] || offsets['center'];
+    }
+
+    /**
      * Generate a shape element with all transformations applied
      * @param {Object} sample - Pixel sample with color and position data
      * @param {Object} params - Shape parameters
@@ -92,26 +133,30 @@ class ShapeGenerator {
             size = baseSize * (scalePercent / 100);
         }
 
-        // Calculate rotation
-        let rotation = params.rotation;
-
-        // Rotation by brightness takes precedence
-        if (params.rotationBrightness) {
-            rotation = sample.brightness * 360;
-        } else if (params.rotationRandom) {
-            rotation += (Math.random() - 0.5) * params.rotationRange;
-        }
-
-        // Get the appropriate shape path
-        const shapeFn = this[params.shapeType] || this.circle;
-        const path = shapeFn(size);
+        // Get the appropriate shape path (square or rounded square)
+        const path = params.roundedCorners
+            ? this.roundedSquare(size)
+            : this.square(size);
 
         // Calculate color
         const color = this.getColor(sample, params);
 
+        // Get anchor-based offset
+        const offset = this.getAnchorOffset(params.anchor, size);
+
+        // Build transform string
+        let transform = `translate(${sample.x + offset.x}, ${sample.y + offset.y})`;
+
+        // Add rotation if specified
+        if (params.rotation && params.rotation !== 0) {
+            const centerX = size / 2;
+            const centerY = size / 2;
+            transform += ` rotate(${params.rotation}, ${centerX}, ${centerY})`;
+        }
+
         return {
             path: path,
-            transform: `translate(${sample.x - size / 2}, ${sample.y - size / 2}) rotate(${rotation}, ${size / 2}, ${size / 2})`,
+            transform: transform,
             fill: color,
             stroke: params.stroke || 'none',
             strokeWidth: params.strokeWidth || 0

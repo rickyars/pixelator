@@ -177,6 +177,27 @@ class ASCIIMapper {
     }
 
     /**
+     * Calculate anchor offset based on anchor type
+     * @param {string} anchor - Anchor position (center, top-left, etc.)
+     * @param {number} size - Size of the element
+     * @returns {Object} {x, y} offset values
+     */
+    static getAnchorOffset(anchor, size) {
+        const offsets = {
+            'top-left': { x: 0, y: 0 },
+            'top': { x: -size / 2, y: 0 },
+            'top-right': { x: -size, y: 0 },
+            'left': { x: 0, y: -size / 2 },
+            'center': { x: -size / 2, y: -size / 2 },
+            'right': { x: -size, y: -size / 2 },
+            'bottom-left': { x: 0, y: -size },
+            'bottom': { x: -size / 2, y: -size },
+            'bottom-right': { x: -size, y: -size }
+        };
+        return offsets[anchor] || offsets['center'];
+    }
+
+    /**
      * Create a renderable element from a stop
      * @param {Object} sample - Pixel sample
      * @param {Object} stop - Stop object
@@ -186,27 +207,59 @@ class ASCIIMapper {
      */
     static createElementFromStop(sample, stop, params, stepSize) {
         const size = (sample.mergeWidth || 1) * stepSize * (params.imageSize / 100);
+        const offset = this.getAnchorOffset(params.anchor, size);
 
         if (stop.type === 'image' && stop.image) {
             return {
                 type: 'image',
-                x: sample.x - size / 2,
-                y: sample.y - size / 2,
+                x: sample.x + offset.x,
+                y: sample.y + offset.y,
                 width: size,
                 height: size,
                 image: stop.value // Data URL
             };
         } else {
             // Text/character - use color from the stop
+            // For text, anchor affects baseline position
+            const textOffset = this.getTextAnchorOffset(params.anchor, size);
             return {
                 type: 'text',
-                x: sample.x,
-                y: sample.y,
+                x: sample.x + textOffset.x,
+                y: sample.y + textOffset.y,
                 text: stop.value || '●',
                 fontSize: size,
-                fontFamily: 'monospace',
-                fill: stop.color || '#ffffff'
+                fontFamily: params.fontFamily || 'monospace',
+                fill: stop.color || '#ffffff',
+                bgColor: stop.bgColor || null,
+                bgX: sample.x + offset.x,
+                bgY: sample.y + offset.y,
+                bgSize: size,
+                anchor: params.anchor,
+                dropShadow: params.dropShadow || false
             };
         }
+    }
+
+    /**
+     * Calculate text anchor offset (text uses different positioning than shapes)
+     * @param {string} anchor - Anchor position
+     * @param {number} size - Font size
+     * @returns {Object} {x, y} offset values
+     */
+    static getTextAnchorOffset(anchor, size) {
+        // Text baseline is at the bottom of the text, so we adjust differently
+        const halfSize = size / 2;
+        const offsets = {
+            'top-left': { x: 0, y: size * 0.8 },
+            'top': { x: 0, y: size * 0.8 },
+            'top-right': { x: 0, y: size * 0.8 },
+            'left': { x: 0, y: halfSize * 0.8 },
+            'center': { x: 0, y: halfSize * 0.4 },
+            'right': { x: 0, y: halfSize * 0.8 },
+            'bottom-left': { x: 0, y: 0 },
+            'bottom': { x: 0, y: 0 },
+            'bottom-right': { x: 0, y: 0 }
+        };
+        return offsets[anchor] || offsets['center'];
     }
 }

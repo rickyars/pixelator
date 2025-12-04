@@ -27,12 +27,25 @@ class Renderer {
             this.svg.attr('height', params.imageHeight);
         }
 
-        // Set shape-rendering based on anti-alias setting
-        if (params.antiAlias === false) {
-            this.svg.attr('shape-rendering', 'crispEdges');
-        } else {
-            this.svg.attr('shape-rendering', 'auto');
-        }
+        // Set shape-rendering to auto for smooth edges
+        this.svg.attr('shape-rendering', 'auto');
+
+        // Add defs for filters
+        const defs = this.svg.append('defs');
+
+        // Add drop shadow filter
+        const dropShadowFilter = defs.append('filter')
+            .attr('id', 'dropShadow')
+            .attr('x', '-50%')
+            .attr('y', '-50%')
+            .attr('width', '200%')
+            .attr('height', '200%');
+
+        dropShadowFilter.append('feDropShadow')
+            .attr('dx', '2')
+            .attr('dy', '2')
+            .attr('stdDeviation', '2')
+            .attr('flood-color', 'rgba(0,0,0,0.5)');
 
         // Add background rectangle
         if (params.backgroundColor) {
@@ -101,8 +114,24 @@ class Renderer {
                 .attr('preserveAspectRatio', 'none');
         }
 
-        // Render text
+        // Render text with backgrounds
         if (texts.length > 0) {
+            // First render background rectangles for texts that have them
+            const textsWithBg = texts.filter(t => t.bgColor);
+            if (textsWithBg.length > 0) {
+                this.svg.selectAll('rect.text-bg')
+                    .data(textsWithBg)
+                    .enter()
+                    .append('rect')
+                    .attr('class', 'text-bg')
+                    .attr('x', d => d.bgX)
+                    .attr('y', d => d.bgY)
+                    .attr('width', d => d.bgSize)
+                    .attr('height', d => d.bgSize)
+                    .attr('fill', d => d.bgColor);
+            }
+
+            // Then render the text on top
             this.svg.selectAll('text')
                 .data(texts)
                 .enter()
@@ -112,10 +141,35 @@ class Renderer {
                 .attr('font-size', d => d.fontSize)
                 .attr('font-family', d => d.fontFamily)
                 .attr('fill', d => d.fill)
-                .attr('dominant-baseline', 'middle')
-                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', d => this.getTextBaseline(d.anchor))
+                .attr('text-anchor', d => this.getTextAnchor(d.anchor))
+                .attr('filter', d => d.dropShadow ? 'url(#dropShadow)' : null)
                 .text(d => d.text);
         }
+    }
+
+    /**
+     * Get SVG text-anchor value from anchor position
+     * @param {string} anchor - Anchor position
+     * @returns {string} SVG text-anchor value
+     */
+    getTextAnchor(anchor) {
+        if (!anchor) return 'middle';
+        if (anchor.includes('left')) return 'start';
+        if (anchor.includes('right')) return 'end';
+        return 'middle';
+    }
+
+    /**
+     * Get SVG dominant-baseline value from anchor position
+     * @param {string} anchor - Anchor position
+     * @returns {string} SVG dominant-baseline value
+     */
+    getTextBaseline(anchor) {
+        if (!anchor) return 'middle';
+        if (anchor.includes('top')) return 'hanging';
+        if (anchor.includes('bottom')) return 'alphabetic';
+        return 'middle';
     }
 
     /**
