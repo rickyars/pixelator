@@ -326,6 +326,15 @@ class ImageProcessor {
         const levelsPerChannel = Math.max(2, Math.min(256, levels));
         const scaleFactor = 255 / (levelsPerChannel - 1);
 
+        // DEBUG: Log function call
+        console.log('=== Floyd-Steinberg Dithering Started ===');
+        console.log(`Image size: ${width}x${height}, Levels: ${levelsPerChannel}, Scale factor: ${scaleFactor}`);
+
+        // Track statistics
+        let pixelCount = 0;
+        let totalNonZeroErrors = 0;
+        let errorDistributions = 0;
+
         // Process each pixel from top to bottom, left to right
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
@@ -359,6 +368,19 @@ class ImageProcessor {
                 const errG = oldG - newG;
                 const errB = oldB - newB;
 
+                // DEBUG: Log first 3 pixels
+                if (pixelCount < 3) {
+                    console.log(`\n--- Pixel ${pixelCount + 1} at (${x}, ${y}) ---`);
+                    console.log(`  Old RGB: (${oldR}, ${oldG}, ${oldB})`);
+                    console.log(`  New RGB: (${newR}, ${newG}, ${newB})`);
+                    console.log(`  Errors:  (${errR.toFixed(2)}, ${errG.toFixed(2)}, ${errB.toFixed(2)})`);
+                }
+
+                // Track non-zero errors
+                if (errR !== 0 || errG !== 0 || errB !== 0) {
+                    totalNonZeroErrors++;
+                }
+
                 // Distribute error to neighboring pixels (Floyd-Steinberg weights)
                 // Right pixel (x+1, y) gets 7/16 of error
                 if (x + 1 < width) {
@@ -366,6 +388,12 @@ class ImageProcessor {
                     data[rightIdx] = this.clamp(data[rightIdx] + errR * 7 / 16);
                     data[rightIdx + 1] = this.clamp(data[rightIdx + 1] + errG * 7 / 16);
                     data[rightIdx + 2] = this.clamp(data[rightIdx + 2] + errB * 7 / 16);
+                    errorDistributions++;
+
+                    // DEBUG: Log error distribution for first 3 pixels
+                    if (pixelCount < 3) {
+                        console.log(`  → Distributed 7/16 error to RIGHT (${x + 1}, ${y})`);
+                    }
                 }
 
                 // Bottom-left pixel (x-1, y+1) gets 3/16 of error
@@ -374,6 +402,12 @@ class ImageProcessor {
                     data[blIdx] = this.clamp(data[blIdx] + errR * 3 / 16);
                     data[blIdx + 1] = this.clamp(data[blIdx + 1] + errG * 3 / 16);
                     data[blIdx + 2] = this.clamp(data[blIdx + 2] + errB * 3 / 16);
+                    errorDistributions++;
+
+                    // DEBUG: Log error distribution for first 3 pixels
+                    if (pixelCount < 3) {
+                        console.log(`  → Distributed 3/16 error to BOTTOM-LEFT (${x - 1}, ${y + 1})`);
+                    }
                 }
 
                 // Bottom pixel (x, y+1) gets 5/16 of error
@@ -382,6 +416,12 @@ class ImageProcessor {
                     data[bottomIdx] = this.clamp(data[bottomIdx] + errR * 5 / 16);
                     data[bottomIdx + 1] = this.clamp(data[bottomIdx + 1] + errG * 5 / 16);
                     data[bottomIdx + 2] = this.clamp(data[bottomIdx + 2] + errB * 5 / 16);
+                    errorDistributions++;
+
+                    // DEBUG: Log error distribution for first 3 pixels
+                    if (pixelCount < 3) {
+                        console.log(`  → Distributed 5/16 error to BOTTOM (${x}, ${y + 1})`);
+                    }
                 }
 
                 // Bottom-right pixel (x+1, y+1) gets 1/16 of error
@@ -390,9 +430,24 @@ class ImageProcessor {
                     data[brIdx] = this.clamp(data[brIdx] + errR * 1 / 16);
                     data[brIdx + 1] = this.clamp(data[brIdx + 1] + errG * 1 / 16);
                     data[brIdx + 2] = this.clamp(data[brIdx + 2] + errB * 1 / 16);
+                    errorDistributions++;
+
+                    // DEBUG: Log error distribution for first 3 pixels
+                    if (pixelCount < 3) {
+                        console.log(`  → Distributed 1/16 error to BOTTOM-RIGHT (${x + 1}, ${y + 1})`);
+                    }
                 }
+
+                pixelCount++;
             }
         }
+
+        // DEBUG: Summary
+        console.log('\n=== Floyd-Steinberg Dithering Complete ===');
+        console.log(`Total pixels processed: ${pixelCount}`);
+        console.log(`Pixels with non-zero errors: ${totalNonZeroErrors} (${(totalNonZeroErrors / pixelCount * 100).toFixed(2)}%)`);
+        console.log(`Total error distributions: ${errorDistributions}`);
+        console.log('==========================================\n');
     }
 
     /**
