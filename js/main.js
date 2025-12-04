@@ -117,23 +117,24 @@ class PixelEffectsApp {
                     const cols = Math.ceil(dimensions.width / params.gridSize);
                     const rows = Math.ceil(dimensions.height / params.gridSize);
 
-                    // Apply effects in correct order: posterize first, then dither
-                    if (params.posterize && params.posterizeLevels) {
+                    // Apply effects: when both posterize and dither are enabled,
+                    // only apply dithering to avoid double quantization
+                    if (params.posterize && params.posterizeLevels && params.dither) {
+                        // Both enabled: only dither (includes quantization WITH error diffusion)
+                        this.imageProcessor.applyDitherToSamples(
+                            this.currentSamples,
+                            cols,
+                            rows,
+                            params.posterizeLevels
+                        );
+                    } else if (params.posterize && params.posterizeLevels) {
+                        // Only posterize (no dithering)
                         this.imageProcessor.applyPosterizeToSamples(
                             this.currentSamples,
                             params.posterizeLevels
                         );
-
-                        if (params.dither) {
-                            this.imageProcessor.applyDitherToSamples(
-                                this.currentSamples,
-                                cols,
-                                rows,
-                                params.posterizeLevels
-                            );
-                        }
                     } else if (params.dither) {
-                        // Apply dithering with default palette (8 levels per channel)
+                        // Only dither with default palette (8 levels per channel)
                         this.imageProcessor.applyDitherToSamples(
                             this.currentSamples,
                             cols,
