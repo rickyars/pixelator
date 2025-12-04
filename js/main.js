@@ -40,45 +40,6 @@ class PixelEffectsApp {
         this.ui.onExportPNG = () => {
             this.exportPNG();
         };
-
-        // Character stop handler
-        this.ui.onAddCharacterStop = (char, color, bgColor) => {
-            this.addCharacterStop(char, color, bgColor);
-        };
-    }
-
-    /**
-     * Add a character stop with color and background
-     */
-    addCharacterStop(char, color, bgColor) {
-        // Find a reasonable percentage position
-        const stops = this.stopsManager.getStops();
-        let percentage = 50;
-
-        if (stops.length > 0) {
-            // Find the largest gap between stops
-            const sorted = [...stops].sort((a, b) => a.percentage - b.percentage);
-            let maxGap = sorted[0].percentage; // Gap from 0
-            let gapStart = 0;
-
-            for (let i = 0; i < sorted.length - 1; i++) {
-                const gap = sorted[i + 1].percentage - sorted[i].percentage;
-                if (gap > maxGap) {
-                    maxGap = gap;
-                    gapStart = sorted[i].percentage;
-                }
-            }
-
-            // Check gap to 100
-            const endGap = 100 - sorted[sorted.length - 1].percentage;
-            if (endGap > maxGap) {
-                percentage = sorted[sorted.length - 1].percentage + endGap / 2;
-            } else {
-                percentage = gapStart + maxGap / 2;
-            }
-        }
-
-        this.stopsManager.addStop(Math.round(percentage), 'text', char, color, bgColor);
     }
 
     /**
@@ -248,44 +209,55 @@ class PixelEffectsApp {
             percentageDiv.appendChild(percentageInput);
             percentageDiv.appendChild(percentLabel);
 
-            // Preview
-            const preview = document.createElement('div');
-            preview.className = 'stop-preview';
-
+            // Character/Image display
             if (stop.type === 'image' && stop.image) {
+                // Image preview with option to clear
+                const imagePreview = document.createElement('div');
+                imagePreview.className = 'stop-preview stop-preview-image';
                 const img = document.createElement('img');
                 img.src = stop.value;
-                preview.appendChild(img);
+                imagePreview.appendChild(img);
+
+                // Click to replace image
+                imagePreview.title = 'Click to replace image';
+                imagePreview.addEventListener('click', () => {
+                    this.openImagePicker(stop.id);
+                });
+
+                // Clear button to go back to text
+                const clearImgBtn = document.createElement('button');
+                clearImgBtn.className = 'stop-action-btn';
+                clearImgBtn.textContent = '↩';
+                clearImgBtn.title = 'Use character instead';
+                clearImgBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.stopsManager.updateStop(stop.id, {
+                        type: 'text',
+                        value: '●',
+                        image: null
+                    });
+                });
+
+                stopItem.appendChild(percentageDiv);
+                stopItem.appendChild(imagePreview);
+                stopItem.appendChild(clearImgBtn);
             } else {
-                // Show background color in preview
-                if (stop.bgColor) {
-                    preview.style.backgroundColor = stop.bgColor;
-                }
-                const text = document.createElement('span');
-                text.className = 'stop-preview-text';
-                text.textContent = stop.value || '●';
-                text.style.color = stop.color || '#ffffff';
-                preview.appendChild(text);
-            }
-
-            // Click to upload image
-            preview.addEventListener('click', () => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        await this.stopsManager.loadImage(stop.id, file);
+                // Character input
+                const charInput = document.createElement('input');
+                charInput.type = 'text';
+                charInput.className = 'stop-char-input';
+                charInput.maxLength = 2;
+                charInput.value = stop.value || '●';
+                charInput.style.color = stop.color || '#ffffff';
+                charInput.style.backgroundColor = stop.bgColor || '#000000';
+                charInput.addEventListener('input', (e) => {
+                    if (e.target.value) {
+                        this.stopsManager.updateStop(stop.id, { value: e.target.value });
                     }
-                };
-                input.click();
-            });
+                });
 
-            // Color pickers for text stops (fg and bg)
-            let colorPickers = null;
-            if (stop.type !== 'image') {
-                colorPickers = document.createElement('div');
+                // Color pickers
+                const colorPickers = document.createElement('div');
                 colorPickers.className = 'color-pair';
 
                 const fgPicker = document.createElement('input');
@@ -295,6 +267,7 @@ class PixelEffectsApp {
                 fgPicker.title = 'Text color';
                 fgPicker.addEventListener('input', (e) => {
                     this.stopsManager.updateStop(stop.id, { color: e.target.value });
+                    charInput.style.color = e.target.value;
                 });
 
                 const bgPicker = document.createElement('input');
@@ -304,34 +277,55 @@ class PixelEffectsApp {
                 bgPicker.title = 'Background color';
                 bgPicker.addEventListener('input', (e) => {
                     this.stopsManager.updateStop(stop.id, { bgColor: e.target.value });
+                    charInput.style.backgroundColor = e.target.value;
                 });
 
                 colorPickers.appendChild(fgPicker);
                 colorPickers.appendChild(bgPicker);
+
+                // Image upload button
+                const imgBtn = document.createElement('button');
+                imgBtn.className = 'stop-action-btn';
+                imgBtn.textContent = '🖼';
+                imgBtn.title = 'Upload image';
+                imgBtn.addEventListener('click', () => {
+                    this.openImagePicker(stop.id);
+                });
+
+                stopItem.appendChild(percentageDiv);
+                stopItem.appendChild(charInput);
+                stopItem.appendChild(colorPickers);
+                stopItem.appendChild(imgBtn);
             }
 
-            // Actions
-            const actions = document.createElement('div');
-            actions.className = 'stop-actions';
-
+            // Remove button (always last)
             const removeBtn = document.createElement('button');
-            removeBtn.className = 'stop-action-btn';
+            removeBtn.className = 'stop-action-btn stop-remove-btn';
             removeBtn.textContent = '×';
+            removeBtn.title = 'Remove stop';
             removeBtn.addEventListener('click', () => {
                 this.stopsManager.removeStop(stop.id);
             });
 
-            actions.appendChild(removeBtn);
-
-            stopItem.appendChild(percentageDiv);
-            stopItem.appendChild(preview);
-            if (colorPickers) {
-                stopItem.appendChild(colorPickers);
-            }
-            stopItem.appendChild(actions);
-
+            stopItem.appendChild(removeBtn);
             stopsList.appendChild(stopItem);
         });
+    }
+
+    /**
+     * Open image picker for a stop
+     */
+    openImagePicker(stopId) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                await this.stopsManager.loadImage(stopId, file);
+            }
+        };
+        input.click();
     }
 }
 

@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Effects Tool</title>
+    <title>PIXELATOR</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/controls.css">
 </head>
 <body>
     <header class="app-header">
-        <h1>Pixel Effects Tool</h1>
+        <div class="logo">
+            <pre class="ascii-logo">█▀█ █ ▀▄▀ ██▀ █   ▄▀█ ▀█▀ █▀█ █▀█
+█▀▀ █ █ █ █▄▄ █▄▄ █▀█  █  █▄█ █▀▄</pre>
+        </div>
         <div class="header-links">
             <a href="#about" class="header-link">About</a>
             <a href="https://github.com" class="header-link" target="_blank">GitHub</a>
@@ -169,20 +172,8 @@
             <section class="control-section" id="asciiControls" style="display: none;">
                 <h2>Map Settings</h2>
 
-                <div class="control-group">
-                    <label>Quick Add Character</label>
-                    <div class="char-input-row">
-                        <input type="text" id="charInput" class="text-input char-input" maxlength="1" placeholder="●">
-                        <div class="color-pair">
-                            <input type="color" id="charColor" value="#ffffff" class="color-picker color-picker-small" title="Text color">
-                            <input type="color" id="charBgColor" value="#000000" class="color-picker color-picker-small" title="Background color">
-                        </div>
-                        <button type="button" class="btn btn-small" id="addCharBtn">Add</button>
-                    </div>
-                </div>
-
                 <div class="stops-header">
-                    <h3>Stops</h3>
+                    <h3>Brightness Stops</h3>
                     <button type="button" class="btn btn-small" id="addStop">+ Add</button>
                 </div>
 

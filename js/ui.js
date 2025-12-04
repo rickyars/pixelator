@@ -124,41 +124,6 @@ class UI {
             mergeControls.style.display = e.target.checked ? 'block' : 'none';
             this.triggerParameterChange();
         });
-
-        // Character add button
-        this.initCharacterInput();
-    }
-
-    /**
-     * Initialize character input for quick stop creation
-     */
-    initCharacterInput() {
-        const addCharBtn = document.getElementById('addCharBtn');
-        const charInput = document.getElementById('charInput');
-        const charColor = document.getElementById('charColor');
-        const charBgColor = document.getElementById('charBgColor');
-
-        if (!addCharBtn) return;
-
-        addCharBtn.addEventListener('click', () => {
-            const char = charInput.value || '●';
-            const color = charColor.value;
-            const bgColor = charBgColor.value;
-
-            if (this.onAddCharacterStop) {
-                this.onAddCharacterStop(char, color, bgColor);
-            }
-
-            // Clear input for next entry
-            charInput.value = '';
-        });
-
-        // Also add on Enter key
-        charInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                addCharBtn.click();
-            }
-        });
     }
 
     /**
