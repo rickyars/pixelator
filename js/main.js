@@ -330,7 +330,7 @@ class PixelEffectsApp {
                 // Image upload button
                 const imgBtn = document.createElement('button');
                 imgBtn.className = 'stop-action-btn';
-                imgBtn.textContent = '🖼';
+                imgBtn.textContent = '+';
                 imgBtn.title = 'Upload image';
                 imgBtn.addEventListener('click', () => {
                     this.openImagePicker(stop.id);
