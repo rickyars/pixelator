@@ -173,7 +173,10 @@
                     <label>Quick Add Character</label>
                     <div class="char-input-row">
                         <input type="text" id="charInput" class="text-input char-input" maxlength="1" placeholder="●">
-                        <input type="color" id="charColor" value="#ffffff" class="color-picker color-picker-small">
+                        <div class="color-pair">
+                            <input type="color" id="charColor" value="#ffffff" class="color-picker color-picker-small" title="Text color">
+                            <input type="color" id="charBgColor" value="#000000" class="color-picker color-picker-small" title="Background color">
+                        </div>
                         <button type="button" class="btn btn-small" id="addCharBtn">Add</button>
                     </div>
                 </div>

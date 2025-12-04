@@ -470,3 +470,13 @@ label span[id$="Value"] {
     flex-shrink: 0;
     width: auto;
 }
+
+.color-pair {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.color-pair .color-picker-small {
+    width: 32px;
+}

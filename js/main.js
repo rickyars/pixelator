@@ -42,15 +42,15 @@ class PixelEffectsApp {
         };
 
         // Character stop handler
-        this.ui.onAddCharacterStop = (char, color) => {
-            this.addCharacterStop(char, color);
+        this.ui.onAddCharacterStop = (char, color, bgColor) => {
+            this.addCharacterStop(char, color, bgColor);
         };
     }
 
     /**
-     * Add a character stop with color
+     * Add a character stop with color and background
      */
-    addCharacterStop(char, color) {
+    addCharacterStop(char, color, bgColor) {
         // Find a reasonable percentage position
         const stops = this.stopsManager.getStops();
         let percentage = 50;
@@ -78,7 +78,7 @@ class PixelEffectsApp {
             }
         }
 
-        this.stopsManager.addStop(Math.round(percentage), 'text', char, color);
+        this.stopsManager.addStop(Math.round(percentage), 'text', char, color, bgColor);
     }
 
     /**
@@ -257,6 +257,10 @@ class PixelEffectsApp {
                 img.src = stop.value;
                 preview.appendChild(img);
             } else {
+                // Show background color in preview
+                if (stop.bgColor) {
+                    preview.style.backgroundColor = stop.bgColor;
+                }
                 const text = document.createElement('span');
                 text.className = 'stop-preview-text';
                 text.textContent = stop.value || '●';
@@ -278,17 +282,32 @@ class PixelEffectsApp {
                 input.click();
             });
 
-            // Color picker for text stops
-            let colorPicker = null;
+            // Color pickers for text stops (fg and bg)
+            let colorPickers = null;
             if (stop.type !== 'image') {
-                colorPicker = document.createElement('input');
-                colorPicker.type = 'color';
-                colorPicker.className = 'color-picker color-picker-small';
-                colorPicker.value = stop.color || '#ffffff';
-                colorPicker.title = 'Stop color';
-                colorPicker.addEventListener('input', (e) => {
+                colorPickers = document.createElement('div');
+                colorPickers.className = 'color-pair';
+
+                const fgPicker = document.createElement('input');
+                fgPicker.type = 'color';
+                fgPicker.className = 'color-picker color-picker-small';
+                fgPicker.value = stop.color || '#ffffff';
+                fgPicker.title = 'Text color';
+                fgPicker.addEventListener('input', (e) => {
                     this.stopsManager.updateStop(stop.id, { color: e.target.value });
                 });
+
+                const bgPicker = document.createElement('input');
+                bgPicker.type = 'color';
+                bgPicker.className = 'color-picker color-picker-small';
+                bgPicker.value = stop.bgColor || '#000000';
+                bgPicker.title = 'Background color';
+                bgPicker.addEventListener('input', (e) => {
+                    this.stopsManager.updateStop(stop.id, { bgColor: e.target.value });
+                });
+
+                colorPickers.appendChild(fgPicker);
+                colorPickers.appendChild(bgPicker);
             }
 
             // Actions
@@ -306,8 +325,8 @@ class PixelEffectsApp {
 
             stopItem.appendChild(percentageDiv);
             stopItem.appendChild(preview);
-            if (colorPicker) {
-                stopItem.appendChild(colorPicker);
+            if (colorPickers) {
+                stopItem.appendChild(colorPickers);
             }
             stopItem.appendChild(actions);
 

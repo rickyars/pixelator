@@ -230,6 +230,10 @@ class ASCIIMapper {
                 fontSize: size,
                 fontFamily: 'monospace',
                 fill: stop.color || '#ffffff',
+                bgColor: stop.bgColor || null,
+                bgX: sample.x + offset.x,
+                bgY: sample.y + offset.y,
+                bgSize: size,
                 anchor: params.anchor
             };
         }

@@ -136,15 +136,17 @@ class UI {
         const addCharBtn = document.getElementById('addCharBtn');
         const charInput = document.getElementById('charInput');
         const charColor = document.getElementById('charColor');
+        const charBgColor = document.getElementById('charBgColor');
 
         if (!addCharBtn) return;
 
         addCharBtn.addEventListener('click', () => {
             const char = charInput.value || '●';
             const color = charColor.value;
+            const bgColor = charBgColor.value;
 
             if (this.onAddCharacterStop) {
-                this.onAddCharacterStop(char, color);
+                this.onAddCharacterStop(char, color, bgColor);
             }
 
             // Clear input for next entry

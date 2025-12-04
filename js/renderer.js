@@ -97,8 +97,24 @@ class Renderer {
                 .attr('preserveAspectRatio', 'none');
         }
 
-        // Render text
+        // Render text with backgrounds
         if (texts.length > 0) {
+            // First render background rectangles for texts that have them
+            const textsWithBg = texts.filter(t => t.bgColor);
+            if (textsWithBg.length > 0) {
+                this.svg.selectAll('rect.text-bg')
+                    .data(textsWithBg)
+                    .enter()
+                    .append('rect')
+                    .attr('class', 'text-bg')
+                    .attr('x', d => d.bgX)
+                    .attr('y', d => d.bgY)
+                    .attr('width', d => d.bgSize)
+                    .attr('height', d => d.bgSize)
+                    .attr('fill', d => d.bgColor);
+            }
+
+            // Then render the text on top
             this.svg.selectAll('text')
                 .data(texts)
                 .enter()
