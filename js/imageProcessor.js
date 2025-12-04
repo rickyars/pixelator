@@ -289,16 +289,26 @@ class ImageProcessor {
 
         const data = this.imageData.data;
         const levelsPerChannel = Math.max(2, Math.min(256, levels));
-
-        // Calculate step size for quantization
-        const step = 256 / levelsPerChannel;
+        const scaleFactor = 255 / (levelsPerChannel - 1);
 
         for (let i = 0; i < data.length; i += 4) {
-            // Quantize each color channel independently
-            // Adobe Photoshop-style posterization
-            data[i] = Math.floor(data[i] / step) * step;         // R
-            data[i + 1] = Math.floor(data[i + 1] / step) * step; // G
-            data[i + 2] = Math.floor(data[i + 2] / step) * step; // B
+            // Quantize each color channel independently using two-step formula
+            // Step 1: Map input value [0,255] to level index [0, levelsPerChannel-1]
+            // Step 2: Map level index back to output range [0,255]
+            // This ensures the output uses the full color range with correct spacing
+
+            // Red channel
+            const levelR = Math.floor(data[i] * levelsPerChannel / 256);
+            data[i] = Math.round(levelR * scaleFactor);
+
+            // Green channel
+            const levelG = Math.floor(data[i + 1] * levelsPerChannel / 256);
+            data[i + 1] = Math.round(levelG * scaleFactor);
+
+            // Blue channel
+            const levelB = Math.floor(data[i + 2] * levelsPerChannel / 256);
+            data[i + 2] = Math.round(levelB * scaleFactor);
+
             // Alpha channel (i+3) remains unchanged
         }
     }
@@ -308,14 +318,13 @@ class ImageProcessor {
      * @param {number} levels - Number of color levels per channel
      */
     applyDitheredPosterize(levels) {
-        if (!this.imageData) return;
+        if (!this.imageData || levels < 2) return;
 
         const width = this.imageData.width;
         const height = this.imageData.height;
         const data = this.imageData.data;
-
-        // Calculate step size for quantization
-        const step = 256 / levels;
+        const levelsPerChannel = Math.max(2, Math.min(256, levels));
+        const scaleFactor = 255 / (levelsPerChannel - 1);
 
         // Process each pixel from top to bottom, left to right
         for (let y = 0; y < height; y++) {
@@ -327,10 +336,18 @@ class ImageProcessor {
                 const oldG = data[idx + 1];
                 const oldB = data[idx + 2];
 
-                // Quantize to nearest color in the palette
-                const newR = Math.floor(oldR / step) * step;
-                const newG = Math.floor(oldG / step) * step;
-                const newB = Math.floor(oldB / step) * step;
+                // Quantize to nearest color in the palette using two-step formula
+                // Step 1: Map input value [0,255] to level index [0, levelsPerChannel-1]
+                // Step 2: Map level index back to output range [0,255]
+                // This ensures the output uses the full color range with correct spacing
+                const levelR = Math.floor(oldR * levelsPerChannel / 256);
+                const newR = Math.round(levelR * scaleFactor);
+
+                const levelG = Math.floor(oldG * levelsPerChannel / 256);
+                const newG = Math.round(levelG * scaleFactor);
+
+                const levelB = Math.floor(oldB * levelsPerChannel / 256);
+                const newB = Math.round(levelB * scaleFactor);
 
                 // Set new pixel values
                 data[idx] = newR;
