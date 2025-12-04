@@ -49,10 +49,16 @@ class Renderer {
 
         // Add background rectangle
         if (params.backgroundColor) {
+            // Override to white background if drop shadow is enabled in ASCII mode
+            // (black shadow on black background is invisible)
+            const bgColor = (params.dropShadow && mode === 'ascii')
+                ? '#ffffff'
+                : params.backgroundColor;
+
             this.svg.append('rect')
                 .attr('width', params.imageWidth)
                 .attr('height', params.imageHeight)
-                .attr('fill', params.backgroundColor);
+                .attr('fill', bgColor);
         }
 
         // Render based on mode
