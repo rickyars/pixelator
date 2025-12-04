@@ -58,13 +58,13 @@ class ImageProcessor {
         // Get image data
         this.imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
 
-        // Apply effects in order: dither first, then posterize
-        if (effects.dither) {
-            this.applyDither();
-        }
-
+        // Apply effects in order: posterize first, then dither, then pixelization
         if (effects.posterize && effects.posterizeLevels) {
             this.applyPosterize(effects.posterizeLevels);
+        }
+
+        if (effects.dither) {
+            this.applyDither();
         }
 
         // Put the processed image data back
