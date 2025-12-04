@@ -58,13 +58,13 @@ class ImageProcessor {
         // Get image data
         this.imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
 
-        // Apply effects
-        if (effects.posterize && effects.posterizeLevels) {
-            this.applyPosterize(effects.posterizeLevels);
-        }
-
+        // Apply effects in order: dither first, then posterize
         if (effects.dither) {
             this.applyDither();
+        }
+
+        if (effects.posterize && effects.posterizeLevels) {
+            this.applyPosterize(effects.posterizeLevels);
         }
 
         // Put the processed image data back
@@ -277,25 +277,29 @@ class ImageProcessor {
 
     /**
      * Apply posterization effect to reduce color levels
-     * @param {number} levels - Number of color levels (2-256)
+     * @param {number} levels - Number of color levels per channel (2-256)
      */
     applyPosterize(levels) {
         if (!this.imageData || levels < 2) return;
 
         const data = this.imageData.data;
-        const step = 255 / (levels - 1);
+        const levelsPerChannel = Math.max(2, Math.min(256, levels));
+
+        // Calculate the multiplier for quantization
+        const multiplier = 255 / (levelsPerChannel - 1);
 
         for (let i = 0; i < data.length; i += 4) {
-            // Posterize each color channel
-            data[i] = Math.round(data[i] / step) * step;     // R
-            data[i + 1] = Math.round(data[i + 1] / step) * step; // G
-            data[i + 2] = Math.round(data[i + 2] / step) * step; // B
+            // Quantize each color channel independently
+            // Map each channel value to one of the discrete levels
+            data[i] = Math.round(Math.round(data[i] / 255 * (levelsPerChannel - 1)) * multiplier);     // R
+            data[i + 1] = Math.round(Math.round(data[i + 1] / 255 * (levelsPerChannel - 1)) * multiplier); // G
+            data[i + 2] = Math.round(Math.round(data[i + 2] / 255 * (levelsPerChannel - 1)) * multiplier); // B
             // Alpha channel (i+3) remains unchanged
         }
     }
 
     /**
-     * Apply Floyd-Steinberg dithering
+     * Apply Floyd-Steinberg dithering with configurable color depth
      */
     applyDither() {
         if (!this.imageData) return;
@@ -303,6 +307,11 @@ class ImageProcessor {
         const width = this.imageData.width;
         const height = this.imageData.height;
         const data = this.imageData.data;
+
+        // Use a palette of colors for dithering (adjustable)
+        // For now, use a simple palette with multiple levels per channel
+        const levels = 4; // Number of levels per color channel (4 = 64 total colors)
+        const step = 255 / (levels - 1);
 
         // Process each pixel
         for (let y = 0; y < height; y++) {
@@ -314,10 +323,10 @@ class ImageProcessor {
                 const oldG = data[idx + 1];
                 const oldB = data[idx + 2];
 
-                // Quantize to nearest color (simple threshold)
-                const newR = oldR < 128 ? 0 : 255;
-                const newG = oldG < 128 ? 0 : 255;
-                const newB = oldB < 128 ? 0 : 255;
+                // Quantize to nearest color in our palette
+                const newR = Math.round(oldR / step) * step;
+                const newG = Math.round(oldG / step) * step;
+                const newB = Math.round(oldB / step) * step;
 
                 // Set new pixel values
                 data[idx] = newR;
