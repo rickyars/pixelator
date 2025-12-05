@@ -8,6 +8,7 @@ class PixelEffectsApp {
         this.ui = new UI();
         this.stopsManager = new StopsManager();
         this.currentSamples = [];
+        this.renderTimeout = null;
 
         this.initEventHandlers();
         this.initStopsUI();
@@ -85,10 +86,15 @@ class PixelEffectsApp {
      * Process image and render to SVG
      */
     async processAndRender() {
+        // Cancel any pending render to prevent race conditions
+        if (this.renderTimeout) {
+            clearTimeout(this.renderTimeout);
+        }
+
         this.ui.showLoading();
 
         // Use setTimeout to allow UI to update
-        setTimeout(() => {
+        this.renderTimeout = setTimeout(() => {
             try {
                 // Get current parameters
                 const params = this.ui.getParameters();

@@ -44,22 +44,33 @@ ${svgString}`;
         const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
 
+        // Cleanup function to prevent memory leaks
+        const cleanup = () => URL.revokeObjectURL(url);
+
+        // Timeout to prevent memory leaks if image never loads
+        const timeout = setTimeout(() => {
+            console.error('PNG export timeout after 10 seconds');
+            cleanup();
+        }, 10000);
+
         // Load SVG into image
         const img = new Image();
         img.onload = () => {
+            clearTimeout(timeout);
             ctx.scale(scale, scale);
             ctx.drawImage(img, 0, 0);
 
             // Convert to PNG blob
             canvas.toBlob((blob) => {
                 this.downloadBlob(blob, `${filename}-${Date.now()}.png`);
-                URL.revokeObjectURL(url);
+                cleanup();
             }, 'image/png');
         };
 
         img.onerror = () => {
+            clearTimeout(timeout);
             console.error('Failed to load SVG for PNG export');
-            URL.revokeObjectURL(url);
+            cleanup();
         };
 
         img.src = url;

@@ -15,6 +15,12 @@ class ImageProcessor {
      * @returns {Promise<HTMLImageElement>}
      */
     loadImage(file) {
+        // Validate file size (10MB limit)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        if (file.size > MAX_FILE_SIZE) {
+            return Promise.reject(new Error('File too large. Maximum size is 10MB.'));
+        }
+
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
 
@@ -22,6 +28,13 @@ class ImageProcessor {
                 const img = new Image();
 
                 img.onload = () => {
+                    // Validate image dimensions (4096px limit)
+                    const MAX_DIMENSION = 4096;
+                    if (img.width > MAX_DIMENSION || img.height > MAX_DIMENSION) {
+                        reject(new Error(`Image dimensions too large. Maximum is ${MAX_DIMENSION}px per side.`));
+                        return;
+                    }
+
                     this.image = img;
                     this.drawToCanvas();
                     resolve(img);
@@ -238,6 +251,11 @@ class ImageProcessor {
      * @returns {Object} Object with r, g, b values
      */
     getPixelColor(x, y) {
+        // Bounds checking to prevent out-of-bounds memory access
+        if (x < 0 || x >= this.imageData.width || y < 0 || y >= this.imageData.height) {
+            return { r: 0, g: 0, b: 0, a: 0 };
+        }
+
         const index = (y * this.imageData.width + x) * 4;
         return {
             r: this.imageData.data[index],
