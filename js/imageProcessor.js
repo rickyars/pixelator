@@ -307,26 +307,12 @@ class ImageProcessor {
 
         const data = this.imageData.data;
         const levelsPerChannel = Math.max(2, Math.min(256, levels));
-        const scaleFactor = 255 / (levelsPerChannel - 1);
 
         for (let i = 0; i < data.length; i += 4) {
-            // Quantize each color channel independently using two-step formula
-            // Step 1: Map input value [0,255] to level index [0, levelsPerChannel-1]
-            // Step 2: Map level index back to output range [0,255]
-            // This ensures the output uses the full color range with correct spacing
-
-            // Red channel
-            const levelR = Math.floor(data[i] * levelsPerChannel / 256);
-            data[i] = Math.round(levelR * scaleFactor);
-
-            // Green channel
-            const levelG = Math.floor(data[i + 1] * levelsPerChannel / 256);
-            data[i + 1] = Math.round(levelG * scaleFactor);
-
-            // Blue channel
-            const levelB = Math.floor(data[i + 2] * levelsPerChannel / 256);
-            data[i + 2] = Math.round(levelB * scaleFactor);
-
+            // Quantize each color channel using helper method
+            data[i] = this.quantizeValue(data[i], levelsPerChannel);         // Red
+            data[i + 1] = this.quantizeValue(data[i + 1], levelsPerChannel); // Green
+            data[i + 2] = this.quantizeValue(data[i + 2], levelsPerChannel); // Blue
             // Alpha channel (i+3) remains unchanged
         }
     }
@@ -354,18 +340,10 @@ class ImageProcessor {
                 const oldG = data[idx + 1];
                 const oldB = data[idx + 2];
 
-                // Quantize to nearest color in the palette using two-step formula
-                // Step 1: Map input value [0,255] to level index [0, levelsPerChannel-1]
-                // Step 2: Map level index back to output range [0,255]
-                // This ensures the output uses the full color range with correct spacing
-                const levelR = Math.floor(oldR * levelsPerChannel / 256);
-                const newR = Math.round(levelR * scaleFactor);
-
-                const levelG = Math.floor(oldG * levelsPerChannel / 256);
-                const newG = Math.round(levelG * scaleFactor);
-
-                const levelB = Math.floor(oldB * levelsPerChannel / 256);
-                const newB = Math.round(levelB * scaleFactor);
+                // Quantize to nearest color in the palette using helper method
+                const newR = this.quantizeValue(oldR, levelsPerChannel);
+                const newG = this.quantizeValue(oldG, levelsPerChannel);
+                const newB = this.quantizeValue(oldB, levelsPerChannel);
 
                 // Set new pixel values
                 data[idx] = newR;
@@ -423,6 +401,18 @@ class ImageProcessor {
     }
 
     /**
+     * Quantize a color value to a specific number of levels
+     * @param {number} value - Color value (0-255)
+     * @param {number} levels - Number of color levels (2-256)
+     * @returns {number} Quantized value (0-255)
+     */
+    quantizeValue(value, levels) {
+        const level = Math.floor(value * levels / 256);
+        const scaleFactor = 255 / (levels - 1);
+        return Math.round(level * scaleFactor);
+    }
+
+    /**
      * Apply posterization to samples
      * @param {Array} samples - Array of sample objects with r, g, b properties
      * @param {number} levels - Number of color levels per channel (2-256)
@@ -431,18 +421,12 @@ class ImageProcessor {
         if (!samples || samples.length === 0 || levels < 2) return;
 
         const levelsPerChannel = Math.max(2, Math.min(256, levels));
-        const scaleFactor = 255 / (levelsPerChannel - 1);
 
         for (const sample of samples) {
-            // Quantize each color channel
-            const levelR = Math.floor(sample.r * levelsPerChannel / 256);
-            sample.r = Math.round(levelR * scaleFactor);
-
-            const levelG = Math.floor(sample.g * levelsPerChannel / 256);
-            sample.g = Math.round(levelG * scaleFactor);
-
-            const levelB = Math.floor(sample.b * levelsPerChannel / 256);
-            sample.b = Math.round(levelB * scaleFactor);
+            // Quantize each color channel using helper method
+            sample.r = this.quantizeValue(sample.r, levelsPerChannel);
+            sample.g = this.quantizeValue(sample.g, levelsPerChannel);
+            sample.b = this.quantizeValue(sample.b, levelsPerChannel);
 
             // Update brightness after color changes
             sample.brightness = this.getBrightness(sample.r, sample.g, sample.b);
@@ -462,89 +446,79 @@ class ImageProcessor {
         const levelsPerChannel = Math.max(2, Math.min(256, levels));
         const scaleFactor = 255 / (levelsPerChannel - 1);
 
-        // Create a Map for fast neighbor lookup using "col,row" as key
-        const sampleMap = new Map();
+        // Create 2D array for O(1) neighbor lookup (more efficient than Map with string keys)
+        const grid = Array(rows).fill(null).map(() => Array(cols).fill(null));
+
+        // Populate grid with samples
         for (const sample of samples) {
-            if (sample.col !== undefined && sample.row !== undefined) {
-                const key = `${sample.col},${sample.row}`;
-                sampleMap.set(key, sample);
+            if (sample.col !== undefined && sample.row !== undefined &&
+                sample.row < rows && sample.col < cols) {
+                grid[sample.row][sample.col] = sample;
             }
         }
 
-        // Sort samples by row then column (top-to-bottom, left-to-right)
-        const sortedSamples = samples
-            .filter(s => s.col !== undefined && s.row !== undefined)
-            .sort((a, b) => {
-                if (a.row !== b.row) return a.row - b.row;
-                return a.col - b.col;
-            });
+        // Process samples in raster order (top-to-bottom, left-to-right)
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const sample = grid[row][col];
+                if (!sample) continue;
 
-        // Process each sample in order
-        for (const sample of sortedSamples) {
-            // Get current color values (may include errors from previous samples)
-            const oldR = sample.r;
-            const oldG = sample.g;
-            const oldB = sample.b;
+                // Get current color values (may include errors from previous samples)
+                const oldR = sample.r;
+                const oldG = sample.g;
+                const oldB = sample.b;
 
-            // Quantize to nearest color in the palette
-            const levelR = Math.floor(oldR * levelsPerChannel / 256);
-            const newR = Math.round(levelR * scaleFactor);
+                // Quantize to nearest color in the palette using helper method
+                const newR = this.quantizeValue(oldR, levelsPerChannel);
+                const newG = this.quantizeValue(oldG, levelsPerChannel);
+                const newB = this.quantizeValue(oldB, levelsPerChannel);
 
-            const levelG = Math.floor(oldG * levelsPerChannel / 256);
-            const newG = Math.round(levelG * scaleFactor);
+                // Set new color values
+                sample.r = newR;
+                sample.g = newG;
+                sample.b = newB;
 
-            const levelB = Math.floor(oldB * levelsPerChannel / 256);
-            const newB = Math.round(levelB * scaleFactor);
+                // Calculate quantization errors
+                const errR = oldR - newR;
+                const errG = oldG - newG;
+                const errB = oldB - newB;
 
-            // Set new color values
-            sample.r = newR;
-            sample.g = newG;
-            sample.b = newB;
+                // Distribute error to neighboring samples (Floyd-Steinberg weights)
+                // Right (col+1, row) gets 7/16 of error
+                if (col + 1 < cols && grid[row][col + 1]) {
+                    const rightSample = grid[row][col + 1];
+                    rightSample.r = this.clamp(rightSample.r + errR * 7 / 16);
+                    rightSample.g = this.clamp(rightSample.g + errG * 7 / 16);
+                    rightSample.b = this.clamp(rightSample.b + errB * 7 / 16);
+                }
 
-            // Calculate quantization errors
-            const errR = oldR - newR;
-            const errG = oldG - newG;
-            const errB = oldB - newB;
+                // Bottom-left (col-1, row+1) gets 3/16 of error
+                if (row + 1 < rows && col > 0 && grid[row + 1][col - 1]) {
+                    const blSample = grid[row + 1][col - 1];
+                    blSample.r = this.clamp(blSample.r + errR * 3 / 16);
+                    blSample.g = this.clamp(blSample.g + errG * 3 / 16);
+                    blSample.b = this.clamp(blSample.b + errB * 3 / 16);
+                }
 
-            // Distribute error to neighboring samples (Floyd-Steinberg weights)
-            // Right (col+1, row) gets 7/16 of error
-            const rightKey = `${sample.col + 1},${sample.row}`;
-            const rightSample = sampleMap.get(rightKey);
-            if (rightSample) {
-                rightSample.r = this.clamp(rightSample.r + errR * 7 / 16);
-                rightSample.g = this.clamp(rightSample.g + errG * 7 / 16);
-                rightSample.b = this.clamp(rightSample.b + errB * 7 / 16);
+                // Bottom (col, row+1) gets 5/16 of error
+                if (row + 1 < rows && grid[row + 1][col]) {
+                    const bottomSample = grid[row + 1][col];
+                    bottomSample.r = this.clamp(bottomSample.r + errR * 5 / 16);
+                    bottomSample.g = this.clamp(bottomSample.g + errG * 5 / 16);
+                    bottomSample.b = this.clamp(bottomSample.b + errB * 5 / 16);
+                }
+
+                // Bottom-right (col+1, row+1) gets 1/16 of error
+                if (row + 1 < rows && col + 1 < cols && grid[row + 1][col + 1]) {
+                    const brSample = grid[row + 1][col + 1];
+                    brSample.r = this.clamp(brSample.r + errR * 1 / 16);
+                    brSample.g = this.clamp(brSample.g + errG * 1 / 16);
+                    brSample.b = this.clamp(brSample.b + errB * 1 / 16);
+                }
+
+                // Update brightness after color changes
+                sample.brightness = this.getBrightness(sample.r, sample.g, sample.b);
             }
-
-            // Bottom-left (col-1, row+1) gets 3/16 of error
-            const blKey = `${sample.col - 1},${sample.row + 1}`;
-            const blSample = sampleMap.get(blKey);
-            if (blSample) {
-                blSample.r = this.clamp(blSample.r + errR * 3 / 16);
-                blSample.g = this.clamp(blSample.g + errG * 3 / 16);
-                blSample.b = this.clamp(blSample.b + errB * 3 / 16);
-            }
-
-            // Bottom (col, row+1) gets 5/16 of error
-            const bottomKey = `${sample.col},${sample.row + 1}`;
-            const bottomSample = sampleMap.get(bottomKey);
-            if (bottomSample) {
-                bottomSample.r = this.clamp(bottomSample.r + errR * 5 / 16);
-                bottomSample.g = this.clamp(bottomSample.g + errG * 5 / 16);
-                bottomSample.b = this.clamp(bottomSample.b + errB * 5 / 16);
-            }
-
-            // Bottom-right (col+1, row+1) gets 1/16 of error
-            const brKey = `${sample.col + 1},${sample.row + 1}`;
-            const brSample = sampleMap.get(brKey);
-            if (brSample) {
-                brSample.r = this.clamp(brSample.r + errR * 1 / 16);
-                brSample.g = this.clamp(brSample.g + errG * 1 / 16);
-                brSample.b = this.clamp(brSample.b + errB * 1 / 16);
-            }
-
-            // Update brightness after color changes
-            sample.brightness = this.getBrightness(sample.r, sample.g, sample.b);
         }
     }
 

@@ -2,6 +2,10 @@
  * Main application entry point
  */
 class PixelEffectsApp {
+    // Constants for configuration
+    static DEFAULT_DITHER_LEVELS = 8; // RGB color levels for default dithering (8³ = 512 colors)
+    static RENDER_DELAY_MS = 50;      // Delay to allow UI update before heavy processing
+
     constructor() {
         this.imageProcessor = new ImageProcessor();
         this.renderer = new Renderer('svgCanvas');
@@ -140,12 +144,12 @@ class PixelEffectsApp {
                             params.posterizeLevels
                         );
                     } else if (params.dither) {
-                        // Only dither with default palette (8 levels per channel)
+                        // Only dither with default palette
                         this.imageProcessor.applyDitherToSamples(
                             this.currentSamples,
                             cols,
                             rows,
-                            8
+                            PixelEffectsApp.DEFAULT_DITHER_LEVELS
                         );
                     }
                 }
@@ -162,7 +166,7 @@ class PixelEffectsApp {
             } finally {
                 this.ui.hideLoading();
             }
-        }, 50);
+        }, PixelEffectsApp.RENDER_DELAY_MS);
     }
 
     /**

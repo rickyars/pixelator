@@ -2,6 +2,9 @@
  * ShapeGenerator - Generates SVG path data for various shapes
  */
 class ShapeGenerator {
+    // Cache for color conversions to avoid redundant regex parsing
+    static _colorCache = new Map();
+
     /**
      * Generate a circle path
      * @param {number} size - Size of the shape
@@ -209,16 +212,26 @@ class ShapeGenerator {
     }
 
     /**
-     * Convert hex color to RGB
+     * Convert hex color to RGB (with caching for performance)
      * @param {string} hex - Hex color string
      * @returns {Object} RGB object
      */
     static hexToRgb(hex) {
+        // Check cache first
+        if (this._colorCache.has(hex)) {
+            return this._colorCache.get(hex);
+        }
+
+        // Parse color
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? {
+        const rgb = result ? {
             r: parseInt(result[1], 16),
             g: parseInt(result[2], 16),
             b: parseInt(result[3], 16)
         } : { r: 0, g: 0, b: 0 };
+
+        // Cache result
+        this._colorCache.set(hex, rgb);
+        return rgb;
     }
 }
