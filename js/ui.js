@@ -231,8 +231,7 @@ class UI {
             try {
                 await this.onImageUpload(file);
             } catch (error) {
-                console.error('Error uploading image:', error);
-                alert('Failed to load image. Please try another file.');
+                ErrorHandler.handle(error, 'Image file handling', true, false);
             } finally {
                 this.hideLoading();
             }
@@ -344,41 +343,113 @@ class UI {
     }
 
     /**
-     * Get current parameters from UI
+     * Safely get element by ID with validation
+     * @param {string} id - Element ID
+     * @param {*} defaultValue - Default value if element not found
+     * @returns {HTMLElement|*} Element or default value
+     */
+    getElement(id, defaultValue = null) {
+        const element = document.getElementById(id);
+        if (!element) {
+            console.warn(`Element '${id}' not found, using default value`);
+            return defaultValue;
+        }
+        return element;
+    }
+
+    /**
+     * Get number value with validation and clamping
+     * @param {string} id - Element ID
+     * @param {number} defaultValue - Default value
+     * @param {number} min - Minimum value
+     * @param {number} max - Maximum value
+     * @returns {number} Validated number
+     */
+    getNumberValue(id, defaultValue, min = -Infinity, max = Infinity) {
+        const element = this.getElement(id);
+        if (!element) return defaultValue;
+
+        const value = parseFloat(element.value);
+        if (isNaN(value)) {
+            console.warn(`Invalid number for '${id}', using default: ${defaultValue}`);
+            return defaultValue;
+        }
+
+        return Math.max(min, Math.min(max, value));
+    }
+
+    /**
+     * Get string value with validation
+     * @param {string} id - Element ID
+     * @param {string} defaultValue - Default value
+     * @returns {string} String value
+     */
+    getStringValue(id, defaultValue) {
+        const element = this.getElement(id);
+        return element ? element.value : defaultValue;
+    }
+
+    /**
+     * Get boolean value (checkbox state)
+     * @param {string} id - Element ID
+     * @param {boolean} defaultValue - Default value
+     * @returns {boolean} Boolean value
+     */
+    getBooleanValue(id, defaultValue = false) {
+        const element = this.getElement(id);
+        return element ? element.checked : defaultValue;
+    }
+
+    /**
+     * Get current parameters from UI with validation
+     * @returns {Object} Validated parameters object
      */
     getParameters() {
-        const mode = document.querySelector('input[name="mode"]:checked').value;
+        const modeElement = document.querySelector('input[name="mode"]:checked');
+        const mode = modeElement ? modeElement.value : 'shapes';
 
         const params = {
             mode: mode,
-            gridSize: parseInt(document.getElementById('gridSize').value),
+            gridSize: this.getNumberValue('gridSize', 10, 1, 1000),
             anchor: this.selectedAnchor || 'center',
-            samplingMethod: document.getElementById('samplingMethod').value,
-            colorMode: document.getElementById('colorMode').value,
-            duotoneDark: document.getElementById('duotoneDark').value,
-            duotoneLight: document.getElementById('duotoneLight').value,
-            backgroundColor: document.getElementById('backgroundColor').value,
-            dither: document.getElementById('dither').checked,
-            posterize: document.getElementById('posterize').checked,
-            posterizeLevels: parseInt(document.getElementById('posterizeLevels').value)
+            samplingMethod: this.getStringValue('samplingMethod', 'grid'),
+            colorMode: this.getStringValue('colorMode', 'original'),
+            duotoneDark: this.getStringValue('duotoneDark', '#000000'),
+            duotoneLight: this.getStringValue('duotoneLight', '#ffffff'),
+            backgroundColor: this.getStringValue('backgroundColor', '#000000'),
+            dither: this.getBooleanValue('dither', false),
+            posterize: this.getBooleanValue('posterize', false),
+            posterizeLevels: this.getNumberValue('posterizeLevels', 8, 2, 256)
         };
 
         if (mode === 'shapes') {
             Object.assign(params, {
-                roundedCorners: document.getElementById('roundedCorners').checked,
-                scaleEnabled: document.getElementById('scaleEnabled').checked,
-                scaleMin: parseFloat(document.getElementById('scaleMin').value),
-                scaleMax: parseFloat(document.getElementById('scaleMax').value),
-                rotation: parseFloat(document.getElementById('rotation').value)
+                roundedCorners: this.getBooleanValue('roundedCorners', false),
+                scaleEnabled: this.getBooleanValue('scaleEnabled', false),
+                scaleMin: this.getNumberValue('scaleMin', 0.5, 0.1, 2.0),
+                scaleMax: this.getNumberValue('scaleMax', 1.5, 0.1, 2.0),
+                rotation: this.getNumberValue('rotation', 0, -180, 180)
             });
+
+            // Validate scale range
+            if (params.scaleMin > params.scaleMax) {
+                console.warn('Scale min > max, swapping values');
+                [params.scaleMin, params.scaleMax] = [params.scaleMax, params.scaleMin];
+            }
         } else if (mode === 'ascii') {
             Object.assign(params, {
-                fontFamily: document.getElementById('fontFamily').value,
-                mergePixels: document.getElementById('mergePixels').checked,
-                mergeMin: parseInt(document.getElementById('mergeMin').value),
-                mergeMax: parseInt(document.getElementById('mergeMax').value),
-                imageSize: parseFloat(document.getElementById('imageSize').value)
+                fontFamily: this.getStringValue('fontFamily', 'monospace'),
+                mergePixels: this.getBooleanValue('mergePixels', false),
+                mergeMin: this.getNumberValue('mergeMin', 2, 1, 100),
+                mergeMax: this.getNumberValue('mergeMax', 10, 1, 100),
+                imageSize: this.getNumberValue('imageSize', 1.0, 0.1, 5.0)
             });
+
+            // Validate merge range
+            if (params.mergeMin > params.mergeMax) {
+                console.warn('Merge min > max, swapping values');
+                [params.mergeMin, params.mergeMax] = [params.mergeMax, params.mergeMin];
+            }
         }
 
         return params;
