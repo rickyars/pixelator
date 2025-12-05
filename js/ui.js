@@ -446,7 +446,7 @@ class UI {
                 mergePixels: this.getBooleanValue('mergePixels', false),
                 mergeMin: this.getNumberValue('mergeMin', 2, 1, 100),
                 mergeMax: this.getNumberValue('mergeMax', 10, 1, 100),
-                imageSize: this.getNumberValue('imageSize', 1.0, 0.1, 5.0)
+                imageSize: this.getNumberValue('imageSize', 100, 10, 200)
             });
 
             // Validate merge range
