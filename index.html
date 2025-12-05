@@ -172,11 +172,21 @@
                 <div class="control-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="scaleEnabled" checked>
-                        Scale by brightness
+                        Enable scaling
                     </label>
                 </div>
 
                 <div class="control-group" id="scaleControls">
+                    <label for="scaleMetric">Scale by</label>
+                    <select id="scaleMetric" class="select">
+                        <option value="brightness">Brightness</option>
+                        <option value="saturation">Saturation</option>
+                        <option value="red">Red Channel</option>
+                        <option value="green">Green Channel</option>
+                        <option value="blue">Blue Channel</option>
+                        <option value="darkness">Darkness (Inverse)</option>
+                    </select>
+
                     <label for="scaleMin">
                         Min: <span id="scaleMinValue">50</span>%
                     </label>

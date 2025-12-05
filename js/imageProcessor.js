@@ -204,7 +204,8 @@ class ImageProcessor {
                         col: col,
                         row: row,
                         ...color,
-                        brightness: this.getBrightness(color.r, color.g, color.b)
+                        brightness: this.getBrightness(color.r, color.g, color.b),
+                        saturation: this.getSaturation(color.r, color.g, color.b)
                     });
                 }
             }
@@ -237,7 +238,8 @@ class ImageProcessor {
                 col: col,
                 row: row,
                 ...color,
-                brightness: this.getBrightness(color.r, color.g, color.b)
+                brightness: this.getBrightness(color.r, color.g, color.b),
+                saturation: this.getSaturation(color.r, color.g, color.b)
             });
         }
 
@@ -275,6 +277,22 @@ class ImageProcessor {
     getBrightness(r, g, b) {
         // Using perceived luminance formula
         return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    }
+
+    /**
+     * Calculate color saturation from RGB values
+     * @param {number} r - Red value (0-255)
+     * @param {number} g - Green value (0-255)
+     * @param {number} b - Blue value (0-255)
+     * @returns {number} Saturation value (0-1)
+     */
+    getSaturation(r, g, b) {
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+
+        if (max === 0) return 0;
+
+        return (max - min) / max;
     }
 
     /**

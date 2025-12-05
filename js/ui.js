@@ -122,6 +122,9 @@ class UI {
             this.triggerParameterChange();
         });
 
+        // Shape scaling metric
+        this.addSelectHandler('scaleMetric');
+
         // Shape rotation
         this.addSliderHandler('rotation', 'rotationValue');
 
@@ -426,8 +429,9 @@ class UI {
             Object.assign(params, {
                 roundedCorners: this.getBooleanValue('roundedCorners', false),
                 scaleEnabled: this.getBooleanValue('scaleEnabled', false),
-                scaleMin: this.getNumberValue('scaleMin', 0.5, 0.1, 2.0),
-                scaleMax: this.getNumberValue('scaleMax', 1.5, 0.1, 2.0),
+                scaleMetric: this.getStringValue('scaleMetric', 'brightness'),
+                scaleMin: this.getNumberValue('scaleMin', 50, 0, 200),
+                scaleMax: this.getNumberValue('scaleMax', 150, 0, 200),
                 rotation: this.getNumberValue('rotation', 0, -180, 180)
             });
 
