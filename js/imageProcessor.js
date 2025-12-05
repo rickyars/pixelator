@@ -92,7 +92,7 @@ class ImageProcessor {
     /**
      * Sample pixels from the image
      * @param {number} gridSize - Size of each grid cell in pixels
-     * @param {string} method - Sampling method: 'grid' or 'random'
+     * @param {string} method - Sampling method: 'grid', 'random', 'stratified', or 'jittered'
      * @returns {Object} Object with samples array and stepSize
      */
     samplePixels(gridSize, method = 'grid') {
@@ -109,6 +109,10 @@ class ImageProcessor {
             samples = this.sampleGridBySize(gridSize, width, height);
         } else if (method === 'random') {
             samples = this.sampleRandomBySize(gridSize, width, height, cols * rows);
+        } else if (method === 'stratified') {
+            samples = this.sampleStratified(gridSize, width, height);
+        } else if (method === 'jittered') {
+            samples = this.sampleJitteredGrid(gridSize, width, height);
         } else {
             samples = [];
         }
@@ -241,6 +245,80 @@ class ImageProcessor {
                 brightness: this.getBrightness(color.r, color.g, color.b),
                 saturation: this.getSaturation(color.r, color.g, color.b)
             });
+        }
+
+        return samples;
+    }
+
+    /**
+     * Sample pixels using stratified sampling (one random sample per grid cell)
+     * @param {number} gridSize - Size of each grid cell in pixels
+     * @param {number} width - Image width
+     * @param {number} height - Image height
+     * @returns {Array} Array of samples
+     */
+    sampleStratified(gridSize, width, height) {
+        const samples = [];
+        const cols = Math.ceil(width / gridSize);
+        const rows = Math.ceil(height / gridSize);
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                // Random point within this grid cell
+                const x = col * gridSize + Math.random() * gridSize;
+                const y = row * gridSize + Math.random() * gridSize;
+
+                if (x < width && y < height) {
+                    const color = this.getPixelColor(Math.floor(x), Math.floor(y));
+                    samples.push({
+                        x: x,
+                        y: y,
+                        col: col,
+                        row: row,
+                        ...color,
+                        brightness: this.getBrightness(color.r, color.g, color.b),
+                        saturation: this.getSaturation(color.r, color.g, color.b)
+                    });
+                }
+            }
+        }
+
+        return samples;
+    }
+
+    /**
+     * Sample pixels in a jittered grid pattern (grid with random offsets)
+     * @param {number} gridSize - Size of each grid cell in pixels
+     * @param {number} width - Image width
+     * @param {number} height - Image height
+     * @param {number} jitterAmount - Jitter amount (0-1, default 0.4)
+     * @returns {Array} Array of samples
+     */
+    sampleJitteredGrid(gridSize, width, height, jitterAmount = 0.4) {
+        const samples = [];
+        const cols = Math.ceil(width / gridSize);
+        const rows = Math.ceil(height / gridSize);
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                // Add random jitter within range
+                const jitterX = (Math.random() - 0.5) * gridSize * jitterAmount;
+                const jitterY = (Math.random() - 0.5) * gridSize * jitterAmount;
+
+                const x = Math.min(width - 1, Math.max(0, col * gridSize + gridSize / 2 + jitterX));
+                const y = Math.min(height - 1, Math.max(0, row * gridSize + gridSize / 2 + jitterY));
+
+                const color = this.getPixelColor(Math.floor(x), Math.floor(y));
+                samples.push({
+                    x: x,
+                    y: y,
+                    col: col,
+                    row: row,
+                    ...color,
+                    brightness: this.getBrightness(color.r, color.g, color.b),
+                    saturation: this.getSaturation(color.r, color.g, color.b)
+                });
+            }
         }
 
         return samples;
