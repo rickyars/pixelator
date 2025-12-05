@@ -6,7 +6,6 @@ class UI {
         this.elements = {
             uploadZone: document.getElementById('uploadZone'),
             fileInput: document.getElementById('fileInput'),
-            filePickerBtn: document.getElementById('filePickerBtn'),
             clearImageBtn: document.getElementById('clearImageBtn'),
             imageInfo: document.getElementById('imageInfo'),
             imageThumbnail: document.getElementById('imageThumbnail'),
@@ -31,8 +30,8 @@ class UI {
      * Initialize upload event handlers
      */
     initUploadHandlers() {
-        // File picker button
-        this.elements.filePickerBtn.addEventListener('click', () => {
+        // Upload zone click to open file picker
+        this.elements.uploadZone.addEventListener('click', () => {
             this.elements.fileInput.click();
         });
 
