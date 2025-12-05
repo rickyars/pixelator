@@ -10,7 +10,6 @@ class UI {
             imageInfo: document.getElementById('imageInfo'),
             imageThumbnail: document.getElementById('imageThumbnail'),
             imageDimensions: document.getElementById('imageDimensions'),
-            previewPlaceholder: document.getElementById('previewPlaceholder'),
             loadingIndicator: document.getElementById('loadingIndicator'),
             exportStats: document.getElementById('exportStats'),
             exportSVG: document.getElementById('exportSVG'),
@@ -295,7 +294,6 @@ class UI {
         this.elements.imageInfo.style.display = 'block';
         this.elements.imageThumbnail.src = image.src;
         this.elements.imageDimensions.textContent = `${image.width} × ${image.height}px`;
-        this.elements.previewPlaceholder.style.display = 'none';
     }
 
     /**
@@ -306,7 +304,6 @@ class UI {
         this.elements.imageInfo.style.display = 'none';
         this.elements.imageThumbnail.src = '';
         this.elements.imageDimensions.textContent = '';
-        this.elements.previewPlaceholder.style.display = 'block';
     }
 
     /**
