@@ -12,6 +12,7 @@ class Renderer {
      * @param {Array} samples - Array of pixel samples
      * @param {string} mode - Rendering mode: 'shapes' or 'ascii'
      * @param {Object} params - Rendering parameters
+     * @returns {void}
      */
     render(samples, mode, params) {
         // Store samples for export
