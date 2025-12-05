@@ -113,6 +113,8 @@ class ImageProcessor {
             samples = this.sampleStratified(gridSize, width, height);
         } else if (method === 'jittered') {
             samples = this.sampleJitteredGrid(gridSize, width, height);
+        } else if (method === 'poisson') {
+            samples = this.samplePoissonDisk(gridSize, width, height);
         } else {
             samples = [];
         }
@@ -318,6 +320,116 @@ class ImageProcessor {
                     brightness: this.getBrightness(color.r, color.g, color.b),
                     saturation: this.getSaturation(color.r, color.g, color.b)
                 });
+            }
+        }
+
+        return samples;
+    }
+
+    /**
+     * Sample pixels using Poisson disk distribution (blue noise pattern)
+     * Implements Bridson's algorithm for evenly-spaced organic distribution
+     * @param {number} gridSize - Minimum distance between samples
+     * @param {number} width - Image width
+     * @param {number} height - Image height
+     * @returns {Array} Array of samples
+     */
+    samplePoissonDisk(gridSize, width, height) {
+        const radius = gridSize;
+        const k = 30; // Number of attempts before rejection
+        const cellSize = radius / Math.sqrt(2);
+        const gridWidth = Math.ceil(width / cellSize);
+        const gridHeight = Math.ceil(height / cellSize);
+
+        // Background grid for O(1) neighbor lookup
+        const grid = new Array(gridWidth * gridHeight).fill(-1);
+        const samples = [];
+        const activeList = [];
+
+        // Helper to get grid index
+        const getGridIndex = (x, y) => {
+            const gridX = Math.floor(x / cellSize);
+            const gridY = Math.floor(y / cellSize);
+            return gridY * gridWidth + gridX;
+        };
+
+        // Helper to check if point is valid (maintains minimum distance)
+        const isValidPoint = (x, y) => {
+            if (x < 0 || x >= width || y < 0 || y >= height) return false;
+
+            const gridX = Math.floor(x / cellSize);
+            const gridY = Math.floor(y / cellSize);
+
+            // Check neighboring cells (5x5 grid around point)
+            const searchRange = 2;
+            for (let dy = -searchRange; dy <= searchRange; dy++) {
+                for (let dx = -searchRange; dx <= searchRange; dx++) {
+                    const checkX = gridX + dx;
+                    const checkY = gridY + dy;
+
+                    if (checkX >= 0 && checkX < gridWidth && checkY >= 0 && checkY < gridHeight) {
+                        const idx = grid[checkY * gridWidth + checkX];
+                        if (idx !== -1) {
+                            const sample = samples[idx];
+                            const dist = Math.hypot(x - sample.x, y - sample.y);
+                            if (dist < radius) return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        };
+
+        // Add a sample point
+        const addSample = (x, y) => {
+            const color = this.getPixelColor(Math.floor(x), Math.floor(y));
+            const idx = samples.length;
+            samples.push({
+                x: x,
+                y: y,
+                col: Math.floor(x / gridSize),
+                row: Math.floor(y / gridSize),
+                ...color,
+                brightness: this.getBrightness(color.r, color.g, color.b),
+                saturation: this.getSaturation(color.r, color.g, color.b)
+            });
+            grid[getGridIndex(x, y)] = idx;
+            activeList.push(idx);
+            return idx;
+        };
+
+        // Start with random initial point
+        const initialX = Math.random() * width;
+        const initialY = Math.random() * height;
+        addSample(initialX, initialY);
+
+        // Process active list
+        while (activeList.length > 0) {
+            // Pick random active point
+            const randomIdx = Math.floor(Math.random() * activeList.length);
+            const activeIdx = activeList[randomIdx];
+            const point = samples[activeIdx];
+
+            let found = false;
+
+            // Try k times to generate valid point around this active point
+            for (let i = 0; i < k; i++) {
+                // Generate random point in annulus (ring) between radius and 2*radius
+                const angle = Math.random() * Math.PI * 2;
+                const distance = radius + Math.random() * radius;
+                const newX = point.x + Math.cos(angle) * distance;
+                const newY = point.y + Math.sin(angle) * distance;
+
+                if (isValidPoint(newX, newY)) {
+                    addSample(newX, newY);
+                    found = true;
+                    break;
+                }
+            }
+
+            // If no valid point found, remove from active list
+            if (!found) {
+                activeList.splice(randomIdx, 1);
             }
         }
 
