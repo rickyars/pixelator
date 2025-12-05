@@ -127,7 +127,6 @@ class UI {
 
         // ASCII/Image Map controls
         this.addSelectHandler('fontFamily');
-        this.addCheckboxHandler('dropShadow');
         this.addCheckboxHandler('mergePixels');
         this.addSliderHandler('mergeMin', 'mergeMinValue');
         this.addSliderHandler('mergeMax', 'mergeMaxValue');
@@ -375,7 +374,6 @@ class UI {
         } else if (mode === 'ascii') {
             Object.assign(params, {
                 fontFamily: document.getElementById('fontFamily').value,
-                dropShadow: document.getElementById('dropShadow').checked,
                 mergePixels: document.getElementById('mergePixels').checked,
                 mergeMin: parseInt(document.getElementById('mergeMin').value),
                 mergeMax: parseInt(document.getElementById('mergeMax').value),

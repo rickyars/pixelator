@@ -234,8 +234,7 @@ class ASCIIMapper {
                 bgX: sample.x + offset.x,
                 bgY: sample.y + offset.y,
                 bgSize: size,
-                anchor: params.anchor,
-                dropShadow: params.dropShadow || false
+                anchor: params.anchor
             };
         }
     }
