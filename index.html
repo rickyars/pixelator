@@ -31,8 +31,6 @@
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                         </svg>
                         <p>Drag & drop an image here</p>
-                        <p class="upload-hint">or</p>
-                        <button type="button" class="btn btn-secondary btn-plus" id="filePickerBtn">+</button>
                     </div>
                     <input type="file" id="fileInput" accept="image/*" hidden>
                 </div>
@@ -71,45 +69,50 @@
                     <input type="range" id="gridSize" min="2" max="100" value="10" class="slider">
                 </div>
 
-                <div class="control-group">
-                    <label>Scale Anchor</label>
-                    <div class="anchor-grid" id="anchorGrid">
-                        <button type="button" class="anchor-btn" data-anchor="top-left" title="Top Left">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="top" title="Top">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="top-right" title="Top Right">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="left" title="Left">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn active" data-anchor="center" title="Center">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="right" title="Right">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="bottom-left" title="Bottom Left">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="bottom" title="Bottom">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="bottom-right" title="Bottom Right">
-                            <span class="anchor-dot"></span>
-                        </button>
+                <div class="control-row">
+                    <div class="control-group control-group-inline">
+                        <label for="samplingMethod">Sampling Method</label>
+                        <select id="samplingMethod" class="select">
+                            <option value="grid">Grid</option>
+                            <option value="random">Random</option>
+                            <option value="stratified">Stratified</option>
+                            <option value="jittered">Jittered</option>
+                            <option value="poisson">Poisson Disk</option>
+                        </select>
                     </div>
-                </div>
 
-                <div class="control-group">
-                    <label for="samplingMethod">Sampling Method</label>
-                    <select id="samplingMethod" class="select">
-                        <option value="grid">Grid</option>
-                        <option value="random">Random</option>
-                    </select>
+                    <div class="control-group control-group-inline">
+                        <label>Grid Anchor</label>
+                        <div class="anchor-grid" id="anchorGrid">
+                            <button type="button" class="anchor-btn" data-anchor="top-left" title="Top Left">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="top" title="Top">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="top-right" title="Top Right">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="left" title="Left">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn active" data-anchor="center" title="Center">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="right" title="Right">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="bottom-left" title="Bottom Left">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="bottom" title="Bottom">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="bottom-right" title="Bottom Right">
+                                <span class="anchor-dot"></span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="colorModeControl">
@@ -135,6 +138,27 @@
                     <label for="backgroundColor">Background Color</label>
                     <input type="color" id="backgroundColor" value="#000000" class="color-picker">
                 </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="dither">
+                        Dithering
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="posterize">
+                        Posterize
+                    </label>
+                </div>
+
+                <div class="control-group" id="posterizeControls" style="display: none;">
+                    <label for="posterizeLevels">
+                        Levels: <span id="posterizeLevelsValue">8</span>
+                    </label>
+                    <input type="range" id="posterizeLevels" min="2" max="32" value="8" class="slider">
+                </div>
             </section>
 
             <!-- Shape-Specific Parameters -->
@@ -151,11 +175,21 @@
                 <div class="control-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="scaleEnabled" checked>
-                        Scale by brightness
+                        Enable scaling
                     </label>
                 </div>
 
                 <div class="control-group" id="scaleControls">
+                    <label for="scaleMetric">Scale by</label>
+                    <select id="scaleMetric" class="select">
+                        <option value="brightness">Brightness</option>
+                        <option value="saturation">Saturation</option>
+                        <option value="red">Red Channel</option>
+                        <option value="green">Green Channel</option>
+                        <option value="blue">Blue Channel</option>
+                        <option value="darkness">Darkness (Inverse)</option>
+                    </select>
+
                     <label for="scaleMin">
                         Min: <span id="scaleMinValue">50</span>%
                     </label>
@@ -191,13 +225,6 @@
                         <option value="'Comic Sans MS', cursive">Comic Sans</option>
                         <option value="Impact, sans-serif">Impact</option>
                     </select>
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="dropShadow">
-                        Drop shadow
-                    </label>
                 </div>
 
                 <div class="stops-header">
@@ -265,9 +292,6 @@
         <!-- Preview Canvas -->
         <div class="preview-container">
             <div class="preview-area">
-                <div class="preview-placeholder" id="previewPlaceholder">
-                    <p>Upload an image to get started</p>
-                </div>
                 <svg id="svgCanvas" class="svg-canvas"></svg>
                 <div class="loading-indicator" id="loadingIndicator" style="display: none;">
                     <div class="spinner"></div>
@@ -282,9 +306,11 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <script src="js/errorHandler.js"></script>
     <script src="js/imageProcessor.js"></script>
     <script src="js/shapes.js"></script>
     <script src="js/stopsManager.js"></script>
+    <script src="js/stopsUI.js"></script>
     <script src="js/ascii.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/exporter.js"></script>

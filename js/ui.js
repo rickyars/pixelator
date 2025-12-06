@@ -6,12 +6,10 @@ class UI {
         this.elements = {
             uploadZone: document.getElementById('uploadZone'),
             fileInput: document.getElementById('fileInput'),
-            filePickerBtn: document.getElementById('filePickerBtn'),
             clearImageBtn: document.getElementById('clearImageBtn'),
             imageInfo: document.getElementById('imageInfo'),
             imageThumbnail: document.getElementById('imageThumbnail'),
             imageDimensions: document.getElementById('imageDimensions'),
-            previewPlaceholder: document.getElementById('previewPlaceholder'),
             loadingIndicator: document.getElementById('loadingIndicator'),
             exportStats: document.getElementById('exportStats'),
             exportSVG: document.getElementById('exportSVG'),
@@ -31,8 +29,8 @@ class UI {
      * Initialize upload event handlers
      */
     initUploadHandlers() {
-        // File picker button
-        this.elements.filePickerBtn.addEventListener('click', () => {
+        // Upload zone click to open file picker
+        this.elements.uploadZone.addEventListener('click', () => {
             this.elements.fileInput.click();
         });
 
@@ -89,8 +87,20 @@ class UI {
         this.addColorHandler('duotoneLight');
         this.addColorHandler('backgroundColor');
 
+        // Effects controls
+        this.addCheckboxHandler('dither');
+        this.addCheckboxHandler('posterize');
+        this.addSliderHandler('posterizeLevels', 'posterizeLevelsValue');
+
         // Anchor grid handler
         this.initAnchorGrid();
+
+        // Posterize toggle
+        document.getElementById('posterize').addEventListener('change', (e) => {
+            const posterizeControls = document.getElementById('posterizeControls');
+            posterizeControls.style.display = e.target.checked ? 'block' : 'none';
+            this.triggerParameterChange();
+        });
 
         // Color mode change handler
         document.getElementById('colorMode').addEventListener('change', (e) => {
@@ -112,12 +122,14 @@ class UI {
             this.triggerParameterChange();
         });
 
+        // Shape scaling metric
+        this.addSelectHandler('scaleMetric');
+
         // Shape rotation
         this.addSliderHandler('rotation', 'rotationValue');
 
         // ASCII/Image Map controls
         this.addSelectHandler('fontFamily');
-        this.addCheckboxHandler('dropShadow');
         this.addCheckboxHandler('mergePixels');
         this.addSliderHandler('mergeMin', 'mergeMinValue');
         this.addSliderHandler('mergeMax', 'mergeMaxValue');
@@ -222,8 +234,7 @@ class UI {
             try {
                 await this.onImageUpload(file);
             } catch (error) {
-                console.error('Error uploading image:', error);
-                alert('Failed to load image. Please try another file.');
+                ErrorHandler.handle(error, 'Image file handling', true, false);
             } finally {
                 this.hideLoading();
             }
@@ -284,7 +295,6 @@ class UI {
         this.elements.imageInfo.style.display = 'block';
         this.elements.imageThumbnail.src = image.src;
         this.elements.imageDimensions.textContent = `${image.width} × ${image.height}px`;
-        this.elements.previewPlaceholder.style.display = 'none';
     }
 
     /**
@@ -295,7 +305,6 @@ class UI {
         this.elements.imageInfo.style.display = 'none';
         this.elements.imageThumbnail.src = '';
         this.elements.imageDimensions.textContent = '';
-        this.elements.previewPlaceholder.style.display = 'block';
     }
 
     /**
@@ -337,39 +346,114 @@ class UI {
     }
 
     /**
-     * Get current parameters from UI
+     * Safely get element by ID with validation
+     * @param {string} id - Element ID
+     * @param {*} defaultValue - Default value if element not found
+     * @returns {HTMLElement|*} Element or default value
+     */
+    getElement(id, defaultValue = null) {
+        const element = document.getElementById(id);
+        if (!element) {
+            console.warn(`Element '${id}' not found, using default value`);
+            return defaultValue;
+        }
+        return element;
+    }
+
+    /**
+     * Get number value with validation and clamping
+     * @param {string} id - Element ID
+     * @param {number} defaultValue - Default value
+     * @param {number} min - Minimum value
+     * @param {number} max - Maximum value
+     * @returns {number} Validated number
+     */
+    getNumberValue(id, defaultValue, min = -Infinity, max = Infinity) {
+        const element = this.getElement(id);
+        if (!element) return defaultValue;
+
+        const value = parseFloat(element.value);
+        if (isNaN(value)) {
+            console.warn(`Invalid number for '${id}', using default: ${defaultValue}`);
+            return defaultValue;
+        }
+
+        return Math.max(min, Math.min(max, value));
+    }
+
+    /**
+     * Get string value with validation
+     * @param {string} id - Element ID
+     * @param {string} defaultValue - Default value
+     * @returns {string} String value
+     */
+    getStringValue(id, defaultValue) {
+        const element = this.getElement(id);
+        return element ? element.value : defaultValue;
+    }
+
+    /**
+     * Get boolean value (checkbox state)
+     * @param {string} id - Element ID
+     * @param {boolean} defaultValue - Default value
+     * @returns {boolean} Boolean value
+     */
+    getBooleanValue(id, defaultValue = false) {
+        const element = this.getElement(id);
+        return element ? element.checked : defaultValue;
+    }
+
+    /**
+     * Get current parameters from UI with validation
+     * @returns {Object} Validated parameters object
      */
     getParameters() {
-        const mode = document.querySelector('input[name="mode"]:checked').value;
+        const modeElement = document.querySelector('input[name="mode"]:checked');
+        const mode = modeElement ? modeElement.value : 'shapes';
 
         const params = {
             mode: mode,
-            gridSize: parseInt(document.getElementById('gridSize').value),
+            gridSize: this.getNumberValue('gridSize', 10, 1, 1000),
             anchor: this.selectedAnchor || 'center',
-            samplingMethod: document.getElementById('samplingMethod').value,
-            colorMode: document.getElementById('colorMode').value,
-            duotoneDark: document.getElementById('duotoneDark').value,
-            duotoneLight: document.getElementById('duotoneLight').value,
-            backgroundColor: document.getElementById('backgroundColor').value
+            samplingMethod: this.getStringValue('samplingMethod', 'grid'),
+            colorMode: this.getStringValue('colorMode', 'original'),
+            duotoneDark: this.getStringValue('duotoneDark', '#000000'),
+            duotoneLight: this.getStringValue('duotoneLight', '#ffffff'),
+            backgroundColor: this.getStringValue('backgroundColor', '#000000'),
+            dither: this.getBooleanValue('dither', false),
+            posterize: this.getBooleanValue('posterize', false),
+            posterizeLevels: this.getNumberValue('posterizeLevels', 8, 2, 256)
         };
 
         if (mode === 'shapes') {
             Object.assign(params, {
-                roundedCorners: document.getElementById('roundedCorners').checked,
-                scaleEnabled: document.getElementById('scaleEnabled').checked,
-                scaleMin: parseFloat(document.getElementById('scaleMin').value),
-                scaleMax: parseFloat(document.getElementById('scaleMax').value),
-                rotation: parseFloat(document.getElementById('rotation').value)
+                roundedCorners: this.getBooleanValue('roundedCorners', false),
+                scaleEnabled: this.getBooleanValue('scaleEnabled', false),
+                scaleMetric: this.getStringValue('scaleMetric', 'brightness'),
+                scaleMin: this.getNumberValue('scaleMin', 50, 0, 200),
+                scaleMax: this.getNumberValue('scaleMax', 150, 0, 200),
+                rotation: this.getNumberValue('rotation', 0, -180, 180)
             });
+
+            // Validate scale range
+            if (params.scaleMin > params.scaleMax) {
+                console.warn('Scale min > max, swapping values');
+                [params.scaleMin, params.scaleMax] = [params.scaleMax, params.scaleMin];
+            }
         } else if (mode === 'ascii') {
             Object.assign(params, {
-                fontFamily: document.getElementById('fontFamily').value,
-                dropShadow: document.getElementById('dropShadow').checked,
-                mergePixels: document.getElementById('mergePixels').checked,
-                mergeMin: parseInt(document.getElementById('mergeMin').value),
-                mergeMax: parseInt(document.getElementById('mergeMax').value),
-                imageSize: parseFloat(document.getElementById('imageSize').value)
+                fontFamily: this.getStringValue('fontFamily', 'monospace'),
+                mergePixels: this.getBooleanValue('mergePixels', false),
+                mergeMin: this.getNumberValue('mergeMin', 2, 1, 100),
+                mergeMax: this.getNumberValue('mergeMax', 10, 1, 100),
+                imageSize: this.getNumberValue('imageSize', 100, 10, 200)
             });
+
+            // Validate merge range
+            if (params.mergeMin > params.mergeMax) {
+                console.warn('Merge min > max, swapping values');
+                [params.mergeMin, params.mergeMax] = [params.mergeMax, params.mergeMin];
+            }
         }
 
         return params;

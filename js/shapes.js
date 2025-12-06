@@ -2,6 +2,9 @@
  * ShapeGenerator - Generates SVG path data for various shapes
  */
 class ShapeGenerator {
+    // Cache for color conversions to avoid redundant regex parsing
+    static _colorCache = new Map();
+
     /**
      * Generate a circle path
      * @param {number} size - Size of the shape
@@ -129,7 +132,32 @@ class ShapeGenerator {
         // Calculate size based on scale if enabled
         let size = baseSize;
         if (params.scaleEnabled) {
-            const scalePercent = params.scaleMin + (sample.brightness * (params.scaleMax - params.scaleMin));
+            // Get the scaling value based on selected metric
+            let scaleValue;
+            switch (params.scaleMetric) {
+                case 'brightness':
+                    scaleValue = sample.brightness;
+                    break;
+                case 'saturation':
+                    scaleValue = sample.saturation || 0;
+                    break;
+                case 'red':
+                    scaleValue = sample.r / 255;
+                    break;
+                case 'green':
+                    scaleValue = sample.g / 255;
+                    break;
+                case 'blue':
+                    scaleValue = sample.b / 255;
+                    break;
+                case 'darkness':
+                    scaleValue = 1 - sample.brightness;
+                    break;
+                default:
+                    scaleValue = sample.brightness;
+            }
+
+            const scalePercent = params.scaleMin + (scaleValue * (params.scaleMax - params.scaleMin));
             size = baseSize * (scalePercent / 100);
         }
 
@@ -209,16 +237,26 @@ class ShapeGenerator {
     }
 
     /**
-     * Convert hex color to RGB
+     * Convert hex color to RGB (with caching for performance)
      * @param {string} hex - Hex color string
      * @returns {Object} RGB object
      */
     static hexToRgb(hex) {
+        // Check cache first
+        if (this._colorCache.has(hex)) {
+            return this._colorCache.get(hex);
+        }
+
+        // Parse color
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? {
+        const rgb = result ? {
             r: parseInt(result[1], 16),
             g: parseInt(result[2], 16),
             b: parseInt(result[3], 16)
         } : { r: 0, g: 0, b: 0 };
+
+        // Cache result
+        this._colorCache.set(hex, rgb);
+        return rgb;
     }
 }
