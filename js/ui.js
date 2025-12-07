@@ -110,7 +110,7 @@ class UI {
         });
 
         // Shape controls
-        this.addCheckboxHandler('roundedCorners');
+        this.addSelectHandler('shape');
         this.addCheckboxHandler('scaleEnabled');
         this.addSliderHandler('scaleMin', 'scaleMinValue');
         this.addSliderHandler('scaleMax', 'scaleMaxValue');
@@ -124,6 +124,11 @@ class UI {
 
         // Shape scaling metric
         this.addSelectHandler('scaleMetric');
+
+        // Sampling method validation for dithering
+        document.getElementById('samplingMethod').addEventListener('change', (e) => {
+            this.validateDitheringAvailability(e.target.value);
+        });
 
         // Shape rotation
         this.addSliderHandler('rotation', 'rotationValue');
@@ -427,7 +432,7 @@ class UI {
 
         if (mode === 'shapes') {
             Object.assign(params, {
-                roundedCorners: this.getBooleanValue('roundedCorners', false),
+                shape: this.getStringValue('shape', 'square'),
                 scaleEnabled: this.getBooleanValue('scaleEnabled', false),
                 scaleMetric: this.getStringValue('scaleMetric', 'brightness'),
                 scaleMin: this.getNumberValue('scaleMin', 50, 0, 200),
@@ -457,5 +462,33 @@ class UI {
         }
 
         return params;
+    }
+
+    /**
+     * Validate if dithering is available based on sampling method
+     * Dithering only works properly with grid sampling
+     * @param {string} samplingMethod - Current sampling method
+     */
+    validateDitheringAvailability(samplingMethod) {
+        const ditherCheckbox = document.getElementById('dither');
+        const ditherHint = document.getElementById('ditherHint');
+
+        if (samplingMethod !== 'grid') {
+            // Disable dithering for non-grid sampling methods
+            if (ditherCheckbox.checked) {
+                ditherCheckbox.checked = false;
+                this.triggerParameterChange();
+            }
+            ditherCheckbox.disabled = true;
+            if (ditherHint) {
+                ditherHint.style.display = 'block';
+            }
+        } else {
+            // Enable dithering for grid sampling
+            ditherCheckbox.disabled = false;
+            if (ditherHint) {
+                ditherHint.style.display = 'none';
+            }
+        }
     }
 }

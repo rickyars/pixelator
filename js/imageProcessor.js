@@ -57,6 +57,7 @@ class ImageProcessor {
 
     /**
      * Draw the image to the hidden canvas for pixel sampling
+     * Color processing effects (posterize, dithering) are applied post-sampling in main.js
      */
     drawToCanvas(effects = {}) {
         if (!this.image) return;
@@ -68,25 +69,8 @@ class ImageProcessor {
         // Draw image
         this.ctx.drawImage(this.image, 0, 0);
 
-        // Get image data
+        // Get image data for sampling
         this.imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-
-        // Apply effects in order: posterize first, then dither, then pixelization
-        if (effects.posterize && effects.posterizeLevels) {
-            if (effects.dither) {
-                // Apply posterization with dithering (error diffusion)
-                this.applyDitheredPosterize(effects.posterizeLevels);
-            } else {
-                // Apply posterization without dithering
-                this.applyPosterize(effects.posterizeLevels);
-            }
-        } else if (effects.dither) {
-            // Apply dithering with default palette (8 levels per channel)
-            this.applyDitheredPosterize(8);
-        }
-
-        // Put the processed image data back
-        this.ctx.putImageData(this.imageData, 0, 0);
     }
 
     /**
@@ -730,11 +714,4 @@ class ImageProcessor {
         }
     }
 
-    /**
-     * Update canvas with effects
-     * @param {Object} effects - Effects to apply
-     */
-    updateEffects(effects) {
-        this.drawToCanvas(effects);
-    }
 }

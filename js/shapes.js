@@ -161,10 +161,20 @@ class ShapeGenerator {
             size = baseSize * (scalePercent / 100);
         }
 
-        // Get the appropriate shape path (square or rounded square)
-        const path = params.roundedCorners
-            ? this.roundedSquare(size)
-            : this.square(size);
+        // Get the appropriate shape path based on shape selection
+        let path;
+        switch (params.shape) {
+            case 'circle':
+                path = this.circle(size);
+                break;
+            case 'rounded-square':
+                path = this.roundedSquare(size);
+                break;
+            case 'square':
+            default:
+                path = this.square(size);
+                break;
+        }
 
         // Calculate color
         const color = this.getColor(sample, params);

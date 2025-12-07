@@ -58,20 +58,20 @@
                 </div>
             </section>
 
-            <!-- Common Parameters -->
+            <!-- Sampling Parameters -->
             <section class="control-section">
-                <h2>Common Settings</h2>
+                <h2>Sampling</h2>
 
                 <div class="control-group">
                     <label for="gridSize">
-                        Grid Size: <span id="gridSizeValue">10</span>px
+                        Pixel Size: <span id="gridSizeValue">10</span>px
                     </label>
                     <input type="range" id="gridSize" min="2" max="100" value="10" class="slider">
                 </div>
 
                 <div class="control-row">
                     <div class="control-group control-group-inline">
-                        <label for="samplingMethod">Sampling Method</label>
+                        <label for="samplingMethod">Sampling Pattern</label>
                         <select id="samplingMethod" class="select">
                             <option value="grid">Grid</option>
                             <option value="random">Random</option>
@@ -114,6 +114,61 @@
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <!-- Rendering Parameters -->
+            <section class="control-section" id="shapeControls">
+                <h2>Rendering</h2>
+
+                <div class="control-group">
+                    <label for="shape">Shape</label>
+                    <select id="shape" class="select">
+                        <option value="square">Square</option>
+                        <option value="circle">Circle</option>
+                        <option value="rounded-square">Rounded Square</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="scaleEnabled" checked>
+                        Dynamic sizing
+                    </label>
+                </div>
+
+                <div class="control-group" id="scaleControls">
+                    <label for="scaleMetric">Size pixels by</label>
+                    <select id="scaleMetric" class="select">
+                        <option value="brightness">Brightness</option>
+                        <option value="saturation">Saturation</option>
+                        <option value="red">Red Channel</option>
+                        <option value="green">Green Channel</option>
+                        <option value="blue">Blue Channel</option>
+                        <option value="darkness">Darkness (Inverse)</option>
+                    </select>
+
+                    <label for="scaleMin">
+                        Min: <span id="scaleMinValue">50</span>%
+                    </label>
+                    <input type="range" id="scaleMin" min="0" max="200" value="50" class="slider">
+
+                    <label for="scaleMax">
+                        Max: <span id="scaleMaxValue">150</span>%
+                    </label>
+                    <input type="range" id="scaleMax" min="0" max="200" value="150" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label for="rotation">
+                        Rotation: <span id="rotationValue">0</span>°
+                    </label>
+                    <input type="range" id="rotation" min="0" max="360" value="0" class="slider">
+                </div>
+            </section>
+
+            <!-- Color Processing Parameters -->
+            <section class="control-section">
+                <h2>Color Processing</h2>
 
                 <div id="colorModeControl">
                     <div class="control-group">
@@ -141,71 +196,24 @@
 
                 <div class="control-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="dither">
-                        Dithering
-                    </label>
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
                         <input type="checkbox" id="posterize">
-                        Posterize
+                        Reduce colors (Posterize)
                     </label>
                 </div>
 
                 <div class="control-group" id="posterizeControls" style="display: none;">
                     <label for="posterizeLevels">
-                        Levels: <span id="posterizeLevelsValue">8</span>
+                        Color levels: <span id="posterizeLevelsValue">8</span>
                     </label>
                     <input type="range" id="posterizeLevels" min="2" max="32" value="8" class="slider">
                 </div>
-            </section>
-
-            <!-- Shape-Specific Parameters -->
-            <section class="control-section" id="shapeControls">
-                <h2>Shape Settings</h2>
 
                 <div class="control-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="roundedCorners">
-                        Rounded corners
+                        <input type="checkbox" id="dither">
+                        <span id="ditherLabel">Dithering</span>
                     </label>
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="scaleEnabled" checked>
-                        Enable scaling
-                    </label>
-                </div>
-
-                <div class="control-group" id="scaleControls">
-                    <label for="scaleMetric">Scale by</label>
-                    <select id="scaleMetric" class="select">
-                        <option value="brightness">Brightness</option>
-                        <option value="saturation">Saturation</option>
-                        <option value="red">Red Channel</option>
-                        <option value="green">Green Channel</option>
-                        <option value="blue">Blue Channel</option>
-                        <option value="darkness">Darkness (Inverse)</option>
-                    </select>
-
-                    <label for="scaleMin">
-                        Min: <span id="scaleMinValue">50</span>%
-                    </label>
-                    <input type="range" id="scaleMin" min="0" max="200" value="50" class="slider">
-
-                    <label for="scaleMax">
-                        Max: <span id="scaleMaxValue">150</span>%
-                    </label>
-                    <input type="range" id="scaleMax" min="0" max="200" value="150" class="slider">
-                </div>
-
-                <div class="control-group">
-                    <label for="rotation">
-                        Rotation: <span id="rotationValue">0</span>°
-                    </label>
-                    <input type="range" id="rotation" min="0" max="360" value="0" class="slider">
+                    <small id="ditherHint" style="display: none; color: #888; margin-left: 24px;">Only available with Grid sampling</small>
                 </div>
             </section>
 
