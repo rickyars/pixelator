@@ -84,6 +84,17 @@ class StopsManager {
     }
 
     /**
+     * Clear all stops
+     */
+    clearStops() {
+        this.stops = [];
+
+        if (this.onChange) {
+            this.onChange();
+        }
+    }
+
+    /**
      * Sort stops by percentage
      */
     sortStops() {

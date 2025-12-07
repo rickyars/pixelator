@@ -235,6 +235,34 @@
                     </select>
                 </div>
 
+                <div class="control-group">
+                    <label for="customFontUpload">Upload Custom Font</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="file" id="customFontUpload" accept=".ttf,.otf,.woff,.woff2" style="flex: 1; font-size: 12px;">
+                        <button type="button" class="btn btn-small btn-danger" id="clearCustomFont" style="display: none;">Clear</button>
+                    </div>
+                    <small style="color: #888; font-size: 11px;">Supports TTF, OTF, WOFF, WOFF2</small>
+                </div>
+
+                <div class="control-group">
+                    <label>Character Presets</label>
+                    <div class="button-group">
+                        <button type="button" class="btn btn-small btn-secondary" id="presetBasic" title="Basic ASCII ramp">Basic</button>
+                        <button type="button" class="btn btn-small btn-secondary" id="presetBlocks" title="Block characters ░▒▓█">Blocks</button>
+                        <button type="button" class="btn btn-small btn-secondary" id="presetShades" title="Shade characters">Shades</button>
+                        <button type="button" class="btn btn-small btn-secondary" id="presetBinary" title="Binary 0 1">Binary</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="charCodeInput">Character by Code</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="number" id="charCodeInput" min="0" max="65535" placeholder="e.g. 188 for ¼" class="slider" style="flex: 1;">
+                        <button type="button" class="btn btn-small" id="insertCharCode">Insert</button>
+                    </div>
+                    <small style="color: #888; font-size: 11px;">Enter Unicode/ASCII code (0-65535)</small>
+                </div>
+
                 <div class="stops-header">
                     <h3>Brightness Stops</h3>
                     <button type="button" class="btn btn-small" id="addStop">+ Add</button>
