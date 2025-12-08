@@ -46,6 +46,8 @@ class Renderer {
             this.renderShapes(samples, params);
         } else if (mode === 'ascii') {
             this.renderASCII(samples, params);
+        } else if (mode === 'pixelatte') {
+            this.renderPixelatte(samples, params);
         }
     }
 
@@ -155,6 +157,42 @@ class Renderer {
         if (anchor.includes('top')) return 'hanging';
         if (anchor.includes('bottom')) return 'alphabetic';
         return 'middle';
+    }
+
+    /**
+     * Render pixelatte effect (displacement-based rendering)
+     * @param {Array} samples - Pixel samples
+     * @param {Object} params - Rendering parameters
+     */
+    renderPixelatte(samples, params) {
+        // Apply pixelatte displacement to samples
+        const displacedSamples = PixelatteEffect.applySparseDisplacement(samples, params);
+
+        // Render the displaced samples as shapes
+        // Use circle as default shape for pixelatte mode
+        const pixelatteParams = {
+            ...params,
+            shape: 'circle',
+            scaleEnabled: false,
+            rotation: 0
+        };
+
+        // Create shape elements with displaced samples
+        const shapes = this.svg.selectAll('path')
+            .data(displacedSamples)
+            .enter()
+            .append('path');
+
+        // Apply shape attributes
+        shapes.each(function(d) {
+            const shapeData = ShapeGenerator.generate(d, pixelatteParams);
+            d3.select(this)
+                .attr('d', shapeData.path)
+                .attr('transform', shapeData.transform)
+                .attr('fill', shapeData.fill)
+                .attr('stroke', shapeData.stroke)
+                .attr('stroke-width', shapeData.strokeWidth);
+        });
     }
 
     /**

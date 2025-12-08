@@ -146,6 +146,29 @@ class UI {
             mergeControls.style.display = e.target.checked ? 'block' : 'none';
             this.triggerParameterChange();
         });
+
+        // Pixelatte controls
+        this.addSliderHandler('pixelatteLayers', 'pixelatteLayersValue');
+        this.addSliderHandler('pixelatteExponent', 'pixelatteExponentValue');
+        this.addSliderHandler('pixelatteStrength', 'pixelatteStrengthValue');
+
+        // Pixelatte seed input
+        const seedInput = document.getElementById('pixelatteSeed');
+        if (seedInput) {
+            seedInput.addEventListener('input', () => {
+                this.triggerParameterChange();
+            });
+        }
+
+        // Randomize seed button
+        const randomizeSeedBtn = document.getElementById('randomizeSeed');
+        if (randomizeSeedBtn) {
+            randomizeSeedBtn.addEventListener('click', () => {
+                const seedInput = document.getElementById('pixelatteSeed');
+                seedInput.value = Math.floor(Math.random() * 1000000);
+                this.triggerParameterChange();
+            });
+        }
     }
 
     /**
@@ -262,16 +285,24 @@ class UI {
     handleModeChange(mode) {
         const shapeControls = document.getElementById('shapeControls');
         const asciiControls = document.getElementById('asciiControls');
+        const pixelatteControls = document.getElementById('pixelatteControls');
         const colorModeControl = document.getElementById('colorModeControl');
 
         if (mode === 'shapes') {
             shapeControls.style.display = 'block';
             asciiControls.style.display = 'none';
+            pixelatteControls.style.display = 'none';
             colorModeControl.style.display = 'block';
-        } else {
+        } else if (mode === 'ascii') {
             shapeControls.style.display = 'none';
             asciiControls.style.display = 'block';
+            pixelatteControls.style.display = 'none';
             colorModeControl.style.display = 'none';
+        } else if (mode === 'pixelatte') {
+            shapeControls.style.display = 'none';
+            asciiControls.style.display = 'none';
+            pixelatteControls.style.display = 'block';
+            colorModeControl.style.display = 'block';
         }
 
         this.triggerParameterChange();
@@ -459,6 +490,17 @@ class UI {
                 console.warn('Merge min > max, swapping values');
                 [params.mergeMin, params.mergeMax] = [params.mergeMax, params.mergeMin];
             }
+        } else if (mode === 'pixelatte') {
+            // Get seed value (allow empty for auto-seed)
+            const seedInput = document.getElementById('pixelatteSeed');
+            const seedValue = seedInput && seedInput.value ? parseInt(seedInput.value, 10) : Date.now();
+
+            Object.assign(params, {
+                pixelatteLayers: this.getNumberValue('pixelatteLayers', 5, 1, 8),
+                pixelatteExponent: this.getNumberValue('pixelatteExponent', 2.0, 0.5, 5.0),
+                pixelatteStrength: this.getNumberValue('pixelatteStrength', 20, 0, 100),
+                pixelatteSeed: seedValue
+            });
         }
 
         return params;
