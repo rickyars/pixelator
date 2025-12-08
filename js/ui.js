@@ -287,18 +287,23 @@ class UI {
         const asciiControls = document.getElementById('asciiControls');
         const pixelatteControls = document.getElementById('pixelatteControls');
         const colorModeControl = document.getElementById('colorModeControl');
+        const samplingSection = document.getElementById('samplingSection');
 
         if (mode === 'shapes') {
+            samplingSection.style.display = 'block';
             shapeControls.style.display = 'block';
             asciiControls.style.display = 'none';
             pixelatteControls.style.display = 'none';
             colorModeControl.style.display = 'block';
         } else if (mode === 'ascii') {
+            samplingSection.style.display = 'block';
             shapeControls.style.display = 'none';
             asciiControls.style.display = 'block';
             pixelatteControls.style.display = 'none';
             colorModeControl.style.display = 'none';
         } else if (mode === 'pixelatte') {
+            // Pixplode is an image transformation mode - no sampling needed
+            samplingSection.style.display = 'none';
             shapeControls.style.display = 'none';
             asciiControls.style.display = 'none';
             pixelatteControls.style.display = 'block';

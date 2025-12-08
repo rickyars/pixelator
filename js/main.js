@@ -114,23 +114,37 @@ class PixelEffectsApp {
                 params.imageWidth = dimensions.width;
                 params.imageHeight = dimensions.height;
 
-                // Prepare canvas effects (applied BEFORE sampling)
-                const canvasEffects = {};
-
-                // Apply pixplode effect to entire canvas BEFORE sampling
+                // PIXPLODE MODE: Image transformation (outputs image, no sampling)
                 if (params.mode === 'pixelatte') {
-                    canvasEffects.pixplode = {
-                        layers: params.pixelatteLayers,
-                        exponent: params.pixelatteExponent,
-                        strength: params.pixelatteStrength,
-                        seed: params.pixelatteSeed
+                    // Prepare pixplode canvas effect
+                    const canvasEffects = {
+                        pixplode: {
+                            layers: params.pixelatteLayers,
+                            exponent: params.pixelatteExponent,
+                            strength: params.pixelatteStrength,
+                            seed: params.pixelatteSeed
+                        }
                     };
+
+                    // Apply UV displacement to entire canvas
+                    this.imageProcessor.drawToCanvas(canvasEffects);
+
+                    // Render canvas directly to SVG (NO SAMPLING!)
+                    const canvas = this.imageProcessor.getCanvas();
+                    this.renderer.renderImageDirect(canvas, params);
+
+                    // Update export stats (1 element = the image)
+                    this.ui.updateExportStats(1);
+
+                    this.ui.hideLoading();
+                    return; // Skip sampling/shape rendering
                 }
 
-                // Draw image to canvas with effects (pixplode is applied here as full-image remap)
-                this.imageProcessor.drawToCanvas(canvasEffects);
+                // SHAPES/ASCII MODE: Normal sampling flow
+                // Draw image to canvas without effects
+                this.imageProcessor.drawToCanvas({});
 
-                // Sample pixels from the (possibly remapped) canvas - returns { samples, stepSize }
+                // Sample pixels from canvas - returns { samples, stepSize }
                 const result = this.imageProcessor.samplePixels(
                     params.gridSize,
                     params.samplingMethod
@@ -168,15 +182,16 @@ class PixelEffectsApp {
                     }
                 }
 
-                // Render to SVG
+                // Render samples to SVG
                 this.renderer.render(this.currentSamples, params.mode, params);
 
                 // Update export stats
                 this.ui.updateExportStats(this.currentSamples.length);
 
+                this.ui.hideLoading();
+
             } catch (error) {
                 ErrorHandler.handle(error, 'Rendering', true, false);
-            } finally {
                 this.ui.hideLoading();
             }
         }, PixelEffectsApp.RENDER_DELAY_MS);

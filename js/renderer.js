@@ -161,6 +161,41 @@ class Renderer {
     }
 
     /**
+     * Render canvas directly as SVG image (for image transformation modes like Pixplode)
+     * This bypasses sampling and renders the full canvas as an embedded image
+     * @param {HTMLCanvasElement} canvas - Canvas with processed image
+     * @param {Object} params - Rendering parameters
+     */
+    renderImageDirect(canvas, params) {
+        // Clear previous render
+        this.clear();
+
+        // Set viewBox based on image dimensions
+        if (params.imageWidth && params.imageHeight) {
+            this.svg.attr('viewBox', `0 0 ${params.imageWidth} ${params.imageHeight}`);
+            this.svg.attr('width', params.imageWidth);
+            this.svg.attr('height', params.imageHeight);
+        }
+
+        // Add background rectangle
+        if (params.backgroundColor) {
+            this.svg.append('rect')
+                .attr('width', params.imageWidth)
+                .attr('height', params.imageHeight)
+                .attr('fill', params.backgroundColor);
+        }
+
+        // Convert canvas to data URL and embed as SVG image
+        const imageDataURL = canvas.toDataURL('image/png');
+        this.svg.append('image')
+            .attr('href', imageDataURL)
+            .attr('width', params.imageWidth)
+            .attr('height', params.imageHeight)
+            .attr('x', 0)
+            .attr('y', 0);
+    }
+
+    /**
      * Clear the SVG canvas
      */
     clear() {

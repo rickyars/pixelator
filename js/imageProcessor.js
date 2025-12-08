@@ -685,6 +685,14 @@ class ImageProcessor {
     }
 
     /**
+     * Get the canvas element
+     * @returns {HTMLCanvasElement} Canvas element
+     */
+    getCanvas() {
+        return this.canvas;
+    }
+
+    /**
      * Clear the loaded image
      */
     clear() {
