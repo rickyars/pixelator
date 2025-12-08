@@ -548,3 +548,76 @@ label span[id$="Value"] {
 .color-pair .color-picker-small {
     width: 32px;
 }
+
+/* Character Map Grid */
+.char-map-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    gap: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-top: 8px;
+}
+
+.char-map-cell {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 150ms ease;
+    padding: 4px;
+    position: relative;
+}
+
+.char-map-cell:hover {
+    background: var(--accent);
+    color: var(--bg-primary);
+    transform: scale(1.1);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+}
+
+.char-map-char {
+    font-size: 20px;
+    line-height: 1;
+    margin-bottom: 2px;
+    font-family: var(--ascii-font, monospace);
+}
+
+.char-map-code {
+    font-size: 9px;
+    color: var(--text-secondary);
+    line-height: 1;
+}
+
+.char-map-cell:hover .char-map-code {
+    color: var(--bg-primary);
+}
+
+/* Custom scrollbar for character map */
+.char-map-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.char-map-grid::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+    border-radius: 4px;
+}
+
+.char-map-grid::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.char-map-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}

@@ -127,35 +127,30 @@ class PixelEffectsApp {
                 params.stepSize = result.stepSize;
                 params.stopsManager = this.stopsManager;
 
-                // Apply grid-based effects to samples
+                // Apply color processing effects to samples
                 if (this.currentSamples.length > 0) {
-                    // Calculate grid dimensions from image dimensions and gridSize
-                    const cols = Math.ceil(dimensions.width / params.gridSize);
-                    const rows = Math.ceil(dimensions.height / params.gridSize);
+                    // Dithering only works with grid sampling (requires regular grid structure)
+                    if (params.samplingMethod === 'grid' && params.dither) {
+                        // Calculate grid dimensions
+                        const cols = Math.ceil(dimensions.width / params.gridSize);
+                        const rows = Math.ceil(dimensions.height / params.gridSize);
 
-                    // Apply effects: when both posterize and dither are enabled,
-                    // only apply dithering to avoid double quantization
-                    if (params.posterize && params.posterizeLevels && params.dither) {
-                        // Both enabled: only dither (includes quantization WITH error diffusion)
+                        // Apply dithering with posterization levels
+                        const levels = params.posterize && params.posterizeLevels
+                            ? params.posterizeLevels
+                            : PixelEffectsApp.DEFAULT_DITHER_LEVELS;
+
                         this.imageProcessor.applyDitherToSamples(
                             this.currentSamples,
                             cols,
                             rows,
-                            params.posterizeLevels
+                            levels
                         );
                     } else if (params.posterize && params.posterizeLevels) {
-                        // Only posterize (no dithering)
+                        // Posterization without dithering (works with any sampling method)
                         this.imageProcessor.applyPosterizeToSamples(
                             this.currentSamples,
                             params.posterizeLevels
-                        );
-                    } else if (params.dither) {
-                        // Only dither with default palette
-                        this.imageProcessor.applyDitherToSamples(
-                            this.currentSamples,
-                            cols,
-                            rows,
-                            PixelEffectsApp.DEFAULT_DITHER_LEVELS
                         );
                     }
                 }
