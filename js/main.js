@@ -155,6 +155,15 @@ class PixelEffectsApp {
                     }
                 }
 
+                // Apply pixplode UV displacement if in pixelatte mode
+                if (params.mode === 'pixelatte') {
+                    this.currentSamples = PixelatteEffect.applyUVDisplacement(
+                        this.currentSamples,
+                        params,
+                        this.imageProcessor
+                    );
+                }
+
                 // Render to SVG
                 this.renderer.render(this.currentSamples, params.mode, params);
 
