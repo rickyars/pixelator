@@ -353,7 +353,7 @@ class StopsUIManager {
             basic: [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'],
             blocks: [' ', '░', '▒', '▓', '█'],
             shades: [' ', '·', '•', '●', '◉', '⬤'],
-            binary: ['0', '1']
+            binary: ['╣', '║', '╗', '╝', '╚', '╔', '╩', '╦', '╠', '═', '╬'] // Box drawing: codes 185-188, 200-206
         };
 
         const characters = presets[presetName];
@@ -541,7 +541,7 @@ class StopsUIManager {
             extended: { start: 128, end: 255 },
             blocks: { start: 9600, end: 9631 },
             box: { start: 9472, end: 9599 },
-            symbols: { start: 8704, end: 8959 },
+            symbols: { start: 8704, end: 8767 }, // Reduced from 8959 to 8767 (64 chars instead of 256)
             arrows: { start: 8592, end: 8703 }
         };
 
@@ -557,7 +557,33 @@ class StopsUIManager {
         // Update CSS custom property for font
         document.documentElement.style.setProperty('--ascii-font', currentFont);
 
-        // Populate grid
+        // Check if range is too large and show warning
+        const charCount = end - start + 1;
+        if (charCount > 200) {
+            const warning = document.createElement('div');
+            warning.style.cssText = 'color: var(--text-secondary); font-size: 11px; padding: 8px; text-align: center;';
+            warning.textContent = `Loading ${charCount} characters...`;
+            this.elements.charMapGrid.appendChild(warning);
+
+            // Use setTimeout to allow UI to update
+            setTimeout(() => {
+                this.elements.charMapGrid.innerHTML = '';
+                this.populateCharacterGrid(start, end);
+            }, 50);
+        } else {
+            this.populateCharacterGrid(start, end);
+        }
+    }
+
+    /**
+     * Populate the character grid with characters
+     * @param {number} start - Start character code
+     * @param {number} end - End character code
+     */
+    populateCharacterGrid(start, end) {
+        // Create document fragment for better performance
+        const fragment = document.createDocumentFragment();
+
         for (let code = start; code <= end; code++) {
             const char = String.fromCharCode(code);
 
@@ -581,7 +607,9 @@ class StopsUIManager {
                 this.stopsManager.addStop(50, 'text', char);
             });
 
-            this.elements.charMapGrid.appendChild(cell);
+            fragment.appendChild(cell);
         }
+
+        this.elements.charMapGrid.appendChild(fragment);
     }
 }
