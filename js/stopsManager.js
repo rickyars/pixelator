@@ -17,10 +17,10 @@ class StopsManager {
     initializeDefaultStops() {
         // Classic ASCII density gradient with white-on-black styling
         this.addStop(0, 'text', ' ', '#ffffff', '#000000');
-        this.addStop(20, 'text', '.', '#888888', '#000000');
-        this.addStop(40, 'text', ':', '#aaaaaa', '#000000');
-        this.addStop(60, 'text', '+', '#cccccc', '#000000');
-        this.addStop(80, 'text', '#', '#eeeeee', '#000000');
+        this.addStop(20, 'text', '.', '#ffffff', '#000000');
+        this.addStop(40, 'text', ':', '#ffffff', '#000000');
+        this.addStop(60, 'text', '+', '#ffffff', '#000000');
+        this.addStop(80, 'text', '#', '#ffffff', '#000000');
         this.addStop(100, 'text', '@', '#ffffff', '#000000');
     }
 

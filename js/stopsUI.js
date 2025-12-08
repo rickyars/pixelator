@@ -353,7 +353,7 @@ class StopsUIManager {
             basic: [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'],
             blocks: [' ', '░', '▒', '▓', '█'],
             shades: [' ', '·', '•', '●', '◉', '⬤'],
-            binary: ['╣', '║', '╗', '╝', '╚', '╔', '╩', '╦', '╠', '═', '╬'] // Box drawing: codes 185-188, 200-206
+            binary: ['╚', '╔', '╩', '╦', '╠', '═', '╬'] // Box drawing: codes 200-206
         };
 
         const characters = presets[presetName];
@@ -538,7 +538,7 @@ class StopsUIManager {
         const range = this.elements.charRange.value;
         const ranges = {
             ascii: { start: 32, end: 126 },
-            extended: { start: 128, end: 255 },
+            extended: { start: 161, end: 255 }, // Skip 128-160 (control characters)
             blocks: { start: 9600, end: 9631 },
             box: { start: 9472, end: 9599 },
             symbols: { start: 8704, end: 8767 }, // Reduced from 8959 to 8767 (64 chars instead of 256)
