@@ -24,10 +24,16 @@ class StopsUIManager {
             insertCharCode: document.getElementById('insertCharCode'),
             customFontUpload: document.getElementById('customFontUpload'),
             clearCustomFont: document.getElementById('clearCustomFont'),
-            fontFamily: document.getElementById('fontFamily')
+            fontFamily: document.getElementById('fontFamily'),
+            toggleCharMap: document.getElementById('toggleCharMap'),
+            charMapToggleText: document.getElementById('charMapToggleText'),
+            charMapPanel: document.getElementById('charMapPanel'),
+            charRange: document.getElementById('charRange'),
+            charMapGrid: document.getElementById('charMapGrid')
         };
 
         this.customFontLoaded = false;
+        this.charMapVisible = false;
     }
 
     /**
@@ -96,6 +102,23 @@ class StopsUIManager {
 
         this.elements.clearCustomFont.addEventListener('click', () => {
             this.clearCustomFont();
+        });
+
+        // Character map toggle
+        this.elements.toggleCharMap.addEventListener('click', () => {
+            this.toggleCharacterMap();
+        });
+
+        // Character range selector
+        this.elements.charRange.addEventListener('change', () => {
+            this.renderCharacterMap();
+        });
+
+        // Font change updates character map
+        this.elements.fontFamily.addEventListener('change', () => {
+            if (this.charMapVisible) {
+                this.renderCharacterMap();
+            }
         });
 
         // Initial render
@@ -489,6 +512,76 @@ class StopsUIManager {
         // Trigger parameter change to re-render
         if (this.onUpdate) {
             this.onUpdate();
+        }
+    }
+
+    /**
+     * Toggle character map visibility
+     */
+    toggleCharacterMap() {
+        this.charMapVisible = !this.charMapVisible;
+
+        if (this.charMapVisible) {
+            this.elements.charMapPanel.style.display = 'block';
+            this.elements.charMapToggleText.textContent = '▾ Hide Character Map';
+            this.renderCharacterMap();
+        } else {
+            this.elements.charMapPanel.style.display = 'none';
+            this.elements.charMapToggleText.textContent = '▸ Show Character Map';
+        }
+    }
+
+    /**
+     * Render the character map grid
+     */
+    renderCharacterMap() {
+        const range = this.elements.charRange.value;
+        const ranges = {
+            ascii: { start: 32, end: 126 },
+            extended: { start: 128, end: 255 },
+            blocks: { start: 9600, end: 9631 },
+            box: { start: 9472, end: 9599 },
+            symbols: { start: 8704, end: 8959 },
+            arrows: { start: 8592, end: 8703 }
+        };
+
+        const selectedRange = ranges[range] || ranges.ascii;
+        const { start, end } = selectedRange;
+
+        // Get current font
+        const currentFont = this.elements.fontFamily.value;
+
+        // Clear grid
+        this.elements.charMapGrid.innerHTML = '';
+
+        // Update CSS custom property for font
+        document.documentElement.style.setProperty('--ascii-font', currentFont);
+
+        // Populate grid
+        for (let code = start; code <= end; code++) {
+            const char = String.fromCharCode(code);
+
+            const cell = document.createElement('div');
+            cell.className = 'char-map-cell';
+            cell.title = `Code: ${code}, Char: ${char}`;
+
+            const charDiv = document.createElement('div');
+            charDiv.className = 'char-map-char';
+            charDiv.textContent = char;
+
+            const codeDiv = document.createElement('div');
+            codeDiv.className = 'char-map-code';
+            codeDiv.textContent = code;
+
+            cell.appendChild(charDiv);
+            cell.appendChild(codeDiv);
+
+            // Click to add character
+            cell.addEventListener('click', () => {
+                this.stopsManager.addStop(50, 'text', char);
+            });
+
+            this.elements.charMapGrid.appendChild(cell);
         }
     }
 }

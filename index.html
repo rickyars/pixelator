@@ -263,6 +263,32 @@
                     <small style="color: #888; font-size: 11px;">Enter Unicode/ASCII code (0-65535)</small>
                 </div>
 
+                <div class="control-group">
+                    <button type="button" class="btn btn-secondary" id="toggleCharMap" style="width: 100%;">
+                        <span id="charMapToggleText">▸ Show Character Map</span>
+                    </button>
+                </div>
+
+                <div id="charMapPanel" style="display: none; margin-top: 12px;">
+                    <div class="control-group">
+                        <label for="charRange">Character Range</label>
+                        <select id="charRange" class="select">
+                            <option value="ascii">ASCII (32-126)</option>
+                            <option value="extended">Extended ASCII (128-255)</option>
+                            <option value="blocks">Block Elements (9600-9631)</option>
+                            <option value="box">Box Drawing (9472-9599)</option>
+                            <option value="symbols">Math Symbols (8704-8959)</option>
+                            <option value="arrows">Arrows (8592-8703)</option>
+                        </select>
+                    </div>
+
+                    <div id="charMapGrid" class="char-map-grid">
+                        <!-- Character grid will be populated by JavaScript -->
+                    </div>
+
+                    <small style="color: #888; font-size: 11px; display: block; margin-top: 8px;">Click any character to add it as a stop</small>
+                </div>
+
                 <div class="stops-header">
                     <h3>Brightness Stops</h3>
                     <button type="button" class="btn btn-small" id="addStop">+ Add</button>
