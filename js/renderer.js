@@ -43,8 +43,9 @@ class Renderer {
 
         // Render based on mode
         if (mode === 'shapes' || mode === 'pixelatte') {
-            // Pixelatte samples are pre-processed with UV displacement in main.js
-            // They can be rendered as regular shapes
+            // Pixelatte mode: samples are taken from a pre-remapped canvas (full-image UV displacement)
+            // The canvas was remapped in ImageProcessor.drawToCanvas() before sampling
+            // So we just render the samples as regular shapes
             this.renderShapes(samples, params);
         } else if (mode === 'ascii') {
             this.renderASCII(samples, params);

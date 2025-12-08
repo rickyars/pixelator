@@ -58,6 +58,7 @@ class ImageProcessor {
     /**
      * Draw the image to the hidden canvas for pixel sampling
      * Color processing effects (posterize, dithering) are applied post-sampling in main.js
+     * Image effects (pixplode) are applied here as full-canvas preprocessing
      */
     drawToCanvas(effects = {}) {
         if (!this.image) return;
@@ -69,8 +70,210 @@ class ImageProcessor {
         // Draw image
         this.ctx.drawImage(this.image, 0, 0);
 
+        // Apply pixplode effect (full-image UV remapping) if enabled
+        if (effects.pixplode) {
+            this.applyPixplodeRemap(effects.pixplode);
+        }
+
         // Get image data for sampling
         this.imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    /**
+     * Apply Pixplode effect: Full-image UV remapping using multi-scale noise
+     * This is the JavaScript/Canvas equivalent of cv2.remap() in the Python implementation
+     *
+     * @param {Object} params - Pixplode parameters
+     * @param {number} params.layers - Number of noise layers (default: 5)
+     * @param {number} params.exponent - Contrast enhancement exponent (default: 2.0)
+     * @param {number} params.strength - Displacement strength in pixels (default: 20)
+     * @param {number} params.seed - Random seed for deterministic noise (default: Date.now())
+     */
+    applyPixplodeRemap(params) {
+        const {
+            layers = 5,
+            exponent = 2.0,
+            strength = 20,
+            seed = Date.now()
+        } = params;
+
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+
+        // Step 1: Get current image data (source)
+        const sourceData = this.ctx.getImageData(0, 0, width, height);
+
+        // Step 2: Create output image data (destination)
+        const outputData = this.ctx.createImageData(width, height);
+
+        // Step 3: Generate full-resolution displacement map and remap pixels
+        // We do this in a single pass for better performance
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                // Generate multi-scale noise at this pixel position
+                const noiseValue = this.evaluateMultiScaleNoise(
+                    x, y, layers, exponent, seed, width, height
+                );
+
+                // Convert noise to displacement (-0.5 to +0.5 range, scaled by strength)
+                const displacement = (noiseValue - 0.5) * strength;
+
+                // Calculate source coordinates (where to sample FROM)
+                let sourceX = x + displacement;
+                let sourceY = y + displacement;
+
+                // Clamp to image bounds (CLAMP mode like OpenCV's BORDER_REPLICATE)
+                sourceX = Math.max(0, Math.min(width - 1, sourceX));
+                sourceY = Math.max(0, Math.min(height - 1, sourceY));
+
+                // Use bilinear interpolation for smooth remapping (like cv2.INTER_LINEAR)
+                const color = this.bilinearInterpolate(sourceData, sourceX, sourceY, width, height);
+
+                // Write to output image
+                const outputIdx = (y * width + x) * 4;
+                outputData.data[outputIdx] = color.r;
+                outputData.data[outputIdx + 1] = color.g;
+                outputData.data[outputIdx + 2] = color.b;
+                outputData.data[outputIdx + 3] = color.a;
+            }
+        }
+
+        // Step 4: Put the remapped image back to canvas
+        this.ctx.putImageData(outputData, 0, 0);
+    }
+
+    /**
+     * Evaluate multi-scale noise at a specific pixel position
+     * Generates noise at progressively smaller resolutions and composites using maximum
+     * This matches the Python implementation's layered noise approach
+     *
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @param {number} layers - Number of noise layers
+     * @param {number} exponent - Contrast enhancement exponent
+     * @param {number} seed - Random seed
+     * @param {number} width - Image width
+     * @param {number} height - Image height
+     * @returns {number} Combined noise value [0, 1]
+     */
+    evaluateMultiScaleNoise(x, y, layers, exponent, seed, width, height) {
+        let maxNoise = 0;
+
+        // Generate noise at multiple scales (full, half, quarter, etc.)
+        for (let layer = 0; layer < layers; layer++) {
+            // Calculate resolution for this layer
+            const scale = Math.pow(2, layer);
+            const layerWidth = Math.max(1, Math.floor(width / scale));
+            const layerHeight = Math.max(1, Math.floor(height / scale));
+
+            // Calculate grid cell coordinates at this scale
+            // This creates the "blocky" effect - pixels in the same cell get the same noise
+            const cellX = Math.floor((x / width) * layerWidth);
+            const cellY = Math.floor((y / height) * layerHeight);
+
+            // Generate deterministic noise for this cell
+            const noise = this.deterministicNoise(cellX, cellY, seed + layer);
+
+            // Apply power function for contrast enhancement
+            // Higher exponent = sparser pattern (only brightest noise survives)
+            const powered = Math.pow(noise, exponent);
+
+            // Take maximum (composite operation) - creates layered blocky effect
+            maxNoise = Math.max(maxNoise, powered);
+        }
+
+        return maxNoise;
+    }
+
+    /**
+     * Generate deterministic noise based on coordinates using a hash function
+     * This ensures the same coordinates always produce the same noise value
+     *
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @param {number} seed - Random seed
+     * @returns {number} Noise value in range [0, 1]
+     */
+    deterministicNoise(x, y, seed) {
+        // Simple hash function for deterministic pseudo-random values
+        let h = seed + x * 374761393 + y * 668265263;
+        h = (h ^ (h >> 13)) * 1274126177;
+        return ((h ^ (h >> 16)) >>> 0) / 4294967296;
+    }
+
+    /**
+     * Bilinear interpolation for smooth pixel sampling at non-integer coordinates
+     * This is equivalent to cv2.INTER_LINEAR in OpenCV
+     *
+     * @param {ImageData} imageData - Source image data
+     * @param {number} x - X coordinate (can be fractional)
+     * @param {number} y - Y coordinate (can be fractional)
+     * @param {number} width - Image width
+     * @param {number} height - Image height
+     * @returns {Object} Interpolated color {r, g, b, a}
+     */
+    bilinearInterpolate(imageData, x, y, width, height) {
+        // Get the four surrounding pixels
+        const x0 = Math.floor(x);
+        const x1 = Math.min(x0 + 1, width - 1);
+        const y0 = Math.floor(y);
+        const y1 = Math.min(y0 + 1, height - 1);
+
+        // Calculate interpolation weights
+        const wx = x - x0;
+        const wy = y - y0;
+
+        // Get colors of the four corners
+        const c00 = this.getPixelColorFromImageData(imageData, x0, y0, width);
+        const c10 = this.getPixelColorFromImageData(imageData, x1, y0, width);
+        const c01 = this.getPixelColorFromImageData(imageData, x0, y1, width);
+        const c11 = this.getPixelColorFromImageData(imageData, x1, y1, width);
+
+        // Bilinear interpolation formula
+        return {
+            r: Math.round(
+                c00.r * (1 - wx) * (1 - wy) +
+                c10.r * wx * (1 - wy) +
+                c01.r * (1 - wx) * wy +
+                c11.r * wx * wy
+            ),
+            g: Math.round(
+                c00.g * (1 - wx) * (1 - wy) +
+                c10.g * wx * (1 - wy) +
+                c01.g * (1 - wx) * wy +
+                c11.g * wx * wy
+            ),
+            b: Math.round(
+                c00.b * (1 - wx) * (1 - wy) +
+                c10.b * wx * (1 - wy) +
+                c01.b * (1 - wx) * wy +
+                c11.b * wx * wy
+            ),
+            a: Math.round(
+                c00.a * (1 - wx) * (1 - wy) +
+                c10.a * wx * (1 - wy) +
+                c01.a * (1 - wx) * wy +
+                c11.a * wx * wy
+            )
+        };
+    }
+
+    /**
+     * Get pixel color from ImageData object directly (helper for bilinear interpolation)
+     * @param {ImageData} imageData - Image data object
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @param {number} width - Image width
+     * @returns {Object} Color object {r, g, b, a}
+     */
+    getPixelColorFromImageData(imageData, x, y, width) {
+        const index = (y * width + x) * 4;
+        return {
+            r: imageData.data[index],
+            g: imageData.data[index + 1],
+            b: imageData.data[index + 2],
+            a: imageData.data[index + 3]
+        };
     }
 
     /**

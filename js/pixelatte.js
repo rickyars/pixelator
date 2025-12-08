@@ -1,10 +1,35 @@
 /**
- * Pixplode Effect Module
+ * Pixplode Effect Module - DEPRECATED
  *
- * Creates a blocky mosaic effect using multi-scale noise as a UV displacement map.
- * The effect generates noise textures at progressively smaller resolutions, composites
- * them using maximum operation, and uses the result to remap pixel sampling coordinates.
- * This creates regions of varying square sizes that appear to "explode" into blocks.
+ * ⚠️ ARCHITECTURAL CHANGE: This file is now deprecated!
+ *
+ * The Pixplode (Pixelatte) effect has been moved to ImageProcessor as a full-image
+ * preprocessing operation. This is the CORRECT implementation that matches the
+ * Python/OpenCV reference implementation.
+ *
+ * OLD (WRONG) APPROACH:
+ * - Sample pixels first
+ * - For each sample, calculate noise and displace UV coordinates
+ * - Resample color from displaced position
+ * - Effect depends on grid resolution
+ *
+ * NEW (CORRECT) APPROACH:
+ * - Generate full-resolution displacement map for ENTIRE image
+ * - Remap ALL pixels using cv2.remap equivalent (see ImageProcessor.applyPixplodeRemap)
+ * - Sample normally from the remapped canvas
+ * - Effect is intrinsic to the image, independent of sampling
+ *
+ * IMPLEMENTATION DETAILS:
+ * The effect now properly implements:
+ * 1. Multi-scale noise generation at progressively smaller resolutions
+ * 2. NEAREST neighbor upscaling to create blocky regions
+ * 3. MAXIMUM compositing of layers
+ * 4. Full-image UV remapping with bilinear interpolation
+ * 5. Applied BEFORE any sampling occurs
+ *
+ * See ImageProcessor.applyPixplodeRemap() for the correct implementation.
+ *
+ * This class is kept for backwards compatibility but is no longer used.
  */
 class PixelatteEffect {
     /**

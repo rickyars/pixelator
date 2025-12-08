@@ -109,15 +109,28 @@ class PixelEffectsApp {
                 // Get current parameters
                 const params = this.ui.getParameters();
 
-                // Draw image to canvas without effects
-                this.imageProcessor.drawToCanvas({});
-
                 // Get image dimensions
                 const dimensions = this.imageProcessor.getDimensions();
                 params.imageWidth = dimensions.width;
                 params.imageHeight = dimensions.height;
 
-                // Sample pixels - returns { samples, stepSize }
+                // Prepare canvas effects (applied BEFORE sampling)
+                const canvasEffects = {};
+
+                // Apply pixplode effect to entire canvas BEFORE sampling
+                if (params.mode === 'pixelatte') {
+                    canvasEffects.pixplode = {
+                        layers: params.pixelatteLayers,
+                        exponent: params.pixelatteExponent,
+                        strength: params.pixelatteStrength,
+                        seed: params.pixelatteSeed
+                    };
+                }
+
+                // Draw image to canvas with effects (pixplode is applied here as full-image remap)
+                this.imageProcessor.drawToCanvas(canvasEffects);
+
+                // Sample pixels from the (possibly remapped) canvas - returns { samples, stepSize }
                 const result = this.imageProcessor.samplePixels(
                     params.gridSize,
                     params.samplingMethod
@@ -127,7 +140,7 @@ class PixelEffectsApp {
                 params.stepSize = result.stepSize;
                 params.stopsManager = this.stopsManager;
 
-                // Apply color processing effects to samples
+                // Apply color processing effects to samples (post-sampling)
                 if (this.currentSamples.length > 0) {
                     // Dithering only works with grid sampling (requires regular grid structure)
                     if (params.samplingMethod === 'grid' && params.dither) {
@@ -153,15 +166,6 @@ class PixelEffectsApp {
                             params.posterizeLevels
                         );
                     }
-                }
-
-                // Apply pixplode UV displacement if in pixelatte mode
-                if (params.mode === 'pixelatte') {
-                    this.currentSamples = PixelatteEffect.applyUVDisplacement(
-                        this.currentSamples,
-                        params,
-                        this.imageProcessor
-                    );
                 }
 
                 // Render to SVG
