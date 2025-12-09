@@ -175,8 +175,8 @@ class ImageProcessor {
             const noise = this.deterministicNoise(cellX, cellY, seed + layer);
 
             // Apply power function for contrast enhancement
-            // Higher exponent = sparser pattern (only brightest noise survives)
-            const powered = Math.pow(noise, exponent);
+            // INVERT: Use 1/exponent so lower slider values = sparser pattern
+            const powered = Math.pow(noise, 1 / exponent);
 
             // Take maximum (composite operation) - creates layered blocky effect
             maxNoise = Math.max(maxNoise, powered);
