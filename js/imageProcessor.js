@@ -91,9 +91,9 @@ class ImageProcessor {
      */
     applyPixplodeRemap(params) {
         const {
-            layers = 5,
-            exponent = 2.0,
-            strength = 20,
+            layers = 10,
+            exponent = 5.0,
+            strength = 50,
             seed = Date.now()
         } = params;
 
