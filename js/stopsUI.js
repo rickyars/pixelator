@@ -16,6 +16,8 @@ class StopsUIManager {
             evenSpacingBtn: document.getElementById('evenSpacingBtn'),
             randomMappingBtn: document.getElementById('randomMappingBtn'),
             randomPositionBtn: document.getElementById('randomPositionBtn'),
+            randomFontColorsBtn: document.getElementById('randomFontColorsBtn'),
+            randomBgColorsBtn: document.getElementById('randomBgColorsBtn'),
             presetBasic: document.getElementById('presetBasic'),
             presetBlocks: document.getElementById('presetBlocks'),
             presetShades: document.getElementById('presetShades'),
@@ -65,6 +67,15 @@ class StopsUIManager {
 
         this.elements.randomPositionBtn.addEventListener('click', () => {
             this.stopsManager.randomizeStopPositions();
+        });
+
+        // Color operation buttons
+        this.elements.randomFontColorsBtn.addEventListener('click', () => {
+            this.stopsManager.randomizeFontColors();
+        });
+
+        this.elements.randomBgColorsBtn.addEventListener('click', () => {
+            this.stopsManager.randomizeBackgroundColors();
         });
 
         // Character preset buttons
