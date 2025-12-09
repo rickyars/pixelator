@@ -133,6 +133,17 @@ class UI {
         // Shape rotation
         this.addSliderHandler('rotation', 'rotationValue');
 
+        // Random erasure
+        this.addCheckboxHandler('randomErase');
+        this.addSliderHandler('eraseAmount', 'eraseAmountValue');
+
+        // Random erasure toggle
+        document.getElementById('randomErase').addEventListener('change', (e) => {
+            const randomEraseControls = document.getElementById('randomEraseControls');
+            randomEraseControls.style.display = e.target.checked ? 'block' : 'none';
+            this.triggerParameterChange();
+        });
+
         // ASCII/Image Map controls
         this.addSelectHandler('fontFamily');
         this.addCheckboxHandler('mergePixels');
@@ -437,7 +448,9 @@ class UI {
                 scaleMetric: this.getStringValue('scaleMetric', 'brightness'),
                 scaleMin: this.getNumberValue('scaleMin', 50, 0, 200),
                 scaleMax: this.getNumberValue('scaleMax', 150, 0, 200),
-                rotation: this.getNumberValue('rotation', 0, -180, 180)
+                rotation: this.getNumberValue('rotation', 0, -180, 180),
+                randomErase: this.getBooleanValue('randomErase', false),
+                eraseAmount: this.getNumberValue('eraseAmount', 30, 0, 100)
             });
 
             // Validate scale range

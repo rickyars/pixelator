@@ -153,6 +153,11 @@ class PixelEffectsApp {
                             params.posterizeLevels
                         );
                     }
+
+                    // Apply random erasure effect (only for shapes mode)
+                    if (params.mode === 'shapes' && params.randomErase && params.eraseAmount > 0) {
+                        this.applyRandomErasure(this.currentSamples, params);
+                    }
                 }
 
                 // Render to SVG
@@ -167,6 +172,47 @@ class PixelEffectsApp {
                 this.ui.hideLoading();
             }
         }, PixelEffectsApp.RENDER_DELAY_MS);
+    }
+
+    /**
+     * Apply random erasure effect to samples
+     * Randomly sets some pixels to the background color
+     * @param {Array} samples - Array of pixel samples to modify
+     * @param {Object} params - Parameters including eraseAmount and backgroundColor
+     */
+    applyRandomErasure(samples, params) {
+        const eraseProbability = params.eraseAmount / 100;
+
+        // Parse background color to RGB
+        const bgColor = this.hexToRgb(params.backgroundColor);
+
+        // Randomly erase pixels by setting them to background color
+        for (const sample of samples) {
+            if (Math.random() < eraseProbability) {
+                sample.r = bgColor.r;
+                sample.g = bgColor.g;
+                sample.b = bgColor.b;
+                sample.brightness = this.imageProcessor.getBrightness(bgColor.r, bgColor.g, bgColor.b);
+                sample.saturation = this.imageProcessor.getSaturation(bgColor.r, bgColor.g, bgColor.b);
+            }
+        }
+    }
+
+    /**
+     * Convert hex color to RGB
+     * @param {string} hex - Hex color string (e.g., '#ff0000')
+     * @returns {Object} Object with r, g, b values
+     */
+    hexToRgb(hex) {
+        // Remove # if present
+        hex = hex.replace('#', '');
+
+        // Parse hex values
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+
+        return { r, g, b };
     }
 
     /**
