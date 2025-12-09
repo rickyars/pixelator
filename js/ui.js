@@ -501,9 +501,9 @@ class UI {
             const seedValue = seedInput && seedInput.value ? parseInt(seedInput.value, 10) : Date.now();
 
             Object.assign(params, {
-                pixelatteLayers: this.getNumberValue('pixelatteLayers', 5, 1, 8),
-                pixelatteExponent: this.getNumberValue('pixelatteExponent', 2.0, 0.5, 5.0),
-                pixelatteStrength: this.getNumberValue('pixelatteStrength', 20, 0, 100),
+                pixelatteLayers: this.getNumberValue('pixelatteLayers', 10, 1, 12),
+                pixelatteExponent: this.getNumberValue('pixelatteExponent', 5.0, 0.5, 10.0),
+                pixelatteStrength: this.getNumberValue('pixelatteStrength', 50, 0, 200),
                 pixelatteSeed: seedValue
             });
         }
