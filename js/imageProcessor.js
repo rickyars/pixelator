@@ -106,14 +106,18 @@ class ImageProcessor {
         // Step 2: Create output image data (destination)
         const outputData = this.ctx.createImageData(width, height);
 
-        // Step 3: Generate full-resolution displacement map and remap pixels
-        // We do this in a single pass for better performance
+        // Step 3: Pre-generate all noise layers at different resolutions
+        console.log(`Generating ${layers} noise layers for ${width}x${height} image...`);
+        const noiseLayers = this.generateNoiseLayers(layers, exponent, seed, width, height);
+
+        // Step 4: Combine noise layers using maximum compositing
+        const combinedNoise = this.combineNoiseLayers(noiseLayers, width, height);
+
+        // Step 5: Apply displacement map and remap pixels
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                // Generate multi-scale noise at this pixel position
-                const noiseValue = this.evaluateMultiScaleNoise(
-                    x, y, layers, exponent, seed, width, height
-                );
+                const pixelIdx = y * width + x;
+                const noiseValue = combinedNoise[pixelIdx];
 
                 // Convert noise to displacement (-0.5 to +0.5 range, scaled by strength)
                 const displacement = (noiseValue - 0.5) * strength;
@@ -130,7 +134,7 @@ class ImageProcessor {
                 const color = this.bilinearInterpolate(sourceData, sourceX, sourceY, width, height);
 
                 // Write to output image
-                const outputIdx = (y * width + x) * 4;
+                const outputIdx = pixelIdx * 4;
                 outputData.data[outputIdx] = color.r;
                 outputData.data[outputIdx + 1] = color.g;
                 outputData.data[outputIdx + 2] = color.b;
@@ -138,51 +142,85 @@ class ImageProcessor {
             }
         }
 
-        // Step 4: Put the remapped image back to canvas
+        // Step 6: Put the remapped image back to canvas
         this.ctx.putImageData(outputData, 0, 0);
     }
 
     /**
-     * Evaluate multi-scale noise at a specific pixel position
-     * Generates noise at progressively smaller resolutions and composites using maximum
-     * This matches the Python implementation's layered noise approach
+     * Generate and cache noise layers for pixplode effect
+     * Pre-generates all noise layers at different resolutions, matching Python implementation
      *
-     * @param {number} x - X coordinate
-     * @param {number} y - Y coordinate
      * @param {number} layers - Number of noise layers
      * @param {number} exponent - Contrast enhancement exponent
      * @param {number} seed - Random seed
      * @param {number} width - Image width
      * @param {number} height - Image height
-     * @returns {number} Combined noise value [0, 1]
+     * @returns {Array<Uint8ClampedArray>} Array of noise layers (each is width*height in size)
      */
-    evaluateMultiScaleNoise(x, y, layers, exponent, seed, width, height) {
-        let maxNoise = 0;
+    generateNoiseLayers(layers, exponent, seed, width, height) {
+        const noiseLayers = [];
 
-        // Generate noise at multiple scales (full, half, quarter, etc.)
+        // Generate each layer at progressively coarser resolutions
         for (let layer = 0; layer < layers; layer++) {
-            // Calculate resolution for this layer
+            // Calculate resolution for this layer (progressively half the size)
             const scale = Math.pow(2, layer);
             const layerWidth = Math.max(1, Math.floor(width / scale));
             const layerHeight = Math.max(1, Math.floor(height / scale));
 
-            // Calculate grid cell coordinates at this scale
-            // This creates the "blocky" effect - pixels in the same cell get the same noise
-            const cellX = Math.floor((x / width) * layerWidth);
-            const cellY = Math.floor((y / height) * layerHeight);
+            // Generate noise at this layer's resolution
+            const layerNoise = new Float32Array(layerWidth * layerHeight);
+            for (let ly = 0; ly < layerHeight; ly++) {
+                for (let lx = 0; lx < layerWidth; lx++) {
+                    const noise = this.deterministicNoise(lx, ly, seed + layer);
+                    // Apply exponent (NOT inverted - use noise^exponent as in Python)
+                    layerNoise[ly * layerWidth + lx] = Math.pow(noise, exponent);
+                }
+            }
 
-            // Generate deterministic noise for this cell
-            const noise = this.deterministicNoise(cellX, cellY, seed + layer);
+            // Upscale to full resolution using nearest-neighbor interpolation
+            // This creates the blocky effect
+            const upscaled = new Float32Array(width * height);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    // Map full-res coordinates to layer coordinates (nearest neighbor)
+                    const srcX = Math.floor((x / width) * layerWidth);
+                    const srcY = Math.floor((y / height) * layerHeight);
+                    const srcIdx = srcY * layerWidth + srcX;
+                    upscaled[y * width + x] = layerNoise[srcIdx];
+                }
+            }
 
-            // Apply power function for contrast enhancement
-            // INVERT: Use 1/exponent so lower slider values = sparser pattern
-            const powered = Math.pow(noise, 1 / exponent);
-
-            // Take maximum (composite operation) - creates layered blocky effect
-            maxNoise = Math.max(maxNoise, powered);
+            noiseLayers.push(upscaled);
         }
 
-        return maxNoise;
+        return noiseLayers;
+    }
+
+    /**
+     * Combine noise layers using maximum compositing
+     *
+     * @param {Array<Float32Array>} noiseLayers - Array of noise layers
+     * @param {number} width - Image width
+     * @param {number} height - Image height
+     * @returns {Float32Array} Combined noise (width*height in size)
+     */
+    combineNoiseLayers(noiseLayers, width, height) {
+        const combined = new Float32Array(width * height);
+
+        // Initialize with first layer
+        if (noiseLayers.length > 0) {
+            combined.set(noiseLayers[0]);
+        }
+
+        // Take maximum across all layers
+        for (let i = 1; i < noiseLayers.length; i++) {
+            const layer = noiseLayers[i];
+            for (let j = 0; j < combined.length; j++) {
+                combined[j] = Math.max(combined[j], layer[j]);
+            }
+        }
+
+        return combined;
     }
 
     /**
