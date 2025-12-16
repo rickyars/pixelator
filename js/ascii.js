@@ -246,18 +246,20 @@ class ASCIIMapper {
      * @returns {Object} {x, y} offset values
      */
     static getTextAnchorOffset(anchor, size) {
-        // Text baseline is at the bottom of the text, so we adjust differently
+        // Sample position is at the center of the grid cell
+        // SVG's text-anchor and dominant-baseline handle alignment at the given position
+        // We just need to offset from center to the desired anchor position
         const halfSize = size / 2;
         const offsets = {
-            'top-left': { x: 0, y: size * 0.8 },
-            'top': { x: 0, y: size * 0.8 },
-            'top-right': { x: 0, y: size * 0.8 },
-            'left': { x: 0, y: halfSize * 0.8 },
-            'center': { x: 0, y: halfSize * 0.4 },
-            'right': { x: 0, y: halfSize * 0.8 },
-            'bottom-left': { x: 0, y: 0 },
-            'bottom': { x: 0, y: 0 },
-            'bottom-right': { x: 0, y: 0 }
+            'top-left': { x: -halfSize, y: -halfSize },
+            'top': { x: 0, y: -halfSize },
+            'top-right': { x: halfSize, y: -halfSize },
+            'left': { x: -halfSize, y: 0 },
+            'center': { x: 0, y: 0 },
+            'right': { x: halfSize, y: 0 },
+            'bottom-left': { x: -halfSize, y: halfSize },
+            'bottom': { x: 0, y: halfSize },
+            'bottom-right': { x: halfSize, y: halfSize }
         };
         return offsets[anchor] || offsets['center'];
     }
