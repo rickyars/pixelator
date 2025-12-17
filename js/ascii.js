@@ -94,8 +94,8 @@ class ASCIIMapper {
         const maxDimension = Math.max(maxWidth, maxHeight);
 
         // Calculate font size so the longest edge fits in the cell
-        // Use 85% to provide some margin
-        const fontSize = (cellSize / maxDimension) * 0.85;
+        // Use 98% for a small margin to prevent rounding/rendering edge cases
+        const fontSize = (cellSize / maxDimension) * 0.98;
 
         this.dimensionCache.set(cacheKey, fontSize);
         return fontSize;
