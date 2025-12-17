@@ -118,7 +118,7 @@ class Renderer {
             }
 
             // Then render the text on top
-            // Text is centered using manually calculated Y offset with alphabetic baseline
+            // Simple approach: position at top-left of cell (like phosphor-cam)
             this.svg.selectAll('text')
                 .data(texts)
                 .enter()
@@ -128,8 +128,8 @@ class Renderer {
                 .attr('font-size', d => d.fontSize)
                 .attr('font-family', d => d.fontFamily)
                 .attr('fill', d => d.fill)
-                .attr('dominant-baseline', 'alphabetic')
-                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'hanging')
+                .attr('text-anchor', 'start')
                 .text(d => d.text);
         }
     }

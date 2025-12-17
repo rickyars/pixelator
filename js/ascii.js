@@ -2,103 +2,6 @@
  * ASCIIMapper - Maps brightness values to characters/images using gradient stops
  */
 class ASCIIMapper {
-    // Cache for measured character dimensions
-    static measurementCanvas = null;
-    static measurementContext = null;
-    static dimensionCache = new Map();
-
-    /**
-     * Get or create the measurement canvas context
-     * @returns {CanvasRenderingContext2D}
-     */
-    static getMeasurementContext() {
-        if (!this.measurementCanvas) {
-            this.measurementCanvas = document.createElement('canvas');
-            this.measurementContext = this.measurementCanvas.getContext('2d');
-        }
-        return this.measurementContext;
-    }
-
-    /**
-     * Measure the actual bounding box of a character
-     * @param {string} char - Character to measure
-     * @param {string} fontFamily - Font family
-     * @param {number} baseFontSize - Base font size to measure at
-     * @returns {Object} {width, height} in pixels
-     */
-    static measureCharacter(char, fontFamily, baseFontSize = 100) {
-        const cacheKey = `${char}-${fontFamily}`;
-
-        if (this.dimensionCache.has(cacheKey)) {
-            return this.dimensionCache.get(cacheKey);
-        }
-
-        const ctx = this.getMeasurementContext();
-        ctx.font = `${baseFontSize}px ${fontFamily}`;
-
-        // Measure text metrics
-        const metrics = ctx.measureText(char);
-
-        // Use actual bounding box for both width and height
-        // This measures the actual visual bounds of the character
-        const width = Math.max(
-            metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight,
-            metrics.width
-        );
-
-        const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-
-        // Normalize to base font size
-        const dimensions = {
-            width: width / baseFontSize,
-            height: height / baseFontSize,
-            // Store ascent/descent ratio for positioning
-            ascent: metrics.actualBoundingBoxAscent / baseFontSize,
-            descent: metrics.actualBoundingBoxDescent / baseFontSize
-        };
-
-        this.dimensionCache.set(cacheKey, dimensions);
-        return dimensions;
-    }
-
-    /**
-     * Calculate optimal font size for a font family to fit in square cells
-     * Uses a reference set of characters to find worst-case dimensions
-     * @param {string} fontFamily - Font family
-     * @param {number} cellSize - Target cell size (square)
-     * @returns {number} Optimal font size
-     */
-    static calculateFontSize(fontFamily, cellSize) {
-        const cacheKey = `fontsize-${fontFamily}-${cellSize}`;
-
-        if (this.dimensionCache.has(cacheKey)) {
-            return this.dimensionCache.get(cacheKey);
-        }
-
-        // Measure reference characters to find worst-case dimensions
-        // Use characters that are typically widest/tallest
-        const referenceChars = ['M', 'W', '@', '#', 'm', 'g', 'j', 'Q', 'É', '█'];
-
-        let maxWidth = 0;
-        let maxHeight = 0;
-
-        for (const char of referenceChars) {
-            const dim = this.measureCharacter(char, fontFamily);
-            maxWidth = Math.max(maxWidth, dim.width);
-            maxHeight = Math.max(maxHeight, dim.height);
-        }
-
-        // Find the longest edge (width or height)
-        const maxDimension = Math.max(maxWidth, maxHeight);
-
-        // Calculate font size so the longest edge fits in the cell
-        // Use 98% for a small margin to prevent rounding/rendering edge cases
-        const fontSize = (cellSize / maxDimension) * 0.98;
-
-        this.dimensionCache.set(cacheKey, fontSize);
-        return fontSize;
-    }
-
     /**
      * Process samples for image map rendering with stops
      * @param {Array} samples - Raw pixel samples
@@ -316,23 +219,18 @@ class ASCIIMapper {
                 image: stop.value // Data URL
             };
         } else {
-            // Text/character - use color from the stop
-            // Calculate optimal font size and position to center character visually
+            // Text/character - use simple approach from phosphor-cam
+            // Font size = cell size, position at top-left of cell
             const char = stop.value || '●';
             const fontFamily = params.fontFamily || 'monospace';
-            const fontSize = this.calculateFontSize(fontFamily, size);
 
-            // Measure this specific character to get its visual center
-            const charDim = this.measureCharacter(char, fontFamily);
-
-            // Calculate Y offset to center the visual bounds
-            // Visual center is at: baseline - (ascent - descent) / 2
-            const visualCenterOffset = ((charDim.ascent - charDim.descent) / 2) * fontSize;
+            // Use cell size as font size directly (like phosphor-cam does)
+            const fontSize = size;
 
             return {
                 type: 'text',
-                x: sample.x,
-                y: sample.y + visualCenterOffset,
+                x: sample.x + offset.x,
+                y: sample.y + offset.y,
                 text: char,
                 fontSize: fontSize,
                 fontFamily: fontFamily,
