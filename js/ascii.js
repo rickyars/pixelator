@@ -2,6 +2,80 @@
  * ASCIIMapper - Maps brightness values to characters/images using gradient stops
  */
 class ASCIIMapper {
+    // Cache for measured character dimensions
+    static measurementCanvas = null;
+    static measurementContext = null;
+    static dimensionCache = new Map();
+
+    /**
+     * Get or create the measurement canvas context
+     * @returns {CanvasRenderingContext2D}
+     */
+    static getMeasurementContext() {
+        if (!this.measurementCanvas) {
+            this.measurementCanvas = document.createElement('canvas');
+            this.measurementContext = this.measurementCanvas.getContext('2d');
+        }
+        return this.measurementContext;
+    }
+
+    /**
+     * Measure the actual bounding box of a character
+     * @param {string} char - Character to measure
+     * @param {string} fontFamily - Font family
+     * @param {number} baseFontSize - Base font size to measure at
+     * @returns {Object} {width, height} in pixels
+     */
+    static measureCharacter(char, fontFamily, baseFontSize = 100) {
+        const cacheKey = `${char}-${fontFamily}`;
+
+        if (this.dimensionCache.has(cacheKey)) {
+            return this.dimensionCache.get(cacheKey);
+        }
+
+        const ctx = this.getMeasurementContext();
+        ctx.font = `${baseFontSize}px ${fontFamily}`;
+
+        // Measure text metrics
+        const metrics = ctx.measureText(char);
+
+        // Calculate actual dimensions
+        // Width from text metrics
+        const width = metrics.width;
+
+        // Height from ascent + descent (actual vertical space used)
+        const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+
+        // Normalize to base font size
+        const dimensions = {
+            width: width / baseFontSize,
+            height: height / baseFontSize
+        };
+
+        this.dimensionCache.set(cacheKey, dimensions);
+        return dimensions;
+    }
+
+    /**
+     * Calculate optimal font size to fit character in square cell
+     * @param {string} char - Character to render
+     * @param {string} fontFamily - Font family
+     * @param {number} cellSize - Target cell size (square)
+     * @returns {number} Optimal font size
+     */
+    static calculateFontSize(char, fontFamily, cellSize) {
+        const dimensions = this.measureCharacter(char, fontFamily);
+
+        // Find the longest edge (width or height)
+        const maxDimension = Math.max(dimensions.width, dimensions.height);
+
+        // Calculate font size so the longest edge fits in the cell
+        // Add a small margin (5%) to prevent touching edges
+        const fontSize = (cellSize / maxDimension) * 0.95;
+
+        return fontSize;
+    }
+
     /**
      * Process samples for image map rendering with stops
      * @param {Array} samples - Raw pixel samples
@@ -221,16 +295,18 @@ class ASCIIMapper {
         } else {
             // Text/character - use color from the stop
             // Always center text in the grid cell for simplicity
-            // Scale font size to ~70% of cell size to ensure characters fit in square cells
-            // (fonts are typically taller than wide, and actual bounds exceed nominal font size)
-            const fontSize = size * 0.7;
+            // Calculate optimal font size based on actual character dimensions
+            const char = stop.value || '●';
+            const fontFamily = params.fontFamily || 'monospace';
+            const fontSize = this.calculateFontSize(char, fontFamily, size);
+
             return {
                 type: 'text',
                 x: sample.x,
                 y: sample.y,
-                text: stop.value || '●',
+                text: char,
                 fontSize: fontSize,
-                fontFamily: params.fontFamily || 'monospace',
+                fontFamily: fontFamily,
                 fill: stop.color || '#ffffff',
                 bgColor: stop.bgColor || null,
                 bgX: sample.x + offset.x,
