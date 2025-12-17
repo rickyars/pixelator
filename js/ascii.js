@@ -39,24 +39,22 @@ class ASCIIMapper {
         // Measure text metrics
         const metrics = ctx.measureText(char);
 
-        // Width: use the actual text width
-        const width = metrics.width;
+        // Use actual bounding box for both width and height
+        // This measures the actual visual bounds of the character
+        const width = Math.max(
+            metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight,
+            metrics.width
+        );
 
-        // Height: use fontBoundingBox which represents the em box height
-        // This matches how SVG positions text with dominant-baseline
-        // Fallback to actualBoundingBox if fontBoundingBox not available
-        let height;
-        if (metrics.fontBoundingBoxAscent !== undefined && metrics.fontBoundingBoxDescent !== undefined) {
-            height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
-        } else {
-            // Fallback: assume font height is approximately the font size
-            height = baseFontSize * 1.2;
-        }
+        const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
 
         // Normalize to base font size
         const dimensions = {
             width: width / baseFontSize,
-            height: height / baseFontSize
+            height: height / baseFontSize,
+            // Store ascent/descent ratio for positioning
+            ascent: metrics.actualBoundingBoxAscent / baseFontSize,
+            descent: metrics.actualBoundingBoxDescent / baseFontSize
         };
 
         this.dimensionCache.set(cacheKey, dimensions);
@@ -319,16 +317,22 @@ class ASCIIMapper {
             };
         } else {
             // Text/character - use color from the stop
-            // Always center text in the grid cell for simplicity
-            // Calculate optimal font size for this font family to fit in square cells
+            // Calculate optimal font size and position to center character visually
             const char = stop.value || '●';
             const fontFamily = params.fontFamily || 'monospace';
             const fontSize = this.calculateFontSize(fontFamily, size);
 
+            // Measure this specific character to get its visual center
+            const charDim = this.measureCharacter(char, fontFamily);
+
+            // Calculate Y offset to center the visual bounds
+            // Visual center is at: baseline - (ascent - descent) / 2
+            const visualCenterOffset = ((charDim.ascent - charDim.descent) / 2) * fontSize;
+
             return {
                 type: 'text',
                 x: sample.x,
-                y: sample.y,
+                y: sample.y + visualCenterOffset,
                 text: char,
                 fontSize: fontSize,
                 fontFamily: fontFamily,

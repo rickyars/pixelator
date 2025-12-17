@@ -118,7 +118,7 @@ class Renderer {
             }
 
             // Then render the text on top
-            // Always center text in grid cells (anchor only affects background)
+            // Text is centered using manually calculated Y offset with alphabetic baseline
             this.svg.selectAll('text')
                 .data(texts)
                 .enter()
@@ -128,7 +128,7 @@ class Renderer {
                 .attr('font-size', d => d.fontSize)
                 .attr('font-family', d => d.fontFamily)
                 .attr('fill', d => d.fill)
-                .attr('dominant-baseline', 'middle')
+                .attr('dominant-baseline', 'alphabetic')
                 .attr('text-anchor', 'middle')
                 .text(d => d.text);
         }
