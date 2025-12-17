@@ -118,7 +118,7 @@ class Renderer {
             }
 
             // Then render the text on top
-            // Simple approach: position at top-left of cell (like phosphor-cam)
+            // Center text in cell (font size = cell size for maximum coverage)
             this.svg.selectAll('text')
                 .data(texts)
                 .enter()
@@ -128,8 +128,8 @@ class Renderer {
                 .attr('font-size', d => d.fontSize)
                 .attr('font-family', d => d.fontFamily)
                 .attr('fill', d => d.fill)
-                .attr('dominant-baseline', 'hanging')
-                .attr('text-anchor', 'start')
+                .attr('dominant-baseline', 'middle')
+                .attr('text-anchor', 'middle')
                 .text(d => d.text);
         }
     }

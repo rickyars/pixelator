@@ -219,18 +219,18 @@ class ASCIIMapper {
                 image: stop.value // Data URL
             };
         } else {
-            // Text/character - use simple approach from phosphor-cam
-            // Font size = cell size, position at top-left of cell
+            // Text/character - font size = cell size (like phosphor-cam)
+            // Center text in the cell for better aesthetics with colored backgrounds
             const char = stop.value || '●';
             const fontFamily = params.fontFamily || 'monospace';
 
-            // Use cell size as font size directly (like phosphor-cam does)
+            // Use cell size as font size directly
             const fontSize = size;
 
             return {
                 type: 'text',
-                x: sample.x + offset.x,
-                y: sample.y + offset.y,
+                x: sample.x,
+                y: sample.y,
                 text: char,
                 fontSize: fontSize,
                 fontFamily: fontFamily,
