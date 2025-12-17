@@ -62,56 +62,50 @@
             <section class="control-section">
                 <h2>Sampling</h2>
 
-                <div class="control-group">
-                    <label for="gridSize">
-                        Pixel Size: <span id="gridSizeValue">10</span>px
-                    </label>
-                    <input type="range" id="gridSize" min="2" max="100" value="10" class="slider">
+                <div class="control-group" style="display: flex; align-items: center; gap: 8px;">
+                    <label for="gridSize" style="flex-shrink: 0;">Pixel Size:</label>
+                    <input type="number" id="gridSizeInput" min="2" max="100" value="10" style="width: 60px;">
+                    <span style="flex-shrink: 0;">px</span>
+                    <input type="range" id="gridSize" min="2" max="100" value="10" class="slider" style="flex: 1;">
                 </div>
 
-                <div class="control-row">
-                    <div class="control-group control-group-inline">
-                        <label for="samplingMethod">Sampling Pattern</label>
-                        <select id="samplingMethod" class="select">
-                            <option value="grid">Grid</option>
-                            <option value="random">Random</option>
-                            <option value="stratified">Stratified</option>
-                            <option value="jittered">Jittered</option>
-                            <option value="poisson">Poisson Disk</option>
-                        </select>
-                    </div>
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="jitterEnabled">
+                        Jitter sampling
+                    </label>
+                </div>
 
-                    <div class="control-group control-group-inline">
-                        <label>Grid Anchor</label>
-                        <div class="anchor-grid" id="anchorGrid">
-                            <button type="button" class="anchor-btn" data-anchor="top-left" title="Top Left">
-                                <span class="anchor-dot"></span>
-                            </button>
-                            <button type="button" class="anchor-btn" data-anchor="top" title="Top">
-                                <span class="anchor-dot"></span>
-                            </button>
-                            <button type="button" class="anchor-btn" data-anchor="top-right" title="Top Right">
-                                <span class="anchor-dot"></span>
-                            </button>
-                            <button type="button" class="anchor-btn" data-anchor="left" title="Left">
-                                <span class="anchor-dot"></span>
-                            </button>
-                            <button type="button" class="anchor-btn active" data-anchor="center" title="Center">
-                                <span class="anchor-dot"></span>
-                            </button>
-                            <button type="button" class="anchor-btn" data-anchor="right" title="Right">
-                                <span class="anchor-dot"></span>
-                            </button>
-                            <button type="button" class="anchor-btn" data-anchor="bottom-left" title="Bottom Left">
-                                <span class="anchor-dot"></span>
-                            </button>
-                            <button type="button" class="anchor-btn" data-anchor="bottom" title="Bottom">
-                                <span class="anchor-dot"></span>
-                            </button>
-                            <button type="button" class="anchor-btn" data-anchor="bottom-right" title="Bottom Right">
-                                <span class="anchor-dot"></span>
-                            </button>
-                        </div>
+                <div class="control-group control-group-inline" id="anchorControl" style="display: none;">
+                    <label>Grid Anchor</label>
+                    <div class="anchor-grid" id="anchorGrid">
+                        <button type="button" class="anchor-btn" data-anchor="top-left" title="Top Left">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="top" title="Top">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="top-right" title="Top Right">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="left" title="Left">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn active" data-anchor="center" title="Center">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="right" title="Right">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="bottom-left" title="Bottom Left">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="bottom" title="Bottom">
+                            <span class="anchor-dot"></span>
+                        </button>
+                        <button type="button" class="anchor-btn" data-anchor="bottom-right" title="Bottom Right">
+                            <span class="anchor-dot"></span>
+                        </button>
                     </div>
                 </div>
             </section>
@@ -136,26 +130,19 @@
                     </label>
                 </div>
 
-                <div class="control-group" id="scaleControls">
-                    <label for="scaleMetric">Size pixels by</label>
-                    <select id="scaleMetric" class="select">
-                        <option value="brightness">Brightness</option>
-                        <option value="saturation">Saturation</option>
-                        <option value="red">Red Channel</option>
-                        <option value="green">Green Channel</option>
-                        <option value="blue">Blue Channel</option>
-                        <option value="darkness">Darkness (Inverse)</option>
-                    </select>
-
-                    <label for="scaleMin">
-                        Min: <span id="scaleMinValue">50</span>%
-                    </label>
-                    <input type="range" id="scaleMin" min="0" max="200" value="50" class="slider">
-
-                    <label for="scaleMax">
-                        Max: <span id="scaleMaxValue">150</span>%
-                    </label>
-                    <input type="range" id="scaleMax" min="0" max="200" value="150" class="slider">
+                <div class="control-group" id="scaleControls" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="scaleMin" style="flex-shrink: 0; width: 40px;">Min:</label>
+                        <input type="number" id="scaleMinInput" min="0" max="200" value="50" style="width: 60px;">
+                        <span style="flex-shrink: 0;">%</span>
+                        <input type="range" id="scaleMin" min="0" max="200" value="50" class="slider" style="flex: 1;">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="scaleMax" style="flex-shrink: 0; width: 40px;">Max:</label>
+                        <input type="number" id="scaleMaxInput" min="0" max="200" value="150" style="width: 60px;">
+                        <span style="flex-shrink: 0;">%</span>
+                        <input type="range" id="scaleMax" min="0" max="200" value="150" class="slider" style="flex: 1;">
+                    </div>
                 </div>
 
                 <div class="control-group">
@@ -172,11 +159,10 @@
                     </label>
                 </div>
 
-                <div class="control-group" id="randomEraseControls" style="display: none;">
-                    <label for="eraseAmount">
-                        Erase amount: <span id="eraseAmountValue">30</span>%
-                    </label>
-                    <input type="range" id="eraseAmount" min="0" max="100" value="30" class="slider">
+                <div class="control-group" id="randomEraseControls" style="display: none; flex-direction: row; align-items: center; gap: 8px;">
+                    <input type="number" id="eraseAmountInput" min="0" max="100" value="30" style="width: 60px;">
+                    <span style="flex-shrink: 0;">%</span>
+                    <input type="range" id="eraseAmount" min="0" max="100" value="30" class="slider" style="flex: 1;">
                 </div>
             </section>
 
@@ -206,28 +192,6 @@
                 <div class="control-group">
                     <label for="backgroundColor">Background Color</label>
                     <input type="color" id="backgroundColor" value="#000000" class="color-picker">
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="posterize">
-                        Reduce colors (Posterize)
-                    </label>
-                </div>
-
-                <div class="control-group" id="posterizeControls" style="display: none;">
-                    <label for="posterizeLevels">
-                        Color levels: <span id="posterizeLevelsValue">8</span>
-                    </label>
-                    <input type="range" id="posterizeLevels" min="2" max="32" value="8" class="slider">
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="dither">
-                        <span id="ditherLabel">Dithering</span>
-                    </label>
-                    <small id="ditherHint" style="display: none; color: #888; margin-left: 24px;">Only available with Grid sampling</small>
                 </div>
             </section>
 

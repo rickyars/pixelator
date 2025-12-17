@@ -129,35 +129,10 @@ class ShapeGenerator {
         // Calculate base size from resolution - use the step size from sampling
         const baseSize = params.stepSize || 10;
 
-        // Calculate size based on scale if enabled
+        // Calculate size based on scale if enabled (always uses brightness)
         let size = baseSize;
         if (params.scaleEnabled) {
-            // Get the scaling value based on selected metric
-            let scaleValue;
-            switch (params.scaleMetric) {
-                case 'brightness':
-                    scaleValue = sample.brightness;
-                    break;
-                case 'saturation':
-                    scaleValue = sample.saturation || 0;
-                    break;
-                case 'red':
-                    scaleValue = sample.r / 255;
-                    break;
-                case 'green':
-                    scaleValue = sample.g / 255;
-                    break;
-                case 'blue':
-                    scaleValue = sample.b / 255;
-                    break;
-                case 'darkness':
-                    scaleValue = 1 - sample.brightness;
-                    break;
-                default:
-                    scaleValue = sample.brightness;
-            }
-
-            const scalePercent = params.scaleMin + (scaleValue * (params.scaleMax - params.scaleMin));
+            const scalePercent = params.scaleMin + (sample.brightness * (params.scaleMax - params.scaleMin));
             size = baseSize * (scalePercent / 100);
         }
 

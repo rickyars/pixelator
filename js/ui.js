@@ -80,27 +80,15 @@ class UI {
         });
 
         // Common controls
-        this.addSliderHandler('gridSize', 'gridSizeValue');
-        this.addSelectHandler('samplingMethod');
+        this.addSliderWithInputHandler('gridSize', 'gridSizeInput');
+        this.addCheckboxHandler('jitterEnabled');
         this.addSelectHandler('colorMode');
         this.addColorHandler('duotoneDark');
         this.addColorHandler('duotoneLight');
         this.addColorHandler('backgroundColor');
 
-        // Effects controls
-        this.addCheckboxHandler('dither');
-        this.addCheckboxHandler('posterize');
-        this.addSliderHandler('posterizeLevels', 'posterizeLevelsValue');
-
         // Anchor grid handler
         this.initAnchorGrid();
-
-        // Posterize toggle
-        document.getElementById('posterize').addEventListener('change', (e) => {
-            const posterizeControls = document.getElementById('posterizeControls');
-            posterizeControls.style.display = e.target.checked ? 'block' : 'none';
-            this.triggerParameterChange();
-        });
 
         // Color mode change handler
         document.getElementById('colorMode').addEventListener('change', (e) => {
@@ -112,22 +100,16 @@ class UI {
         // Shape controls
         this.addSelectHandler('shape');
         this.addCheckboxHandler('scaleEnabled');
-        this.addSliderHandler('scaleMin', 'scaleMinValue');
-        this.addSliderHandler('scaleMax', 'scaleMaxValue');
+        this.addSliderWithInputHandler('scaleMin', 'scaleMinInput');
+        this.addSliderWithInputHandler('scaleMax', 'scaleMaxInput');
 
-        // Scale toggle
+        // Scale toggle - also controls anchor visibility
         document.getElementById('scaleEnabled').addEventListener('change', (e) => {
             const scaleControls = document.getElementById('scaleControls');
-            scaleControls.style.display = e.target.checked ? 'block' : 'none';
+            const anchorControl = document.getElementById('anchorControl');
+            scaleControls.style.display = e.target.checked ? 'flex' : 'none';
+            anchorControl.style.display = e.target.checked ? 'block' : 'none';
             this.triggerParameterChange();
-        });
-
-        // Shape scaling metric
-        this.addSelectHandler('scaleMetric');
-
-        // Sampling method validation for dithering
-        document.getElementById('samplingMethod').addEventListener('change', (e) => {
-            this.validateDitheringAvailability(e.target.value);
         });
 
         // Shape rotation
@@ -135,12 +117,12 @@ class UI {
 
         // Random erasure
         this.addCheckboxHandler('randomErase');
-        this.addSliderHandler('eraseAmount', 'eraseAmountValue');
+        this.addSliderWithInputHandler('eraseAmount', 'eraseAmountInput');
 
         // Random erasure toggle
         document.getElementById('randomErase').addEventListener('change', (e) => {
             const randomEraseControls = document.getElementById('randomEraseControls');
-            randomEraseControls.style.display = e.target.checked ? 'block' : 'none';
+            randomEraseControls.style.display = e.target.checked ? 'flex' : 'none';
             this.triggerParameterChange();
         });
 
@@ -207,6 +189,24 @@ class UI {
 
         slider.addEventListener('input', (e) => {
             valueDisplay.textContent = e.target.value;
+            this.triggerParameterChange();
+        });
+    }
+
+    /**
+     * Add slider with number input event handler (syncs slider and input)
+     */
+    addSliderWithInputHandler(sliderId, inputId) {
+        const slider = document.getElementById(sliderId);
+        const input = document.getElementById(inputId);
+
+        slider.addEventListener('input', (e) => {
+            input.value = e.target.value;
+            this.triggerParameterChange();
+        });
+
+        input.addEventListener('input', (e) => {
+            slider.value = e.target.value;
             this.triggerParameterChange();
         });
     }
@@ -431,21 +431,17 @@ class UI {
             mode: mode,
             gridSize: this.getNumberValue('gridSize', 10, 1, 1000),
             anchor: this.selectedAnchor || 'center',
-            samplingMethod: this.getStringValue('samplingMethod', 'grid'),
+            jitterEnabled: this.getBooleanValue('jitterEnabled', false),
             colorMode: this.getStringValue('colorMode', 'original'),
             duotoneDark: this.getStringValue('duotoneDark', '#000000'),
             duotoneLight: this.getStringValue('duotoneLight', '#ffffff'),
-            backgroundColor: this.getStringValue('backgroundColor', '#000000'),
-            dither: this.getBooleanValue('dither', false),
-            posterize: this.getBooleanValue('posterize', false),
-            posterizeLevels: this.getNumberValue('posterizeLevels', 8, 2, 256)
+            backgroundColor: this.getStringValue('backgroundColor', '#000000')
         };
 
         if (mode === 'shapes') {
             Object.assign(params, {
                 shape: this.getStringValue('shape', 'square'),
                 scaleEnabled: this.getBooleanValue('scaleEnabled', false),
-                scaleMetric: this.getStringValue('scaleMetric', 'brightness'),
                 scaleMin: this.getNumberValue('scaleMin', 50, 0, 200),
                 scaleMax: this.getNumberValue('scaleMax', 150, 0, 200),
                 rotation: this.getNumberValue('rotation', 0, -180, 180),
@@ -477,31 +473,4 @@ class UI {
         return params;
     }
 
-    /**
-     * Validate if dithering is available based on sampling method
-     * Dithering only works properly with grid sampling
-     * @param {string} samplingMethod - Current sampling method
-     */
-    validateDitheringAvailability(samplingMethod) {
-        const ditherCheckbox = document.getElementById('dither');
-        const ditherHint = document.getElementById('ditherHint');
-
-        if (samplingMethod !== 'grid') {
-            // Disable dithering for non-grid sampling methods
-            if (ditherCheckbox.checked) {
-                ditherCheckbox.checked = false;
-                this.triggerParameterChange();
-            }
-            ditherCheckbox.disabled = true;
-            if (ditherHint) {
-                ditherHint.style.display = 'block';
-            }
-        } else {
-            // Enable dithering for grid sampling
-            ditherCheckbox.disabled = false;
-            if (ditherHint) {
-                ditherHint.style.display = 'none';
-            }
-        }
-    }
 }

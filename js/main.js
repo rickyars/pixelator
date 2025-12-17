@@ -118,46 +118,19 @@ class PixelEffectsApp {
                 params.imageHeight = dimensions.height;
 
                 // Sample pixels - returns { samples, stepSize }
+                const samplingMethod = params.jitterEnabled ? 'jittered' : 'grid';
                 const result = this.imageProcessor.samplePixels(
                     params.gridSize,
-                    params.samplingMethod
+                    samplingMethod
                 );
 
                 this.currentSamples = result.samples;
                 params.stepSize = result.stepSize;
                 params.stopsManager = this.stopsManager;
 
-                // Apply color processing effects to samples
-                if (this.currentSamples.length > 0) {
-                    // Dithering only works with grid sampling (requires regular grid structure)
-                    if (params.samplingMethod === 'grid' && params.dither) {
-                        // Calculate grid dimensions
-                        const cols = Math.ceil(dimensions.width / params.gridSize);
-                        const rows = Math.ceil(dimensions.height / params.gridSize);
-
-                        // Apply dithering with posterization levels
-                        const levels = params.posterize && params.posterizeLevels
-                            ? params.posterizeLevels
-                            : PixelEffectsApp.DEFAULT_DITHER_LEVELS;
-
-                        this.imageProcessor.applyDitherToSamples(
-                            this.currentSamples,
-                            cols,
-                            rows,
-                            levels
-                        );
-                    } else if (params.posterize && params.posterizeLevels) {
-                        // Posterization without dithering (works with any sampling method)
-                        this.imageProcessor.applyPosterizeToSamples(
-                            this.currentSamples,
-                            params.posterizeLevels
-                        );
-                    }
-
-                    // Apply random erasure effect (only for shapes mode)
-                    if (params.mode === 'shapes' && params.randomErase && params.eraseAmount > 0) {
-                        this.applyRandomErasure(this.currentSamples, params);
-                    }
+                // Apply random erasure effect (only for shapes mode)
+                if (this.currentSamples.length > 0 && params.mode === 'shapes' && params.randomErase && params.eraseAmount > 0) {
+                    this.applyRandomErasure(this.currentSamples, params);
                 }
 
                 // Render to SVG
