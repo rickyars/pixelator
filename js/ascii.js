@@ -221,13 +221,15 @@ class ASCIIMapper {
         } else {
             // Text/character - use color from the stop
             // For text, anchor affects baseline position
+            // Scale font size to ~85% of cell size to prevent overflow
+            const fontSize = size * 0.85;
             const textOffset = this.getTextAnchorOffset(params.anchor, size);
             return {
                 type: 'text',
                 x: sample.x + textOffset.x,
                 y: sample.y + textOffset.y,
                 text: stop.value || '●',
-                fontSize: size,
+                fontSize: fontSize,
                 fontFamily: params.fontFamily || 'monospace',
                 fill: stop.color || '#ffffff',
                 bgColor: stop.bgColor || null,
