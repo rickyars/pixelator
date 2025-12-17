@@ -11,7 +11,6 @@ class UI {
             imageThumbnail: document.getElementById('imageThumbnail'),
             imageDimensions: document.getElementById('imageDimensions'),
             loadingIndicator: document.getElementById('loadingIndicator'),
-            exportStats: document.getElementById('exportStats'),
             exportSVG: document.getElementById('exportSVG'),
             exportPNG: document.getElementById('exportPNG')
         };
@@ -103,12 +102,10 @@ class UI {
         this.addSliderWithInputHandler('scaleMin', 'scaleMinInput');
         this.addSliderWithInputHandler('scaleMax', 'scaleMaxInput');
 
-        // Scale toggle - also controls anchor visibility
+        // Scale toggle
         document.getElementById('scaleEnabled').addEventListener('change', (e) => {
             const scaleControls = document.getElementById('scaleControls');
-            const anchorControl = document.getElementById('anchorControl');
             scaleControls.style.display = e.target.checked ? 'flex' : 'none';
-            anchorControl.style.display = e.target.checked ? 'block' : 'none';
             this.triggerParameterChange();
         });
 
@@ -338,27 +335,11 @@ class UI {
     }
 
     /**
-     * Update export stats
+     * Enable export buttons
      */
-    updateExportStats(elementCount, fileSize = null) {
-        let statsText = `Elements: ${elementCount.toLocaleString()}`;
-        if (fileSize) {
-            statsText += ` | Size: ${this.formatFileSize(fileSize)}`;
-        }
-        this.elements.exportStats.innerHTML = `<p>${statsText}</p>`;
-
-        // Enable export buttons
+    enableExportButtons() {
         this.elements.exportSVG.disabled = false;
         this.elements.exportPNG.disabled = false;
-    }
-
-    /**
-     * Format file size for display
-     */
-    formatFileSize(bytes) {
-        if (bytes < 1024) return `${bytes} B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
     /**
@@ -442,8 +423,8 @@ class UI {
             Object.assign(params, {
                 shape: this.getStringValue('shape', 'square'),
                 scaleEnabled: this.getBooleanValue('scaleEnabled', false),
-                scaleMin: this.getNumberValue('scaleMin', 50, 0, 200),
-                scaleMax: this.getNumberValue('scaleMax', 150, 0, 200),
+                scaleMin: this.getNumberValue('scaleMin', 50, 0, 500),
+                scaleMax: this.getNumberValue('scaleMax', 150, 0, 500),
                 rotation: this.getNumberValue('rotation', 0, -180, 180),
                 randomErase: this.getBooleanValue('randomErase', false),
                 eraseAmount: this.getNumberValue('eraseAmount', 30, 0, 100)

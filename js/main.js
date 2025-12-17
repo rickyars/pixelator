@@ -136,8 +136,8 @@ class PixelEffectsApp {
                 // Render to SVG
                 this.renderer.render(this.currentSamples, params.mode, params);
 
-                // Update export stats
-                this.ui.updateExportStats(this.currentSamples.length);
+                // Enable export buttons
+                this.ui.enableExportButtons();
 
             } catch (error) {
                 ErrorHandler.handle(error, 'Rendering', true, false);

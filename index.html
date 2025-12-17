@@ -75,39 +75,6 @@
                         Jitter sampling
                     </label>
                 </div>
-
-                <div class="control-group control-group-inline" id="anchorControl" style="display: none;">
-                    <label>Grid Anchor</label>
-                    <div class="anchor-grid" id="anchorGrid">
-                        <button type="button" class="anchor-btn" data-anchor="top-left" title="Top Left">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="top" title="Top">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="top-right" title="Top Right">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="left" title="Left">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn active" data-anchor="center" title="Center">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="right" title="Right">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="bottom-left" title="Bottom Left">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="bottom" title="Bottom">
-                            <span class="anchor-dot"></span>
-                        </button>
-                        <button type="button" class="anchor-btn" data-anchor="bottom-right" title="Bottom Right">
-                            <span class="anchor-dot"></span>
-                        </button>
-                    </div>
-                </div>
             </section>
 
             <!-- Rendering Parameters -->
@@ -133,15 +100,48 @@
                 <div class="control-group" id="scaleControls" style="display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <label for="scaleMin" style="flex-shrink: 0; width: 40px;">Min:</label>
-                        <input type="number" id="scaleMinInput" min="0" max="200" value="50" style="width: 60px;">
+                        <input type="number" id="scaleMinInput" min="0" max="500" value="50" style="width: 60px;">
                         <span style="flex-shrink: 0;">%</span>
-                        <input type="range" id="scaleMin" min="0" max="200" value="50" class="slider" style="flex: 1;">
+                        <input type="range" id="scaleMin" min="0" max="500" value="50" class="slider" style="flex: 1;">
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <label for="scaleMax" style="flex-shrink: 0; width: 40px;">Max:</label>
-                        <input type="number" id="scaleMaxInput" min="0" max="200" value="150" style="width: 60px;">
+                        <input type="number" id="scaleMaxInput" min="0" max="500" value="150" style="width: 60px;">
                         <span style="flex-shrink: 0;">%</span>
-                        <input type="range" id="scaleMax" min="0" max="200" value="150" class="slider" style="flex: 1;">
+                        <input type="range" id="scaleMax" min="0" max="500" value="150" class="slider" style="flex: 1;">
+                    </div>
+
+                    <div class="control-group control-group-inline">
+                        <label>Grid Anchor</label>
+                        <div class="anchor-grid" id="anchorGrid">
+                            <button type="button" class="anchor-btn" data-anchor="top-left" title="Top Left">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="top" title="Top">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="top-right" title="Top Right">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="left" title="Left">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn active" data-anchor="center" title="Center">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="right" title="Right">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="bottom-left" title="Bottom Left">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="bottom" title="Bottom">
+                                <span class="anchor-dot"></span>
+                            </button>
+                            <button type="button" class="anchor-btn" data-anchor="bottom-right" title="Bottom Right">
+                                <span class="anchor-dot"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -323,14 +323,11 @@
             <!-- Export Section -->
             <section class="control-section">
                 <h2>Export</h2>
-                <div class="export-stats" id="exportStats">
-                    <p>Ready to export</p>
-                </div>
-                <div class="export-buttons">
-                    <button type="button" class="btn btn-primary" id="exportSVG" disabled>
+                <div class="export-buttons" style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-primary" id="exportSVG" disabled style="flex: 1;">
                         Download SVG
                     </button>
-                    <button type="button" class="btn btn-primary" id="exportPNG" disabled>
+                    <button type="button" class="btn btn-primary" id="exportPNG" disabled style="flex: 1;">
                         Download PNG
                     </button>
                 </div>
