@@ -39,12 +39,19 @@ class ASCIIMapper {
         // Measure text metrics
         const metrics = ctx.measureText(char);
 
-        // Calculate actual dimensions
-        // Width from text metrics
+        // Width: use the actual text width
         const width = metrics.width;
 
-        // Height from ascent + descent (actual vertical space used)
-        const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+        // Height: use fontBoundingBox which represents the em box height
+        // This matches how SVG positions text with dominant-baseline
+        // Fallback to actualBoundingBox if fontBoundingBox not available
+        let height;
+        if (metrics.fontBoundingBoxAscent !== undefined && metrics.fontBoundingBoxDescent !== undefined) {
+            height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
+        } else {
+            // Fallback: assume font height is approximately the font size
+            height = baseFontSize * 1.2;
+        }
 
         // Normalize to base font size
         const dimensions = {
@@ -57,22 +64,40 @@ class ASCIIMapper {
     }
 
     /**
-     * Calculate optimal font size to fit character in square cell
-     * @param {string} char - Character to render
+     * Calculate optimal font size for a font family to fit in square cells
+     * Uses a reference set of characters to find worst-case dimensions
      * @param {string} fontFamily - Font family
      * @param {number} cellSize - Target cell size (square)
      * @returns {number} Optimal font size
      */
-    static calculateFontSize(char, fontFamily, cellSize) {
-        const dimensions = this.measureCharacter(char, fontFamily);
+    static calculateFontSize(fontFamily, cellSize) {
+        const cacheKey = `fontsize-${fontFamily}-${cellSize}`;
+
+        if (this.dimensionCache.has(cacheKey)) {
+            return this.dimensionCache.get(cacheKey);
+        }
+
+        // Measure reference characters to find worst-case dimensions
+        // Use characters that are typically widest/tallest
+        const referenceChars = ['M', 'W', '@', '#', 'm', 'g', 'j', 'Q', 'É', '█'];
+
+        let maxWidth = 0;
+        let maxHeight = 0;
+
+        for (const char of referenceChars) {
+            const dim = this.measureCharacter(char, fontFamily);
+            maxWidth = Math.max(maxWidth, dim.width);
+            maxHeight = Math.max(maxHeight, dim.height);
+        }
 
         // Find the longest edge (width or height)
-        const maxDimension = Math.max(dimensions.width, dimensions.height);
+        const maxDimension = Math.max(maxWidth, maxHeight);
 
         // Calculate font size so the longest edge fits in the cell
-        // Add a small margin (5%) to prevent touching edges
-        const fontSize = (cellSize / maxDimension) * 0.95;
+        // Use 85% to provide some margin
+        const fontSize = (cellSize / maxDimension) * 0.85;
 
+        this.dimensionCache.set(cacheKey, fontSize);
         return fontSize;
     }
 
@@ -295,10 +320,10 @@ class ASCIIMapper {
         } else {
             // Text/character - use color from the stop
             // Always center text in the grid cell for simplicity
-            // Calculate optimal font size based on actual character dimensions
+            // Calculate optimal font size for this font family to fit in square cells
             const char = stop.value || '●';
             const fontFamily = params.fontFamily || 'monospace';
-            const fontSize = this.calculateFontSize(char, fontFamily, size);
+            const fontSize = this.calculateFontSize(fontFamily, size);
 
             return {
                 type: 'text',
