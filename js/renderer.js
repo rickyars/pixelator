@@ -118,6 +118,7 @@ class Renderer {
             }
 
             // Then render the text on top
+            // Always center text in grid cells (anchor only affects background)
             this.svg.selectAll('text')
                 .data(texts)
                 .enter()
@@ -127,34 +128,10 @@ class Renderer {
                 .attr('font-size', d => d.fontSize)
                 .attr('font-family', d => d.fontFamily)
                 .attr('fill', d => d.fill)
-                .attr('dominant-baseline', d => this.getTextBaseline(d.anchor))
-                .attr('text-anchor', d => this.getTextAnchor(d.anchor))
+                .attr('dominant-baseline', 'middle')
+                .attr('text-anchor', 'middle')
                 .text(d => d.text);
         }
-    }
-
-    /**
-     * Get SVG text-anchor value from anchor position
-     * @param {string} anchor - Anchor position
-     * @returns {string} SVG text-anchor value
-     */
-    getTextAnchor(anchor) {
-        if (!anchor) return 'middle';
-        if (anchor.includes('left')) return 'start';
-        if (anchor.includes('right')) return 'end';
-        return 'middle';
-    }
-
-    /**
-     * Get SVG dominant-baseline value from anchor position
-     * @param {string} anchor - Anchor position
-     * @returns {string} SVG dominant-baseline value
-     */
-    getTextBaseline(anchor) {
-        if (!anchor) return 'middle';
-        if (anchor.includes('top')) return 'hanging';
-        if (anchor.includes('bottom')) return 'alphabetic';
-        return 'middle';
     }
 
     /**

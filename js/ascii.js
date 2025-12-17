@@ -220,14 +220,14 @@ class ASCIIMapper {
             };
         } else {
             // Text/character - use color from the stop
-            // For text, anchor affects baseline position
-            // Scale font size to ~85% of cell size to prevent overflow
-            const fontSize = size * 0.85;
-            const textOffset = this.getTextAnchorOffset(params.anchor, size);
+            // Always center text in the grid cell for simplicity
+            // Scale font size to ~70% of cell size to ensure characters fit in square cells
+            // (fonts are typically taller than wide, and actual bounds exceed nominal font size)
+            const fontSize = size * 0.7;
             return {
                 type: 'text',
-                x: sample.x + textOffset.x,
-                y: sample.y + textOffset.y,
+                x: sample.x,
+                y: sample.y,
                 text: stop.value || '●',
                 fontSize: fontSize,
                 fontFamily: params.fontFamily || 'monospace',
@@ -236,33 +236,9 @@ class ASCIIMapper {
                 bgX: sample.x + offset.x,
                 bgY: sample.y + offset.y,
                 bgSize: size,
-                anchor: params.anchor
+                anchor: params.anchor  // Used for background positioning only
             };
         }
     }
 
-    /**
-     * Calculate text anchor offset (text uses different positioning than shapes)
-     * @param {string} anchor - Anchor position
-     * @param {number} size - Font size
-     * @returns {Object} {x, y} offset values
-     */
-    static getTextAnchorOffset(anchor, size) {
-        // Sample position is at the center of the grid cell
-        // SVG's text-anchor and dominant-baseline handle alignment at the given position
-        // We just need to offset from center to the desired anchor position
-        const halfSize = size / 2;
-        const offsets = {
-            'top-left': { x: -halfSize, y: -halfSize },
-            'top': { x: 0, y: -halfSize },
-            'top-right': { x: halfSize, y: -halfSize },
-            'left': { x: -halfSize, y: 0 },
-            'center': { x: 0, y: 0 },
-            'right': { x: halfSize, y: 0 },
-            'bottom-left': { x: -halfSize, y: halfSize },
-            'bottom': { x: 0, y: halfSize },
-            'bottom-right': { x: halfSize, y: halfSize }
-        };
-        return offsets[anchor] || offsets['center'];
-    }
 }
