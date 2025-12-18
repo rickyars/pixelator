@@ -1,199 +1,138 @@
 /**
- * Exporter - Handles exporting SVG to various formats
+ * Exporter - Minimal & reliable SVG/PNG exporter
  */
 class Exporter {
-    /**
-     * Export SVG to file
-     * @param {SVGElement} svgElement - SVG element to export
-     * @param {string} filename - Filename (without extension)
-     */
-    static toSVG(svgElement, filename = 'pixel-art') {
-        // Clone the SVG to avoid modifying the original
-        const svgClone = svgElement.cloneNode(true);
+    // Helper: derive width/height from various SVG attributes
+    static _getSize(svg) {
+        const dataW = svg.getAttribute('data-export-width');
+        const dataH = svg.getAttribute('data-export-height');
+        if (dataW && dataH) return [parseFloat(dataW), parseFloat(dataH)];
 
-        // Get export dimensions from data attributes
-        const exportWidth = svgClone.getAttribute('data-export-width');
-        const exportHeight = svgClone.getAttribute('data-export-height');
-
-        // Set width and height for export (if available)
-        // Note: viewBox should NOT be changed - it defines the coordinate system
-        // Only width/height should scale to achieve proper output dimensions
-        if (exportWidth && exportHeight) {
-            svgClone.setAttribute('width', exportWidth);
-            svgClone.setAttribute('height', exportHeight);
+        const wAttr = svg.getAttribute('width');
+        const hAttr = svg.getAttribute('height');
+        if (wAttr && hAttr) {
+            const w = parseFloat(wAttr);
+            const h = parseFloat(hAttr);
+            if (!Number.isNaN(w) && !Number.isNaN(h)) return [w, h];
         }
 
-        // Remove data attributes and pan-zoom elements from export
+        const viewBox = svg.getAttribute('viewBox');
+        if (viewBox) {
+            const parts = viewBox.trim().split(/\s+|,/).filter(Boolean);
+            if (parts.length === 4) {
+                return [parseFloat(parts[2]), parseFloat(parts[3])];
+            }
+        }
+
+        // Fallback to reasonable defaults
+        return [Math.max(1, svg.clientWidth || 300), Math.max(1, svg.clientHeight || 150)];
+    }
+
+    // Small utility to ensure required xmlns attributes
+    static _ensureNamespaces(svg) {
+        if (!svg.hasAttribute('xmlns')) svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        if (!svg.hasAttribute('xmlns:xlink')) svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    }
+
+    // Remove top-level wrapper groups that may cause unexpected transforms
+    static _unwrapTopLevelTransforms(svg) {
+        const groups = Array.from(svg.querySelectorAll('g[transform]'));
+        groups.forEach(g => {
+            if (g.parentNode === svg) {
+                while (g.firstChild) svg.insertBefore(g.firstChild, g);
+                g.remove();
+            }
+        });
+    }
+
+    /**
+     * Export SVG to a .svg file
+     * @param {SVGElement} svgElement
+     * @param {string} filename
+     */
+    static toSVG(svgElement, filename = 'pixel-art') {
+        const svgClone = svgElement.cloneNode(true);
+        this._unwrapTopLevelTransforms(svgClone);
+
+        const [w, h] = this._getSize(svgClone);
+        svgClone.setAttribute('width', w);
+        svgClone.setAttribute('height', h);
         svgClone.removeAttribute('data-export-width');
         svgClone.removeAttribute('data-export-height');
+        this._ensureNamespaces(svgClone);
 
-        const serializer = new XMLSerializer();
-        const svgString = serializer.serializeToString(svgClone);
-
-        // Add XML declaration and proper SVG namespace
-        const fullSVG = `<?xml version="1.0" encoding="UTF-8"?>
-${svgString}`;
-
+        const svgString = new XMLSerializer().serializeToString(svgClone);
+        const fullSVG = `<?xml version="1.0" encoding="UTF-8"?>\n${svgString}`;
         const blob = new Blob([fullSVG], { type: 'image/svg+xml;charset=utf-8' });
         this.downloadBlob(blob, `${filename}-${Date.now()}.svg`);
     }
 
     /**
-     * Export SVG to PNG
-     * @param {SVGElement} svgElement - SVG element to export
-     * @param {number} scale - Scale factor for output resolution
-     * @param {string} filename - Filename (without extension)
+     * Export SVG to PNG by drawing serialized SVG on a canvas
+     * @param {SVGElement} svgElement
+     * @param {number} scale - pixel scale multiplier (1 = native SVG units)
+     * @param {string} filename
      */
     static async toPNG(svgElement, scale = 2, filename = 'pixel-art') {
+        const [width, height] = this._getSize(svgElement);
+        if (!width || !height) {
+            console.error('Exporter.toPNG: invalid dimensions', width, height);
+            return;
+        }
+
+        // Prepare SVG clone for export
+        const svgClone = svgElement.cloneNode(true);
+        this._unwrapTopLevelTransforms(svgClone);
+        svgClone.setAttribute('width', width);
+        svgClone.setAttribute('height', height);
+        svgClone.removeAttribute('data-export-width');
+        svgClone.removeAttribute('data-export-height');
+        this._ensureNamespaces(svgClone);
+
+        const svgString = new XMLSerializer().serializeToString(svgClone);
+        const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
         const canvas = document.createElement('canvas');
+        canvas.width = Math.round(width * scale);
+        canvas.height = Math.round(height * scale);
         const ctx = canvas.getContext('2d');
 
-        // Get SVG dimensions
-        const exportWidth = parseFloat(svgElement.getAttribute('data-export-width'));
-        const exportHeight = parseFloat(svgElement.getAttribute('data-export-height'));
-        const viewBox = svgElement.getAttribute('viewBox');
-
-        if (!viewBox) {
-            console.error('PNG Export - No viewBox attribute found on SVG');
-            return;
-        }
-
-        const viewBoxParts = viewBox.split(' ');
-        const width = exportWidth || parseFloat(viewBoxParts[2]);
-        const height = exportHeight || parseFloat(viewBoxParts[3]);
-
-        if (!width || !height) {
-            console.error('PNG Export - Invalid dimensions:', width, height);
-            return;
-        }
-
-        const renderer = window.app ? window.app.renderer : null;
-
         try {
-            // Disable pan-zoom and wait for DOM to settle
-            if (renderer && renderer.panZoomInstance) {
-                console.log('PNG Export - Disabling pan-zoom');
-                renderer.disablePanZoom();
-
-                // Wait for DOM to update AND check that wrapper is gone
-                await new Promise(resolve => {
-                    let attempts = 0;
-                    const checkInterval = setInterval(() => {
-                        attempts++;
-                        // Check if there's a suspicious <g> wrapper added by pan-zoom
-                        const hasWrapper = Array.from(svgElement.children).some(
-                            child => child.tagName === 'g' &&
-                            child.hasAttribute('transform') &&
-                            child.getAttribute('transform').includes('matrix')
-                        );
-
-                        if (!hasWrapper || attempts > 10) {
-                            clearInterval(checkInterval);
-                            console.log('PNG Export - DOM ready after', attempts * 20, 'ms');
-                            resolve();
-                        }
-                    }, 20);
-                });
-            }
-
-            // Clone SVG
-            const svgClone = svgElement.cloneNode(true);
-
-            // Remove any remaining pan-zoom artifacts
-            const wrapperGroups = svgClone.querySelectorAll('g[transform*="matrix"]');
-            wrapperGroups.forEach(g => {
-                if (g.parentNode === svgClone) {
-                    // Unwrap: move children out of wrapper
-                    while (g.firstChild) {
-                        svgClone.insertBefore(g.firstChild, g);
-                    }
-                    g.remove();
-                }
-            });
-
-            // Set explicit dimensions
-            svgClone.setAttribute('width', width);
-            svgClone.setAttribute('height', height);
-            // Note: viewBox is preserved from clone - should NOT be changed
-            svgClone.removeAttribute('data-export-width');
-            svgClone.removeAttribute('data-export-height');
-
-            // Ensure proper SVG namespaces
-            if (!svgClone.hasAttribute('xmlns')) {
-                svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-            }
-            if (!svgClone.hasAttribute('xmlns:xlink')) {
-                svgClone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-            }
-
-            // Set canvas size
-            canvas.width = width * scale;
-            canvas.height = height * scale;
-
-            // Serialize
-            const serializer = new XMLSerializer();
-            const svgString = serializer.serializeToString(svgClone);
-
-            console.log('PNG Export - Canvas size:', canvas.width, 'x', canvas.height);
-            console.log('PNG Export - SVG string length:', svgString.length);
-
-            const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(svgBlob);
-
-            // Load into image
             await new Promise((resolve, reject) => {
                 const img = new Image();
+                // try to avoid tainting; note this requires resources to allow crossorigin
+                img.crossOrigin = 'anonymous';
 
-                const timeout = setTimeout(() => {
-                    reject(new Error('Timeout loading SVG after 10 seconds'));
-                }, 10000);
+                const timeout = setTimeout(() => reject(new Error('Image load timeout')), 10000);
 
                 img.onload = () => {
                     clearTimeout(timeout);
-                    console.log('PNG Export - Image loaded successfully');
-
-                    ctx.scale(scale, scale);
-                    ctx.drawImage(img, 0, 0);
-
-                    canvas.toBlob((blob) => {
-                        if (blob) {
-                            console.log('PNG Export - Blob created, size:', blob.size);
-                            this.downloadBlob(blob, `${filename}-${Date.now()}.png`);
-                            resolve();
-                        } else {
-                            reject(new Error('Failed to create PNG blob'));
-                        }
+                    // draw image stretched to canvas to honor scale
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob(blobOut => {
+                        if (!blobOut) return reject(new Error('Failed to create PNG blob'));
+                        this.downloadBlob(blobOut, `${filename}-${Date.now()}.png`);
+                        resolve();
                     }, 'image/png');
                 };
 
                 img.onerror = (e) => {
                     clearTimeout(timeout);
-                    console.error('PNG Export - Image load error:', e);
-                    console.error('PNG Export - SVG preview:', svgString.substring(0, 500));
+                    console.error('Exporter.toPNG - image error', e);
                     reject(e);
                 };
 
                 img.src = url;
             });
-
-            URL.revokeObjectURL(url);
-
-        } catch (error) {
-            console.error('PNG Export - Error:', error);
+        } catch (err) {
+            console.error('Exporter.toPNG error:', err);
         } finally {
-            // Re-enable pan-zoom
-            if (renderer) {
-                console.log('PNG Export - Re-enabling pan-zoom');
-                renderer.enablePanZoom();
-            }
+            URL.revokeObjectURL(url);
         }
     }
 
-    /**
-     * Download a blob as a file
-     * @param {Blob} blob - Blob to download
-     * @param {string} filename - Filename
-     */
+    /** Download a blob using an <a> element */
     static downloadBlob(blob, filename) {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -204,19 +143,20 @@ ${svgString}`;
         URL.revokeObjectURL(link.href);
     }
 
-    /**
-     * Copy SVG to clipboard
-     * @param {SVGElement} svgElement - SVG element to copy
-     */
+    /** Copy SVG markup to clipboard */
     static async toClipboard(svgElement) {
-        const serializer = new XMLSerializer();
-        const svgString = serializer.serializeToString(svgElement);
+        const svgClone = svgElement.cloneNode(true);
+        const [w, h] = this._getSize(svgClone);
+        svgClone.setAttribute('width', w);
+        svgClone.setAttribute('height', h);
+        this._ensureNamespaces(svgClone);
+        const svgString = new XMLSerializer().serializeToString(svgClone);
 
         try {
             await navigator.clipboard.writeText(svgString);
             return true;
         } catch (err) {
-            console.error('Failed to copy to clipboard:', err);
+            console.error('Exporter.toClipboard failed:', err);
             return false;
         }
     }
