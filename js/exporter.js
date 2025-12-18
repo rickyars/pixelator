@@ -8,8 +8,25 @@ class Exporter {
      * @param {string} filename - Filename (without extension)
      */
     static toSVG(svgElement, filename = 'pixel-art') {
+        // Clone the SVG to avoid modifying the original
+        const svgClone = svgElement.cloneNode(true);
+
+        // Get export dimensions from data attributes
+        const exportWidth = svgClone.getAttribute('data-export-width');
+        const exportHeight = svgClone.getAttribute('data-export-height');
+
+        // Set width and height for export (if available)
+        if (exportWidth && exportHeight) {
+            svgClone.setAttribute('width', exportWidth);
+            svgClone.setAttribute('height', exportHeight);
+        }
+
+        // Remove data attributes and pan-zoom elements from export
+        svgClone.removeAttribute('data-export-width');
+        svgClone.removeAttribute('data-export-height');
+
         const serializer = new XMLSerializer();
-        const svgString = serializer.serializeToString(svgElement);
+        const svgString = serializer.serializeToString(svgClone);
 
         // Add XML declaration and proper SVG namespace
         const fullSVG = `<?xml version="1.0" encoding="UTF-8"?>
@@ -29,18 +46,30 @@ ${svgString}`;
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Get SVG dimensions
-        const bbox = svgElement.getBBox();
-        const width = bbox.width || svgElement.width.baseVal.value;
-        const height = bbox.height || svgElement.height.baseVal.value;
+        // Clone SVG for export
+        const svgClone = svgElement.cloneNode(true);
+
+        // Get SVG dimensions from data attributes (for scaled export) or viewBox
+        const exportWidth = parseFloat(svgClone.getAttribute('data-export-width'));
+        const exportHeight = parseFloat(svgClone.getAttribute('data-export-height'));
+        const viewBox = svgClone.getAttribute('viewBox').split(' ');
+
+        const width = exportWidth || parseFloat(viewBox[2]) || svgClone.getBBox().width;
+        const height = exportHeight || parseFloat(viewBox[3]) || svgClone.getBBox().height;
+
+        // Set explicit dimensions on clone for rendering
+        svgClone.setAttribute('width', width);
+        svgClone.setAttribute('height', height);
+        svgClone.removeAttribute('data-export-width');
+        svgClone.removeAttribute('data-export-height');
 
         // Set canvas size
         canvas.width = width * scale;
         canvas.height = height * scale;
 
-        // Create SVG blob
+        // Create SVG blob from clone
         const serializer = new XMLSerializer();
-        const svgString = serializer.serializeToString(svgElement);
+        const svgString = serializer.serializeToString(svgClone);
         const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
 

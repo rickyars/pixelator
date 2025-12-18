@@ -5,6 +5,7 @@ class Renderer {
     constructor(svgElementId) {
         this.svg = d3.select(`#${svgElementId}`);
         this.currentSamples = [];
+        this.panZoomInstance = null;
     }
 
     /**
@@ -33,15 +34,22 @@ class Renderer {
         const baseWidth = params.imageWidth || 100;
         const baseHeight = params.imageHeight || 100;
 
-        // Apply output scale
+        // Apply output scale to viewBox only (for export)
         const scaleFactor = params.outputScale / 100;
-        const canvasWidth = baseWidth * scaleFactor;
-        const canvasHeight = baseHeight * scaleFactor;
+        const scaledWidth = baseWidth * scaleFactor;
+        const scaledHeight = baseHeight * scaleFactor;
 
-        // Set viewBox to actual image dimensions (not sample bounds)
+        // Set viewBox to actual image dimensions
         this.svg.attr('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
-        this.svg.attr('width', canvasWidth);
-        this.svg.attr('height', canvasHeight);
+
+        // Store scaled dimensions as data attributes for export
+        this.svg.attr('data-export-width', scaledWidth);
+        this.svg.attr('data-export-height', scaledHeight);
+
+        // Don't set width/height - let CSS handle responsive sizing
+        // This prevents portrait images from being constrained incorrectly
+        this.svg.attr('width', null);
+        this.svg.attr('height', null);
 
         // Ensure proper aspect ratio preservation
         this.svg.attr('preserveAspectRatio', 'xMidYMid meet');
@@ -62,6 +70,47 @@ class Renderer {
             this.renderShapes(samples, params);
         } else if (mode === 'ascii') {
             this.renderASCII(samples, params);
+        }
+
+        // Enable pan/zoom controls
+        this.enablePanZoom();
+    }
+
+    /**
+     * Enable pan and zoom controls on the SVG
+     */
+    enablePanZoom() {
+        // Destroy existing instance if any
+        if (this.panZoomInstance) {
+            this.panZoomInstance.destroy();
+            this.panZoomInstance = null;
+        }
+
+        // Initialize pan/zoom if library is available
+        if (typeof svgPanZoom !== 'undefined') {
+            try {
+                this.panZoomInstance = svgPanZoom('#svgCanvas', {
+                    zoomEnabled: true,
+                    controlIconsEnabled: true,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.1,
+                    maxZoom: 20,
+                    zoomScaleSensitivity: 0.3
+                });
+            } catch (e) {
+                console.warn('Failed to initialize pan/zoom:', e);
+            }
+        }
+    }
+
+    /**
+     * Disable pan and zoom
+     */
+    disablePanZoom() {
+        if (this.panZoomInstance) {
+            this.panZoomInstance.destroy();
+            this.panZoomInstance = null;
         }
     }
 
@@ -154,6 +203,7 @@ class Renderer {
      * Clear the SVG canvas
      */
     clear() {
+        this.disablePanZoom();
         this.svg.selectAll('*').remove();
     }
 
