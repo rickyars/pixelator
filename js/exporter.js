@@ -52,10 +52,21 @@ ${svgString}`;
         // Get SVG dimensions from data attributes (for scaled export) or viewBox
         const exportWidth = parseFloat(svgClone.getAttribute('data-export-width'));
         const exportHeight = parseFloat(svgClone.getAttribute('data-export-height'));
-        const viewBox = svgClone.getAttribute('viewBox').split(' ');
+        const viewBox = svgClone.getAttribute('viewBox');
 
-        const width = exportWidth || parseFloat(viewBox[2]) || svgClone.getBBox().width;
-        const height = exportHeight || parseFloat(viewBox[3]) || svgClone.getBBox().height;
+        if (!viewBox) {
+            console.error('No viewBox attribute found on SVG');
+            return;
+        }
+
+        const viewBoxParts = viewBox.split(' ');
+        const width = exportWidth || parseFloat(viewBoxParts[2]);
+        const height = exportHeight || parseFloat(viewBoxParts[3]);
+
+        if (!width || !height) {
+            console.error('Invalid dimensions:', width, height);
+            return;
+        }
 
         // Set explicit dimensions on clone for rendering
         svgClone.setAttribute('width', width);
@@ -63,13 +74,27 @@ ${svgString}`;
         svgClone.removeAttribute('data-export-width');
         svgClone.removeAttribute('data-export-height');
 
-        // Set canvas size
+        // Remove pan-zoom artifacts (svg-pan-zoom adds g wrapper with transform)
+        // Reset the viewBox to ensure clean export
+        svgClone.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+        // Remove any transform attributes from svg-pan-zoom wrapper
+        const wrapperG = svgClone.querySelector('g[transform]');
+        if (wrapperG && wrapperG.parentNode === svgClone) {
+            // This is the svg-pan-zoom wrapper, remove its transform
+            wrapperG.removeAttribute('transform');
+        }
+
+        // Set canvas size with scale
         canvas.width = width * scale;
         canvas.height = height * scale;
 
         // Create SVG blob from clone
         const serializer = new XMLSerializer();
         const svgString = serializer.serializeToString(svgClone);
+
+        console.log('PNG Export - Canvas size:', canvas.width, 'x', canvas.height);
+        console.log('PNG Export - SVG dimensions:', width, 'x', height);
         const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
 
@@ -86,19 +111,26 @@ ${svgString}`;
         const img = new Image();
         img.onload = () => {
             clearTimeout(timeout);
+            console.log('PNG Export - Image loaded successfully');
             ctx.scale(scale, scale);
             ctx.drawImage(img, 0, 0);
 
             // Convert to PNG blob
             canvas.toBlob((blob) => {
-                this.downloadBlob(blob, `${filename}-${Date.now()}.png`);
+                if (blob) {
+                    console.log('PNG Export - Blob created, size:', blob.size);
+                    this.downloadBlob(blob, `${filename}-${Date.now()}.png`);
+                } else {
+                    console.error('PNG Export - Failed to create blob');
+                }
                 cleanup();
             }, 'image/png');
         };
 
-        img.onerror = () => {
+        img.onerror = (e) => {
             clearTimeout(timeout);
-            console.error('Failed to load SVG for PNG export');
+            console.error('PNG Export - Failed to load SVG image:', e);
+            console.error('PNG Export - SVG string preview:', svgString.substring(0, 500));
             cleanup();
         };
 

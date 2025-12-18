@@ -34,7 +34,7 @@ class Renderer {
         const baseWidth = params.imageWidth || 100;
         const baseHeight = params.imageHeight || 100;
 
-        // Apply output scale to viewBox only (for export)
+        // Apply output scale for exports only
         const scaleFactor = params.outputScale / 100;
         const scaledWidth = baseWidth * scaleFactor;
         const scaledHeight = baseHeight * scaleFactor;
@@ -42,14 +42,14 @@ class Renderer {
         // Set viewBox to actual image dimensions
         this.svg.attr('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
 
+        // Set width/height to base dimensions for proper preview sizing
+        // CSS will constrain these with max-width/max-height
+        this.svg.attr('width', baseWidth);
+        this.svg.attr('height', baseHeight);
+
         // Store scaled dimensions as data attributes for export
         this.svg.attr('data-export-width', scaledWidth);
         this.svg.attr('data-export-height', scaledHeight);
-
-        // Don't set width/height - let CSS handle responsive sizing
-        // This prevents portrait images from being constrained incorrectly
-        this.svg.attr('width', null);
-        this.svg.attr('height', null);
 
         // Ensure proper aspect ratio preservation
         this.svg.attr('preserveAspectRatio', 'xMidYMid meet');
