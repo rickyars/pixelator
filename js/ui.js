@@ -12,7 +12,11 @@ class UI {
             imageDimensions: document.getElementById('imageDimensions'),
             loadingIndicator: document.getElementById('loadingIndicator'),
             exportSVG: document.getElementById('exportSVG'),
-            exportPNG: document.getElementById('exportPNG')
+            exportPNG: document.getElementById('exportPNG'),
+            zoomControls: document.getElementById('zoomControls'),
+            zoomInBtn: document.getElementById('zoomInBtn'),
+            zoomOutBtn: document.getElementById('zoomOutBtn'),
+            resetViewBtn: document.getElementById('resetViewBtn')
         };
 
         this.onImageUpload = null;
@@ -22,6 +26,7 @@ class UI {
         this.initUploadHandlers();
         this.initControlHandlers();
         this.initExportHandlers();
+        this.initZoomHandlers();
     }
 
     /**
@@ -153,6 +158,74 @@ class UI {
                 this.onExportPNG();
             }
         });
+    }
+
+    /**
+     * Initialize zoom control handlers
+     */
+    initZoomHandlers() {
+        // Zoom in button
+        this.elements.zoomInBtn.addEventListener('click', () => {
+            this.handleZoomIn();
+        });
+
+        // Zoom out button
+        this.elements.zoomOutBtn.addEventListener('click', () => {
+            this.handleZoomOut();
+        });
+
+        // Reset view button
+        this.elements.resetViewBtn.addEventListener('click', () => {
+            this.handleResetView();
+        });
+    }
+
+    /**
+     * Handle zoom in
+     */
+    handleZoomIn() {
+        if (window.app && window.app.renderer && window.app.renderer.panZoomInstance) {
+            window.app.renderer.panZoomInstance.zoomIn();
+        }
+    }
+
+    /**
+     * Handle zoom out
+     */
+    handleZoomOut() {
+        if (window.app && window.app.renderer && window.app.renderer.panZoomInstance) {
+            window.app.renderer.panZoomInstance.zoomOut();
+        }
+    }
+
+    /**
+     * Handle reset view
+     */
+    handleResetView() {
+        if (window.app && window.app.renderer && window.app.renderer.panZoomInstance) {
+            const panZoom = window.app.renderer.panZoomInstance;
+            panZoom.reset();
+            panZoom.fit();
+            panZoom.center();
+        }
+    }
+
+    /**
+     * Show zoom controls
+     */
+    showZoomControls() {
+        if (this.elements.zoomControls) {
+            this.elements.zoomControls.style.display = 'flex';
+        }
+    }
+
+    /**
+     * Hide zoom controls
+     */
+    hideZoomControls() {
+        if (this.elements.zoomControls) {
+            this.elements.zoomControls.style.display = 'none';
+        }
     }
 
     /**
@@ -318,6 +391,7 @@ class UI {
         this.elements.imageInfo.style.display = 'none';
         this.elements.imageThumbnail.src = '';
         this.elements.imageDimensions.textContent = '';
+        this.hideZoomControls();
     }
 
     /**
@@ -340,6 +414,7 @@ class UI {
     enableExportButtons() {
         this.elements.exportSVG.disabled = false;
         this.elements.exportPNG.disabled = false;
+        this.showZoomControls();
     }
 
     /**
