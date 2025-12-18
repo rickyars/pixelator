@@ -91,7 +91,7 @@ class Renderer {
             try {
                 this.panZoomInstance = svgPanZoom('#svgCanvas', {
                     zoomEnabled: true,
-                    controlIconsEnabled: true,
+                    controlIconsEnabled: false,
                     fit: true,
                     center: true,
                     minZoom: 0.1,
