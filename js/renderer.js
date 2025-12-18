@@ -21,19 +21,28 @@ class Renderer {
         // Clear previous render
         this.clear();
 
-        // Calculate grid dimensions to maintain aspect ratio
-        // cols is based on image width divided by grid size
-        const cols = Math.ceil(params.imageWidth / params.gridSize);
+        // Calculate canvas size based on actual sample bounds
+        // This ensures no extra blank space
+        if (samples.length === 0) {
+            // No samples, use minimal canvas
+            this.svg.attr('viewBox', `0 0 100 100`);
+            this.svg.attr('width', 100);
+            this.svg.attr('height', 100);
+            return;
+        }
 
-        // Calculate aspect ratio from original image
-        const aspectRatio = params.imageHeight / params.imageWidth;
+        // Find the actual bounds of samples
+        let maxX = 0;
+        let maxY = 0;
+        samples.forEach(sample => {
+            if (sample.x > maxX) maxX = sample.x;
+            if (sample.y > maxY) maxY = sample.y;
+        });
 
-        // rows should maintain the aspect ratio
-        const rows = Math.ceil(cols * aspectRatio);
-
-        // Calculate base canvas size (before output scaling)
-        const baseWidth = cols * params.gridSize;
-        const baseHeight = rows * params.gridSize;
+        // Canvas should extend to include the last sample
+        // Each sample is centered, so add gridSize/2 to get the edge
+        const baseWidth = maxX + params.gridSize / 2;
+        const baseHeight = maxY + params.gridSize / 2;
 
         // Apply output scale
         const scaleFactor = params.outputScale / 100;
