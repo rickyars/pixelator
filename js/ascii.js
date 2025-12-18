@@ -206,7 +206,7 @@ class ASCIIMapper {
      * @returns {Object} Element data for rendering
      */
     static createElementFromStop(sample, stop, params, stepSize) {
-        const size = (sample.mergeWidth || 1) * stepSize * (params.imageSize / 100);
+        const size = (sample.mergeWidth || 1) * stepSize;
         const offset = this.getAnchorOffset(params.anchor, size);
 
         if (stop.type === 'image' && stop.image) {

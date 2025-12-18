@@ -22,8 +22,6 @@ class StopsUIManager {
             presetBlocks: document.getElementById('presetBlocks'),
             presetShades: document.getElementById('presetShades'),
             presetBinary: document.getElementById('presetBinary'),
-            charCodeInput: document.getElementById('charCodeInput'),
-            insertCharCode: document.getElementById('insertCharCode'),
             customFontUpload: document.getElementById('customFontUpload'),
             clearCustomFont: document.getElementById('clearCustomFont'),
             fontFamily: document.getElementById('fontFamily'),
@@ -93,17 +91,6 @@ class StopsUIManager {
 
         this.elements.presetBinary.addEventListener('click', () => {
             this.applyCharacterPreset('binary');
-        });
-
-        // Character code insertion
-        this.elements.insertCharCode.addEventListener('click', () => {
-            this.insertCharacterByCode();
-        });
-
-        this.elements.charCodeInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.insertCharacterByCode();
-            }
         });
 
         // Custom font upload
@@ -382,26 +369,6 @@ class StopsUIManager {
             const percentage = index * step;
             this.stopsManager.addStop(percentage, 'text', char);
         });
-    }
-
-    /**
-     * Insert a character by its character code
-     */
-    insertCharacterByCode() {
-        const code = parseInt(this.elements.charCodeInput.value);
-
-        if (isNaN(code) || code < 0 || code > 65535) {
-            alert('Please enter a valid character code (0-65535)');
-            return;
-        }
-
-        const character = String.fromCharCode(code);
-
-        // Add a new stop with this character
-        this.stopsManager.addStop(50, 'text', character);
-
-        // Clear the input
-        this.elements.charCodeInput.value = '';
     }
 
     /**

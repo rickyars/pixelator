@@ -126,14 +126,13 @@ class UI {
         // ASCII/Image Map controls
         this.addSelectHandler('fontFamily');
         this.addCheckboxHandler('mergePixels');
-        this.addSliderHandler('mergeMin', 'mergeMinValue');
-        this.addSliderHandler('mergeMax', 'mergeMaxValue');
-        this.addSliderHandler('imageSize', 'imageSizeValue');
+        this.addSliderWithInputHandler('mergeMin', 'mergeMinInput');
+        this.addSliderWithInputHandler('mergeMax', 'mergeMaxInput');
 
         // Merge pixels toggle
         document.getElementById('mergePixels').addEventListener('change', (e) => {
             const mergeControls = document.getElementById('mergeControls');
-            mergeControls.style.display = e.target.checked ? 'block' : 'none';
+            mergeControls.style.display = e.target.checked ? 'flex' : 'none';
             this.triggerParameterChange();
         });
     }
@@ -440,8 +439,7 @@ class UI {
                 fontFamily: this.getStringValue('fontFamily', 'monospace'),
                 mergePixels: this.getBooleanValue('mergePixels', false),
                 mergeMin: this.getNumberValue('mergeMin', 2, 1, 100),
-                mergeMax: this.getNumberValue('mergeMax', 10, 1, 100),
-                imageSize: this.getNumberValue('imageSize', 100, 10, 200)
+                mergeMax: this.getNumberValue('mergeMax', 10, 1, 100)
             });
 
             // Validate merge range

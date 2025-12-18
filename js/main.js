@@ -201,7 +201,11 @@ class PixelEffectsApp {
      */
     exportPNG() {
         const svgElement = this.renderer.getSVGElement();
-        Exporter.toPNG(svgElement, 2, 'pixel-effects');
+        // Get current mode to determine scale
+        const params = this.ui.getParameters();
+        // Use 4x scale for ASCII mode to make characters readable, 2x for shapes
+        const scale = params.mode === 'ascii' ? 4 : 2;
+        Exporter.toPNG(svgElement, scale, 'pixel-effects');
     }
 }
 

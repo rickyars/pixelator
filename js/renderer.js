@@ -21,12 +21,17 @@ class Renderer {
         // Clear previous render
         this.clear();
 
-        // Set viewBox based on image dimensions
-        if (params.imageWidth && params.imageHeight) {
-            this.svg.attr('viewBox', `0 0 ${params.imageWidth} ${params.imageHeight}`);
-            this.svg.attr('width', params.imageWidth);
-            this.svg.attr('height', params.imageHeight);
-        }
+        // Calculate actual canvas dimensions based on grid
+        // This ensures no blank space in exports
+        const cols = Math.ceil(params.imageWidth / params.gridSize);
+        const rows = Math.ceil(params.imageHeight / params.gridSize);
+        const canvasWidth = cols * params.gridSize;
+        const canvasHeight = rows * params.gridSize;
+
+        // Set viewBox based on actual grid dimensions
+        this.svg.attr('viewBox', `0 0 ${canvasWidth} ${canvasHeight}`);
+        this.svg.attr('width', canvasWidth);
+        this.svg.attr('height', canvasHeight);
 
         // Set shape-rendering to auto for smooth edges
         this.svg.attr('shape-rendering', 'auto');
@@ -36,8 +41,8 @@ class Renderer {
             const bgColor = params.backgroundColor;
 
             this.svg.append('rect')
-                .attr('width', params.imageWidth)
-                .attr('height', params.imageHeight)
+                .attr('width', canvasWidth)
+                .attr('height', canvasHeight)
                 .attr('fill', bgColor);
         }
 

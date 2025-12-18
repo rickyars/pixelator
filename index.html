@@ -233,15 +233,6 @@
                 </div>
 
                 <div class="control-group">
-                    <label for="charCodeInput">Character by Code</label>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="number" id="charCodeInput" min="0" max="65535" placeholder="e.g. 188 for ¼" class="slider" style="flex: 1;">
-                        <button type="button" class="btn btn-small" id="insertCharCode">Insert</button>
-                    </div>
-                    <small style="color: #888; font-size: 11px;">Enter Unicode/ASCII code (0-65535)</small>
-                </div>
-
-                <div class="control-group">
                     <button type="button" class="btn btn-secondary" id="toggleCharMap" style="width: 100%;">
                         <span id="charMapToggleText">▸ Show Character Map</span>
                     </button>
@@ -300,23 +291,12 @@
                     </label>
                 </div>
 
-                <div class="control-group" id="mergeControls" style="display: none;">
-                    <label for="mergeMin">
-                        Merge Min: <span id="mergeMinValue">2</span>
-                    </label>
-                    <input type="range" id="mergeMin" min="1" max="10" value="2" class="slider">
-
-                    <label for="mergeMax">
-                        Merge Max: <span id="mergeMaxValue">5</span>
-                    </label>
-                    <input type="range" id="mergeMax" min="1" max="20" value="5" class="slider">
-                </div>
-
-                <div class="control-group">
-                    <label for="imageSize">
-                        Image Size: <span id="imageSizeValue">100</span>%
-                    </label>
-                    <input type="range" id="imageSize" min="10" max="200" value="100" class="slider">
+                <div class="control-group" id="mergeControls" style="display: none; flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <input type="number" id="mergeMinInput" min="1" max="10" value="2" style="width: 50px;">
+                    <input type="range" id="mergeMin" min="1" max="10" value="2" class="slider" style="flex: 1; min-width: 60px;">
+                    <span style="flex-shrink: 0;">-</span>
+                    <input type="number" id="mergeMaxInput" min="1" max="20" value="5" style="width: 50px;">
+                    <input type="range" id="mergeMax" min="1" max="20" value="5" class="slider" style="flex: 1; min-width: 60px;">
                 </div>
             </section>
 
