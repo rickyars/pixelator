@@ -69,6 +69,13 @@
                     <input type="range" id="gridSize" min="2" max="100" value="10" class="slider" style="flex: 1;">
                 </div>
 
+                <div class="control-group" style="display: flex; align-items: center; gap: 8px;">
+                    <label for="outputScale" style="flex-shrink: 0;">Output Scale:</label>
+                    <input type="number" id="outputScaleInput" min="10" max="500" value="100" style="width: 60px;">
+                    <span style="flex-shrink: 0;">%</span>
+                    <input type="range" id="outputScale" min="10" max="500" value="100" class="slider" style="flex: 1;">
+                </div>
+
                 <div class="control-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="jitterEnabled">

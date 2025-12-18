@@ -80,6 +80,7 @@ class UI {
 
         // Common controls
         this.addSliderWithInputHandler('gridSize', 'gridSizeInput');
+        this.addSliderWithInputHandler('outputScale', 'outputScaleInput');
         this.addCheckboxHandler('jitterEnabled');
         this.addSelectHandler('colorMode');
         this.addColorHandler('duotoneDark');
@@ -410,6 +411,7 @@ class UI {
         const params = {
             mode: mode,
             gridSize: this.getNumberValue('gridSize', 10, 1, 1000),
+            outputScale: this.getNumberValue('outputScale', 100, 10, 500),
             anchor: this.selectedAnchor || 'center',
             jitterEnabled: this.getBooleanValue('jitterEnabled', false),
             colorMode: this.getStringValue('colorMode', 'original'),

@@ -21,28 +21,41 @@ class Renderer {
         // Clear previous render
         this.clear();
 
-        // Calculate actual canvas dimensions based on grid
-        // This ensures no blank space in exports
+        // Calculate grid dimensions to maintain aspect ratio
+        // cols is based on image width divided by grid size
         const cols = Math.ceil(params.imageWidth / params.gridSize);
-        const rows = Math.ceil(params.imageHeight / params.gridSize);
-        const canvasWidth = cols * params.gridSize;
-        const canvasHeight = rows * params.gridSize;
 
-        // Set viewBox based on actual grid dimensions
-        this.svg.attr('viewBox', `0 0 ${canvasWidth} ${canvasHeight}`);
+        // Calculate aspect ratio from original image
+        const aspectRatio = params.imageHeight / params.imageWidth;
+
+        // rows should maintain the aspect ratio
+        const rows = Math.ceil(cols * aspectRatio);
+
+        // Calculate base canvas size (before output scaling)
+        const baseWidth = cols * params.gridSize;
+        const baseHeight = rows * params.gridSize;
+
+        // Apply output scale
+        const scaleFactor = params.outputScale / 100;
+        const canvasWidth = baseWidth * scaleFactor;
+        const canvasHeight = baseHeight * scaleFactor;
+
+        // Set viewBox to maintain proper aspect ratio
+        // ViewBox uses base dimensions, actual size uses scaled dimensions
+        this.svg.attr('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
         this.svg.attr('width', canvasWidth);
         this.svg.attr('height', canvasHeight);
 
         // Set shape-rendering to auto for smooth edges
         this.svg.attr('shape-rendering', 'auto');
 
-        // Add background rectangle
+        // Add background rectangle (uses viewBox coordinates)
         if (params.backgroundColor) {
             const bgColor = params.backgroundColor;
 
             this.svg.append('rect')
-                .attr('width', canvasWidth)
-                .attr('height', canvasHeight)
+                .attr('width', baseWidth)
+                .attr('height', baseHeight)
                 .attr('fill', bgColor);
         }
 
