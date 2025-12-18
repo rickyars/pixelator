@@ -20,6 +20,7 @@ A powerful, open-source web-based tool that converts raster images into creative
   - Duotone with custom color palettes
 - **Size Modulation**: Scale shapes based on pixel brightness
 - **Rotation Control**: Fixed or random rotation with adjustable ranges
+- **Random Erasure**: Randomly remove pixels for distressed/artistic effects (0-100%)
 
 ### 📤 Export Options
 - Download as **SVG** (vector format - infinitely scalable)
@@ -92,6 +93,7 @@ That's it! No build process or dependencies to install. Just open and use.
    - Adjust base size
    - Enable "Scale by brightness" for dynamic sizing
    - Add rotation effects
+   - Enable "Random pixel erasure" to randomly remove pixels for artistic effects
 
    **ASCII Mode:**
    - Select character set or create custom
@@ -109,6 +111,7 @@ That's it! No build process or dependencies to install. Just open and use.
 - **Use grayscale or duotone** for more artistic effects
 - **Enable size by brightness** in shape mode for depth
 - **Try random sampling** with smaller shapes for stippled effects
+- **Use random erasure** (20-40%) for a distressed, glitch art aesthetic
 - **Use ASCII mode with blocks** (░▒▓█) for retro computer aesthetics
 
 ## Project Structure

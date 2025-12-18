@@ -11,9 +11,12 @@ class UI {
             imageThumbnail: document.getElementById('imageThumbnail'),
             imageDimensions: document.getElementById('imageDimensions'),
             loadingIndicator: document.getElementById('loadingIndicator'),
-            exportStats: document.getElementById('exportStats'),
             exportSVG: document.getElementById('exportSVG'),
-            exportPNG: document.getElementById('exportPNG')
+            exportPNG: document.getElementById('exportPNG'),
+            zoomControls: document.getElementById('zoomControls'),
+            zoomInBtn: document.getElementById('zoomInBtn'),
+            zoomOutBtn: document.getElementById('zoomOutBtn'),
+            resetViewBtn: document.getElementById('resetViewBtn')
         };
 
         this.onImageUpload = null;
@@ -23,6 +26,7 @@ class UI {
         this.initUploadHandlers();
         this.initControlHandlers();
         this.initExportHandlers();
+        this.initZoomHandlers();
     }
 
     /**
@@ -80,27 +84,16 @@ class UI {
         });
 
         // Common controls
-        this.addSliderHandler('gridSize', 'gridSizeValue');
-        this.addSelectHandler('samplingMethod');
+        this.addSliderWithInputHandler('gridSize', 'gridSizeInput');
+        this.addSliderWithInputHandler('outputScale', 'outputScaleInput');
+        this.addCheckboxHandler('jitterEnabled');
         this.addSelectHandler('colorMode');
         this.addColorHandler('duotoneDark');
         this.addColorHandler('duotoneLight');
         this.addColorHandler('backgroundColor');
 
-        // Effects controls
-        this.addCheckboxHandler('dither');
-        this.addCheckboxHandler('posterize');
-        this.addSliderHandler('posterizeLevels', 'posterizeLevelsValue');
-
         // Anchor grid handler
         this.initAnchorGrid();
-
-        // Posterize toggle
-        document.getElementById('posterize').addEventListener('change', (e) => {
-            const posterizeControls = document.getElementById('posterizeControls');
-            posterizeControls.style.display = e.target.checked ? 'block' : 'none';
-            this.triggerParameterChange();
-        });
 
         // Color mode change handler
         document.getElementById('colorMode').addEventListener('change', (e) => {
@@ -112,38 +105,40 @@ class UI {
         // Shape controls
         this.addSelectHandler('shape');
         this.addCheckboxHandler('scaleEnabled');
-        this.addSliderHandler('scaleMin', 'scaleMinValue');
-        this.addSliderHandler('scaleMax', 'scaleMaxValue');
+        this.addSliderWithInputHandler('scaleMin', 'scaleMinInput');
+        this.addSliderWithInputHandler('scaleMax', 'scaleMaxInput');
 
         // Scale toggle
         document.getElementById('scaleEnabled').addEventListener('change', (e) => {
             const scaleControls = document.getElementById('scaleControls');
-            scaleControls.style.display = e.target.checked ? 'block' : 'none';
+            scaleControls.style.display = e.target.checked ? 'flex' : 'none';
             this.triggerParameterChange();
-        });
-
-        // Shape scaling metric
-        this.addSelectHandler('scaleMetric');
-
-        // Sampling method validation for dithering
-        document.getElementById('samplingMethod').addEventListener('change', (e) => {
-            this.validateDitheringAvailability(e.target.value);
         });
 
         // Shape rotation
         this.addSliderHandler('rotation', 'rotationValue');
 
+        // Random erasure
+        this.addCheckboxHandler('randomErase');
+        this.addSliderWithInputHandler('eraseAmount', 'eraseAmountInput');
+
+        // Random erasure toggle
+        document.getElementById('randomErase').addEventListener('change', (e) => {
+            const randomEraseControls = document.getElementById('randomEraseControls');
+            randomEraseControls.style.display = e.target.checked ? 'flex' : 'none';
+            this.triggerParameterChange();
+        });
+
         // ASCII/Image Map controls
         this.addSelectHandler('fontFamily');
         this.addCheckboxHandler('mergePixels');
-        this.addSliderHandler('mergeMin', 'mergeMinValue');
-        this.addSliderHandler('mergeMax', 'mergeMaxValue');
-        this.addSliderHandler('imageSize', 'imageSizeValue');
+        this.addSliderWithInputHandler('mergeMin', 'mergeMinInput');
+        this.addSliderWithInputHandler('mergeMax', 'mergeMaxInput');
 
         // Merge pixels toggle
         document.getElementById('mergePixels').addEventListener('change', (e) => {
             const mergeControls = document.getElementById('mergeControls');
-            mergeControls.style.display = e.target.checked ? 'block' : 'none';
+            mergeControls.style.display = e.target.checked ? 'flex' : 'none';
             this.triggerParameterChange();
         });
     }
@@ -163,6 +158,74 @@ class UI {
                 this.onExportPNG();
             }
         });
+    }
+
+    /**
+     * Initialize zoom control handlers
+     */
+    initZoomHandlers() {
+        // Zoom in button
+        this.elements.zoomInBtn.addEventListener('click', () => {
+            this.handleZoomIn();
+        });
+
+        // Zoom out button
+        this.elements.zoomOutBtn.addEventListener('click', () => {
+            this.handleZoomOut();
+        });
+
+        // Reset view button
+        this.elements.resetViewBtn.addEventListener('click', () => {
+            this.handleResetView();
+        });
+    }
+
+    /**
+     * Handle zoom in
+     */
+    handleZoomIn() {
+        if (window.app && window.app.renderer && window.app.renderer.panZoomInstance) {
+            window.app.renderer.panZoomInstance.zoomIn();
+        }
+    }
+
+    /**
+     * Handle zoom out
+     */
+    handleZoomOut() {
+        if (window.app && window.app.renderer && window.app.renderer.panZoomInstance) {
+            window.app.renderer.panZoomInstance.zoomOut();
+        }
+    }
+
+    /**
+     * Handle reset view
+     */
+    handleResetView() {
+        if (window.app && window.app.renderer && window.app.renderer.panZoomInstance) {
+            const panZoom = window.app.renderer.panZoomInstance;
+            panZoom.reset();
+            panZoom.fit();
+            panZoom.center();
+        }
+    }
+
+    /**
+     * Show zoom controls
+     */
+    showZoomControls() {
+        if (this.elements.zoomControls) {
+            this.elements.zoomControls.style.display = 'flex';
+        }
+    }
+
+    /**
+     * Hide zoom controls
+     */
+    hideZoomControls() {
+        if (this.elements.zoomControls) {
+            this.elements.zoomControls.style.display = 'none';
+        }
     }
 
     /**
@@ -196,6 +259,24 @@ class UI {
 
         slider.addEventListener('input', (e) => {
             valueDisplay.textContent = e.target.value;
+            this.triggerParameterChange();
+        });
+    }
+
+    /**
+     * Add slider with number input event handler (syncs slider and input)
+     */
+    addSliderWithInputHandler(sliderId, inputId) {
+        const slider = document.getElementById(sliderId);
+        const input = document.getElementById(inputId);
+
+        slider.addEventListener('input', (e) => {
+            input.value = e.target.value;
+            this.triggerParameterChange();
+        });
+
+        input.addEventListener('input', (e) => {
+            slider.value = e.target.value;
             this.triggerParameterChange();
         });
     }
@@ -310,6 +391,7 @@ class UI {
         this.elements.imageInfo.style.display = 'none';
         this.elements.imageThumbnail.src = '';
         this.elements.imageDimensions.textContent = '';
+        this.hideZoomControls();
     }
 
     /**
@@ -327,27 +409,12 @@ class UI {
     }
 
     /**
-     * Update export stats
+     * Enable export buttons
      */
-    updateExportStats(elementCount, fileSize = null) {
-        let statsText = `Elements: ${elementCount.toLocaleString()}`;
-        if (fileSize) {
-            statsText += ` | Size: ${this.formatFileSize(fileSize)}`;
-        }
-        this.elements.exportStats.innerHTML = `<p>${statsText}</p>`;
-
-        // Enable export buttons
+    enableExportButtons() {
         this.elements.exportSVG.disabled = false;
         this.elements.exportPNG.disabled = false;
-    }
-
-    /**
-     * Format file size for display
-     */
-    formatFileSize(bytes) {
-        if (bytes < 1024) return `${bytes} B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        this.showZoomControls();
     }
 
     /**
@@ -419,25 +486,24 @@ class UI {
         const params = {
             mode: mode,
             gridSize: this.getNumberValue('gridSize', 10, 1, 1000),
+            outputScale: this.getNumberValue('outputScale', 100, 10, 500),
             anchor: this.selectedAnchor || 'center',
-            samplingMethod: this.getStringValue('samplingMethod', 'grid'),
+            jitterEnabled: this.getBooleanValue('jitterEnabled', false),
             colorMode: this.getStringValue('colorMode', 'original'),
             duotoneDark: this.getStringValue('duotoneDark', '#000000'),
             duotoneLight: this.getStringValue('duotoneLight', '#ffffff'),
-            backgroundColor: this.getStringValue('backgroundColor', '#000000'),
-            dither: this.getBooleanValue('dither', false),
-            posterize: this.getBooleanValue('posterize', false),
-            posterizeLevels: this.getNumberValue('posterizeLevels', 8, 2, 256)
+            backgroundColor: this.getStringValue('backgroundColor', '#000000')
         };
 
         if (mode === 'shapes') {
             Object.assign(params, {
                 shape: this.getStringValue('shape', 'square'),
                 scaleEnabled: this.getBooleanValue('scaleEnabled', false),
-                scaleMetric: this.getStringValue('scaleMetric', 'brightness'),
-                scaleMin: this.getNumberValue('scaleMin', 50, 0, 200),
-                scaleMax: this.getNumberValue('scaleMax', 150, 0, 200),
-                rotation: this.getNumberValue('rotation', 0, -180, 180)
+                scaleMin: this.getNumberValue('scaleMin', 50, 0, 500),
+                scaleMax: this.getNumberValue('scaleMax', 150, 0, 500),
+                rotation: this.getNumberValue('rotation', 0, -180, 180),
+                randomErase: this.getBooleanValue('randomErase', false),
+                eraseAmount: this.getNumberValue('eraseAmount', 30, 0, 100)
             });
 
             // Validate scale range
@@ -450,8 +516,7 @@ class UI {
                 fontFamily: this.getStringValue('fontFamily', 'monospace'),
                 mergePixels: this.getBooleanValue('mergePixels', false),
                 mergeMin: this.getNumberValue('mergeMin', 2, 1, 100),
-                mergeMax: this.getNumberValue('mergeMax', 10, 1, 100),
-                imageSize: this.getNumberValue('imageSize', 100, 10, 200)
+                mergeMax: this.getNumberValue('mergeMax', 10, 1, 100)
             });
 
             // Validate merge range
@@ -464,31 +529,4 @@ class UI {
         return params;
     }
 
-    /**
-     * Validate if dithering is available based on sampling method
-     * Dithering only works properly with grid sampling
-     * @param {string} samplingMethod - Current sampling method
-     */
-    validateDitheringAvailability(samplingMethod) {
-        const ditherCheckbox = document.getElementById('dither');
-        const ditherHint = document.getElementById('ditherHint');
-
-        if (samplingMethod !== 'grid') {
-            // Disable dithering for non-grid sampling methods
-            if (ditherCheckbox.checked) {
-                ditherCheckbox.checked = false;
-                this.triggerParameterChange();
-            }
-            ditherCheckbox.disabled = true;
-            if (ditherHint) {
-                ditherHint.style.display = 'block';
-            }
-        } else {
-            // Enable dithering for grid sampling
-            ditherCheckbox.disabled = false;
-            if (ditherHint) {
-                ditherHint.style.display = 'none';
-            }
-        }
-    }
 }

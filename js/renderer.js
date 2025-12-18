@@ -5,6 +5,7 @@ class Renderer {
     constructor(svgElementId) {
         this.svg = d3.select(`#${svgElementId}`);
         this.currentSamples = [];
+        this.panZoomInstance = null;
     }
 
     /**
@@ -21,24 +22,47 @@ class Renderer {
         // Clear previous render
         this.clear();
 
-        // Set viewBox based on image dimensions
-        if (params.imageWidth && params.imageHeight) {
-            this.svg.attr('viewBox', `0 0 ${params.imageWidth} ${params.imageHeight}`);
-            this.svg.attr('width', params.imageWidth);
-            this.svg.attr('height', params.imageHeight);
+        // Use actual image dimensions for viewBox to prevent blank space
+        if (samples.length === 0) {
+            this.svg.attr('viewBox', `0 0 100 100`);
+            this.svg.attr('width', 100);
+            this.svg.attr('height', 100);
+            return;
         }
+
+        // Use actual image dimensions - this prevents blank space
+        const baseWidth = params.imageWidth || 100;
+        const baseHeight = params.imageHeight || 100;
+
+        // Apply output scale for exports only
+        const scaleFactor = params.outputScale / 100;
+        const scaledWidth = baseWidth * scaleFactor;
+        const scaledHeight = baseHeight * scaleFactor;
+
+        // Set viewBox to actual image dimensions
+        this.svg.attr('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
+
+        // Set width/height to base dimensions for proper preview sizing
+        // CSS will constrain these with max-width/max-height
+        this.svg.attr('width', baseWidth);
+        this.svg.attr('height', baseHeight);
+
+        // Store scaled dimensions as data attributes for export
+        this.svg.attr('data-export-width', scaledWidth);
+        this.svg.attr('data-export-height', scaledHeight);
+
+        // Ensure proper aspect ratio preservation
+        this.svg.attr('preserveAspectRatio', 'xMidYMid meet');
 
         // Set shape-rendering to auto for smooth edges
         this.svg.attr('shape-rendering', 'auto');
 
         // Add background rectangle
         if (params.backgroundColor) {
-            const bgColor = params.backgroundColor;
-
             this.svg.append('rect')
-                .attr('width', params.imageWidth)
-                .attr('height', params.imageHeight)
-                .attr('fill', bgColor);
+                .attr('width', baseWidth)
+                .attr('height', baseHeight)
+                .attr('fill', params.backgroundColor);
         }
 
         // Render based on mode
@@ -46,6 +70,47 @@ class Renderer {
             this.renderShapes(samples, params);
         } else if (mode === 'ascii') {
             this.renderASCII(samples, params);
+        }
+
+        // Enable pan/zoom controls
+        this.enablePanZoom();
+    }
+
+    /**
+     * Enable pan and zoom controls on the SVG
+     */
+    enablePanZoom() {
+        // Destroy existing instance if any
+        if (this.panZoomInstance) {
+            this.panZoomInstance.destroy();
+            this.panZoomInstance = null;
+        }
+
+        // Initialize pan/zoom if library is available
+        if (typeof svgPanZoom !== 'undefined') {
+            try {
+                this.panZoomInstance = svgPanZoom('#svgCanvas', {
+                    zoomEnabled: true,
+                    controlIconsEnabled: false,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.1,
+                    maxZoom: 20,
+                    zoomScaleSensitivity: 0.3
+                });
+            } catch (e) {
+                console.warn('Failed to initialize pan/zoom:', e);
+            }
+        }
+    }
+
+    /**
+     * Disable pan and zoom
+     */
+    disablePanZoom() {
+        if (this.panZoomInstance) {
+            this.panZoomInstance.destroy();
+            this.panZoomInstance = null;
         }
     }
 
@@ -118,6 +183,7 @@ class Renderer {
             }
 
             // Then render the text on top
+            // Center text in cell (font size = cell size for maximum coverage)
             this.svg.selectAll('text')
                 .data(texts)
                 .enter()
@@ -127,40 +193,17 @@ class Renderer {
                 .attr('font-size', d => d.fontSize)
                 .attr('font-family', d => d.fontFamily)
                 .attr('fill', d => d.fill)
-                .attr('dominant-baseline', d => this.getTextBaseline(d.anchor))
-                .attr('text-anchor', d => this.getTextAnchor(d.anchor))
+                .attr('dominant-baseline', 'middle')
+                .attr('text-anchor', 'middle')
                 .text(d => d.text);
         }
-    }
-
-    /**
-     * Get SVG text-anchor value from anchor position
-     * @param {string} anchor - Anchor position
-     * @returns {string} SVG text-anchor value
-     */
-    getTextAnchor(anchor) {
-        if (!anchor) return 'middle';
-        if (anchor.includes('left')) return 'start';
-        if (anchor.includes('right')) return 'end';
-        return 'middle';
-    }
-
-    /**
-     * Get SVG dominant-baseline value from anchor position
-     * @param {string} anchor - Anchor position
-     * @returns {string} SVG dominant-baseline value
-     */
-    getTextBaseline(anchor) {
-        if (!anchor) return 'middle';
-        if (anchor.includes('top')) return 'hanging';
-        if (anchor.includes('bottom')) return 'alphabetic';
-        return 'middle';
     }
 
     /**
      * Clear the SVG canvas
      */
     clear() {
+        this.disablePanZoom();
         this.svg.selectAll('*').remove();
     }
 

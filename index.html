@@ -62,23 +62,60 @@
             <section class="control-section">
                 <h2>Sampling</h2>
 
-                <div class="control-group">
-                    <label for="gridSize">
-                        Pixel Size: <span id="gridSizeValue">10</span>px
-                    </label>
-                    <input type="range" id="gridSize" min="2" max="100" value="10" class="slider">
+                <div class="control-group" style="display: flex; align-items: center; gap: 8px;">
+                    <label for="gridSize" style="flex-shrink: 0;">Pixel Size:</label>
+                    <input type="number" id="gridSizeInput" min="2" max="100" value="10" style="width: 60px;">
+                    <span style="flex-shrink: 0;">px</span>
+                    <input type="range" id="gridSize" min="2" max="100" value="10" class="slider" style="flex: 1;">
                 </div>
 
-                <div class="control-row">
-                    <div class="control-group control-group-inline">
-                        <label for="samplingMethod">Sampling Pattern</label>
-                        <select id="samplingMethod" class="select">
-                            <option value="grid">Grid</option>
-                            <option value="random">Random</option>
-                            <option value="stratified">Stratified</option>
-                            <option value="jittered">Jittered</option>
-                            <option value="poisson">Poisson Disk</option>
-                        </select>
+                <div class="control-group" style="display: flex; align-items: center; gap: 8px;">
+                    <label for="outputScale" style="flex-shrink: 0;">Output Scale:</label>
+                    <input type="number" id="outputScaleInput" min="10" max="500" value="100" style="width: 60px;">
+                    <span style="flex-shrink: 0;">%</span>
+                    <input type="range" id="outputScale" min="10" max="500" value="100" class="slider" style="flex: 1;">
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="jitterEnabled">
+                        Jitter sampling
+                    </label>
+                </div>
+            </section>
+
+            <!-- Rendering Parameters -->
+            <section class="control-section" id="shapeControls">
+                <h2>Rendering</h2>
+
+                <div class="control-group">
+                    <label for="shape">Shape</label>
+                    <select id="shape" class="select">
+                        <option value="square">Square</option>
+                        <option value="circle">Circle</option>
+                        <option value="rounded-square">Rounded Square</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="scaleEnabled" checked>
+                        Dynamic sizing
+                    </label>
+                </div>
+
+                <div class="control-group" id="scaleControls" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="scaleMin" style="flex-shrink: 0; width: 40px;">Min:</label>
+                        <input type="number" id="scaleMinInput" min="0" max="500" value="50" style="width: 60px;">
+                        <span style="flex-shrink: 0;">%</span>
+                        <input type="range" id="scaleMin" min="0" max="500" value="50" class="slider" style="flex: 1;">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="scaleMax" style="flex-shrink: 0; width: 40px;">Max:</label>
+                        <input type="number" id="scaleMaxInput" min="0" max="500" value="150" style="width: 60px;">
+                        <span style="flex-shrink: 0;">%</span>
+                        <input type="range" id="scaleMax" min="0" max="500" value="150" class="slider" style="flex: 1;">
                     </div>
 
                     <div class="control-group control-group-inline">
@@ -114,55 +151,25 @@
                         </div>
                     </div>
                 </div>
-            </section>
-
-            <!-- Rendering Parameters -->
-            <section class="control-section" id="shapeControls">
-                <h2>Rendering</h2>
-
-                <div class="control-group">
-                    <label for="shape">Shape</label>
-                    <select id="shape" class="select">
-                        <option value="square">Square</option>
-                        <option value="circle">Circle</option>
-                        <option value="rounded-square">Rounded Square</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="scaleEnabled" checked>
-                        Dynamic sizing
-                    </label>
-                </div>
-
-                <div class="control-group" id="scaleControls">
-                    <label for="scaleMetric">Size pixels by</label>
-                    <select id="scaleMetric" class="select">
-                        <option value="brightness">Brightness</option>
-                        <option value="saturation">Saturation</option>
-                        <option value="red">Red Channel</option>
-                        <option value="green">Green Channel</option>
-                        <option value="blue">Blue Channel</option>
-                        <option value="darkness">Darkness (Inverse)</option>
-                    </select>
-
-                    <label for="scaleMin">
-                        Min: <span id="scaleMinValue">50</span>%
-                    </label>
-                    <input type="range" id="scaleMin" min="0" max="200" value="50" class="slider">
-
-                    <label for="scaleMax">
-                        Max: <span id="scaleMaxValue">150</span>%
-                    </label>
-                    <input type="range" id="scaleMax" min="0" max="200" value="150" class="slider">
-                </div>
 
                 <div class="control-group">
                     <label for="rotation">
                         Rotation: <span id="rotationValue">0</span>°
                     </label>
                     <input type="range" id="rotation" min="0" max="360" value="0" class="slider">
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="randomErase">
+                        Random pixel erasure
+                    </label>
+                </div>
+
+                <div class="control-group" id="randomEraseControls" style="display: none; flex-direction: row; align-items: center; gap: 8px;">
+                    <input type="number" id="eraseAmountInput" min="0" max="100" value="30" style="width: 60px;">
+                    <span style="flex-shrink: 0;">%</span>
+                    <input type="range" id="eraseAmount" min="0" max="100" value="30" class="slider" style="flex: 1;">
                 </div>
             </section>
 
@@ -192,28 +199,6 @@
                 <div class="control-group">
                     <label for="backgroundColor">Background Color</label>
                     <input type="color" id="backgroundColor" value="#000000" class="color-picker">
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="posterize">
-                        Reduce colors (Posterize)
-                    </label>
-                </div>
-
-                <div class="control-group" id="posterizeControls" style="display: none;">
-                    <label for="posterizeLevels">
-                        Color levels: <span id="posterizeLevelsValue">8</span>
-                    </label>
-                    <input type="range" id="posterizeLevels" min="2" max="32" value="8" class="slider">
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="dither">
-                        <span id="ditherLabel">Dithering</span>
-                    </label>
-                    <small id="ditherHint" style="display: none; color: #888; margin-left: 24px;">Only available with Grid sampling</small>
                 </div>
             </section>
 
@@ -252,15 +237,6 @@
                         <button type="button" class="btn btn-small btn-secondary" id="presetShades" title="Shade characters">Shades</button>
                         <button type="button" class="btn btn-small btn-secondary" id="presetBinary" title="Box drawing characters ╚╔╩╦╠═╬ (codes 200-206)">Box Lines</button>
                     </div>
-                </div>
-
-                <div class="control-group">
-                    <label for="charCodeInput">Character by Code</label>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="number" id="charCodeInput" min="0" max="65535" placeholder="e.g. 188 for ¼" class="slider" style="flex: 1;">
-                        <button type="button" class="btn btn-small" id="insertCharCode">Insert</button>
-                    </div>
-                    <small style="color: #888; font-size: 11px;">Enter Unicode/ASCII code (0-65535)</small>
                 </div>
 
                 <div class="control-group">
@@ -308,43 +284,37 @@
                 </div>
 
                 <div class="control-group">
+                    <label>Color Operations</label>
+                    <div class="button-group">
+                        <button type="button" class="btn btn-small btn-secondary" id="randomFontColorsBtn">Random Font Colors</button>
+                        <button type="button" class="btn btn-small btn-secondary" id="randomBgColorsBtn">Random BG Colors</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="mergePixels">
                         Merge pixels
                     </label>
                 </div>
 
-                <div class="control-group" id="mergeControls" style="display: none;">
-                    <label for="mergeMin">
-                        Merge Min: <span id="mergeMinValue">2</span>
-                    </label>
-                    <input type="range" id="mergeMin" min="1" max="10" value="2" class="slider">
-
-                    <label for="mergeMax">
-                        Merge Max: <span id="mergeMaxValue">5</span>
-                    </label>
-                    <input type="range" id="mergeMax" min="1" max="20" value="5" class="slider">
-                </div>
-
-                <div class="control-group">
-                    <label for="imageSize">
-                        Image Size: <span id="imageSizeValue">100</span>%
-                    </label>
-                    <input type="range" id="imageSize" min="10" max="200" value="100" class="slider">
+                <div class="control-group" id="mergeControls" style="display: none; flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <input type="number" id="mergeMinInput" min="1" max="10" value="2" style="width: 50px;">
+                    <input type="range" id="mergeMin" min="1" max="10" value="2" class="slider" style="flex: 1; min-width: 60px;">
+                    <span style="flex-shrink: 0;">-</span>
+                    <input type="number" id="mergeMaxInput" min="1" max="20" value="5" style="width: 50px;">
+                    <input type="range" id="mergeMax" min="1" max="20" value="5" class="slider" style="flex: 1; min-width: 60px;">
                 </div>
             </section>
 
             <!-- Export Section -->
             <section class="control-section">
                 <h2>Export</h2>
-                <div class="export-stats" id="exportStats">
-                    <p>Ready to export</p>
-                </div>
-                <div class="export-buttons">
-                    <button type="button" class="btn btn-primary" id="exportSVG" disabled>
+                <div class="export-buttons" style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-primary" id="exportSVG" disabled style="flex: 1;">
                         Download SVG
                     </button>
-                    <button type="button" class="btn btn-primary" id="exportPNG" disabled>
+                    <button type="button" class="btn btn-primary" id="exportPNG" disabled style="flex: 1;">
                         Download PNG
                     </button>
                 </div>
@@ -360,6 +330,29 @@
                     <p>Processing...</p>
                 </div>
             </div>
+            <!-- Zoom Controls -->
+            <div class="zoom-controls" id="zoomControls" style="display: none;">
+                <button type="button" class="zoom-btn" id="zoomInBtn" title="Zoom In">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="M21 21l-4.35-4.35"></path>
+                        <line x1="11" y1="8" x2="11" y2="14"></line>
+                        <line x1="8" y1="11" x2="14" y2="11"></line>
+                    </svg>
+                </button>
+                <button type="button" class="zoom-btn" id="zoomOutBtn" title="Zoom Out">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="M21 21l-4.35-4.35"></path>
+                        <line x1="8" y1="11" x2="14" y2="11"></line>
+                    </svg>
+                </button>
+                <button type="button" class="zoom-btn" id="resetViewBtn" title="Reset View">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    </svg>
+                </button>
+            </div>
         </div>
     </main>
 
@@ -368,6 +361,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
     <script src="js/errorHandler.js"></script>
     <script src="js/imageProcessor.js"></script>
     <script src="js/shapes.js"></script>

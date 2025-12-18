@@ -311,6 +311,49 @@ class StopsManager {
     }
 
     /**
+     * Randomize font colors for all stops
+     * Assigns random colors to the color property of all stops
+     */
+    randomizeFontColors() {
+        if (this.stops.length === 0) return;
+
+        this.stops.forEach(stop => {
+            stop.color = this.generateRandomColor();
+        });
+
+        if (this.onChange) {
+            this.onChange();
+        }
+    }
+
+    /**
+     * Randomize background colors for all stops
+     * Assigns random colors to the bgColor property of all stops
+     */
+    randomizeBackgroundColors() {
+        if (this.stops.length === 0) return;
+
+        this.stops.forEach(stop => {
+            stop.bgColor = this.generateRandomColor();
+        });
+
+        if (this.onChange) {
+            this.onChange();
+        }
+    }
+
+    /**
+     * Generate a random hex color
+     * @returns {string} Random hex color string (e.g., '#ff00aa')
+     */
+    generateRandomColor() {
+        const r = Math.floor(Math.random() * 256);
+        const g = Math.floor(Math.random() * 256);
+        const b = Math.floor(Math.random() * 256);
+        return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    }
+
+    /**
      * Get all stops
      * @returns {Array} Array of stops
      */
