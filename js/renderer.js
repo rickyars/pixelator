@@ -21,51 +21,40 @@ class Renderer {
         // Clear previous render
         this.clear();
 
-        // Calculate canvas size based on actual sample bounds
-        // This ensures no extra blank space
+        // Use actual image dimensions for viewBox to prevent blank space
         if (samples.length === 0) {
-            // No samples, use minimal canvas
             this.svg.attr('viewBox', `0 0 100 100`);
             this.svg.attr('width', 100);
             this.svg.attr('height', 100);
             return;
         }
 
-        // Find the actual bounds of samples
-        let maxX = 0;
-        let maxY = 0;
-        samples.forEach(sample => {
-            if (sample.x > maxX) maxX = sample.x;
-            if (sample.y > maxY) maxY = sample.y;
-        });
-
-        // Canvas should extend to include the last sample
-        // Each sample is centered, so add gridSize/2 to get the edge
-        const baseWidth = maxX + params.gridSize / 2;
-        const baseHeight = maxY + params.gridSize / 2;
+        // Use actual image dimensions - this prevents blank space
+        const baseWidth = params.imageWidth || 100;
+        const baseHeight = params.imageHeight || 100;
 
         // Apply output scale
         const scaleFactor = params.outputScale / 100;
         const canvasWidth = baseWidth * scaleFactor;
         const canvasHeight = baseHeight * scaleFactor;
 
-        // Set viewBox to maintain proper aspect ratio
-        // ViewBox uses base dimensions, actual size uses scaled dimensions
+        // Set viewBox to actual image dimensions (not sample bounds)
         this.svg.attr('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
         this.svg.attr('width', canvasWidth);
         this.svg.attr('height', canvasHeight);
 
+        // Ensure proper aspect ratio preservation
+        this.svg.attr('preserveAspectRatio', 'xMidYMid meet');
+
         // Set shape-rendering to auto for smooth edges
         this.svg.attr('shape-rendering', 'auto');
 
-        // Add background rectangle (uses viewBox coordinates)
+        // Add background rectangle
         if (params.backgroundColor) {
-            const bgColor = params.backgroundColor;
-
             this.svg.append('rect')
                 .attr('width', baseWidth)
                 .attr('height', baseHeight)
-                .attr('fill', bgColor);
+                .attr('fill', params.backgroundColor);
         }
 
         // Render based on mode
