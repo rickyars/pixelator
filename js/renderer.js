@@ -42,9 +42,10 @@ class Renderer {
         // Set viewBox to actual image dimensions
         this.svg.attr('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
 
-        // Set width/height to 100% to fill available container space
-        this.svg.attr('width', '100%');
-        this.svg.attr('height', '100%');
+        // Set explicit width/height to match image dimensions (no letterboxing)
+        // This ensures the SVG renders at its natural aspect ratio
+        this.svg.attr('width', baseWidth);
+        this.svg.attr('height', baseHeight);
 
         // Store scaled dimensions as data attributes for export
         this.svg.attr('data-export-width', scaledWidth);
