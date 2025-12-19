@@ -603,12 +603,23 @@ class StopsUIManager {
     randomizeASCIICharacters() {
         const stops = this.stopsManager.getStops();
 
-        // Common ASCII characters suitable for ASCII art
+        // Extended ASCII and Unicode characters suitable for ASCII art
         const asciiChars = [
+            // Basic ASCII printable characters
             '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',
             '-', '=', '+', '[', ']', '{', '}', '|', ';', ':',
-            "'", '"', ',', '<', '>', '.', '/', '?',
-            ' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'
+            "'", '"', ',', '<', '>', '.', '/', '?', '`', '~',
+            '_', '\\', '/', '|', '¦',
+            // Extended ASCII and block characters
+            '░', '▒', '▓', '█', '▄', '▀', '▐', '▌',
+            '├', '┤', '┬', '┴', '┼', '─', '│', '┌', '┐', '└', '┘',
+            '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬', '═', '║',
+            '▪', '□', '■', '◆', '◇', '○', '●', '◉', '◎',
+            '✓', '✕', '✖', '✗', '✘', '✙', '✚', '✛',
+            '★', '☆', '◆', '◇', '♠', '♥', '♦', '♣',
+            '†', '‡', '·', '¨', '¯', '´', '¸', '»', '«',
+            // Space variants
+            ' '
         ];
 
         stops.forEach(stop => {
