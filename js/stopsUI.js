@@ -13,9 +13,9 @@ class StopsUIManager {
         this.elements = {
             stopsList: document.getElementById('stopsList'),
             addStopBtn: document.getElementById('addStop'),
-            evenSpacingBtn: document.getElementById('evenSpacingBtn'),
             randomMappingBtn: document.getElementById('randomMappingBtn'),
             randomPositionBtn: document.getElementById('randomPositionBtn'),
+            randomAsciiBtn: document.getElementById('randomAsciiBtn'),
             randomFontColorsBtn: document.getElementById('randomFontColorsBtn'),
             randomBgColorsBtn: document.getElementById('randomBgColorsBtn'),
             presetBasic: document.getElementById('presetBasic'),
@@ -55,16 +55,16 @@ class StopsUIManager {
         });
 
         // Stop operation buttons
-        this.elements.evenSpacingBtn.addEventListener('click', () => {
-            this.stopsManager.applyEvenSpacing();
-        });
-
         this.elements.randomMappingBtn.addEventListener('click', () => {
             this.stopsManager.shuffleStopValues();
         });
 
         this.elements.randomPositionBtn.addEventListener('click', () => {
             this.stopsManager.randomizeStopPositions();
+        });
+
+        this.elements.randomAsciiBtn.addEventListener('click', () => {
+            this.randomizeASCIICharacters();
         });
 
         // Color operation buttons
@@ -589,5 +589,29 @@ class StopsUIManager {
         }
 
         this.elements.charMapGrid.appendChild(fragment);
+    }
+
+    /**
+     * Randomize ASCII characters in all stops
+     * Replaces each character with a random character from the ASCII range
+     */
+    randomizeASCIICharacters() {
+        const stops = this.stopsManager.getStops();
+
+        // Common ASCII characters suitable for ASCII art
+        const asciiChars = [
+            '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',
+            '-', '=', '+', '[', ']', '{', '}', '|', ';', ':',
+            "'", '"', ',', '<', '>', '.', '/', '?',
+            ' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'
+        ];
+
+        stops.forEach(stop => {
+            if (stop.type === 'text') {
+                // Pick a random ASCII character
+                const randomChar = asciiChars[Math.floor(Math.random() * asciiChars.length)];
+                this.stopsManager.updateStop(stop.id, { value: randomChar });
+            }
+        });
     }
 }
