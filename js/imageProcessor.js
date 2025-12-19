@@ -7,6 +7,14 @@ class ImageProcessor {
         this.canvas = document.getElementById('hiddenCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.imageData = null;
+
+        // Performance caching
+        this.cache = {
+            imageData: null,
+            samples: null,
+            lastGridSize: null,
+            lastMethod: null
+        };
     }
 
     /**
@@ -30,7 +38,10 @@ class ImageProcessor {
                 img.onload = () => {
                     // Validate image dimensions (4096px limit)
                     const MAX_DIMENSION = 4096;
-                    if (img.width > MAX_DIMENSION || img.height > MAX_DIMENSION) {
+                    const imgWidth = img.naturalWidth || img.width;
+                    const imgHeight = img.naturalHeight || img.height;
+
+                    if (imgWidth > MAX_DIMENSION || imgHeight > MAX_DIMENSION) {
                         reject(new Error(`Image dimensions too large. Maximum is ${MAX_DIMENSION}px per side.`));
                         return;
                     }
@@ -57,30 +68,43 @@ class ImageProcessor {
 
     /**
      * Draw the image to the hidden canvas for pixel sampling
-     * Color processing effects (posterize, dithering) are applied post-sampling in main.js
+     * Only called once on image load - caches imageData for performance
      */
-    drawToCanvas(effects = {}) {
+    drawToCanvas() {
         if (!this.image) return;
 
-        // Set canvas size to match image
-        this.canvas.width = this.image.width;
-        this.canvas.height = this.image.height;
+        // Use intrinsic image dimensions (naturalWidth/naturalHeight) when available
+        const width = this.image.naturalWidth || this.image.width;
+        const height = this.image.naturalHeight || this.image.height;
 
-        // Draw image
-        this.ctx.drawImage(this.image, 0, 0);
+        // Set canvas size to match image and clear it
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Get image data for sampling
+        // Draw image at intrinsic size (1:1 scale, no smoothing needed)
+        this.ctx.drawImage(this.image, 0, 0, width, height);
+
+        // Get image data for sampling and cache it
         this.imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        this.cache.imageData = this.imageData;
     }
 
     /**
-     * Sample pixels from the image
+     * Sample pixels from the image with caching for performance
      * @param {number} gridSize - Size of each grid cell in pixels
      * @param {string} method - Sampling method: 'grid', 'random', 'stratified', or 'jittered'
      * @returns {Object} Object with samples array and stepSize
      */
     samplePixels(gridSize, method = 'grid') {
         if (!this.imageData) return { samples: [], stepSize: 0 };
+
+        // Check cache - only resample if parameters changed
+        if (this.cache.samples &&
+            this.cache.lastGridSize === gridSize &&
+            this.cache.lastMethod === method) {
+            return { samples: this.cache.samples, stepSize: gridSize };
+        }
 
         const width = this.imageData.width;
         const height = this.imageData.height;
@@ -102,6 +126,11 @@ class ImageProcessor {
         } else {
             samples = [];
         }
+
+        // Cache the results
+        this.cache.samples = samples;
+        this.cache.lastGridSize = gridSize;
+        this.cache.lastMethod = method;
 
         return { samples, stepSize };
     }
@@ -469,6 +498,7 @@ class ImageProcessor {
         return (max - min) / max;
     }
 
+
     /**
      * Get image dimensions
      * @returns {Object} Object with width and height
@@ -476,18 +506,24 @@ class ImageProcessor {
     getDimensions() {
         if (!this.image) return null;
         return {
-            width: this.image.width,
-            height: this.image.height
+            width: this.canvas.width,
+            height: this.canvas.height
         };
     }
 
     /**
-     * Clear the loaded image
+     * Clear the loaded image and cache
      */
     clear() {
         this.image = null;
         this.imageData = null;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Clear cache
+        this.cache.imageData = null;
+        this.cache.samples = null;
+        this.cache.lastGridSize = null;
+        this.cache.lastMethod = null;
     }
 
     /**

@@ -6,6 +6,14 @@ class PixelEffectsApp {
     static DEFAULT_DITHER_LEVELS = 8; // RGB color levels for default dithering (8³ = 512 colors)
     static RENDER_DELAY_MS = 50;      // Delay to allow UI update before heavy processing
 
+    // Parameters that require resampling (expensive)
+    static SAMPLING_PARAMS = ['gridSize', 'jitterEnabled'];
+
+    // Parameters that only need re-rendering (cheap)
+    static VISUAL_PARAMS = ['shape', 'rotation', 'scaleMin', 'scaleMax', 'scaleEnabled',
+                            'colorMode', 'backgroundColor', 'randomErase', 'eraseAmount',
+                            'anchor', 'duotoneDark', 'duotoneLight', 'outputScale'];
+
     constructor() {
         this.imageProcessor = new ImageProcessor();
         this.renderer = new Renderer('svgCanvas');
@@ -13,6 +21,7 @@ class PixelEffectsApp {
         this.stopsManager = new StopsManager();
         this.currentSamples = [];
         this.renderTimeout = null;
+        this.lastParams = null; // Track last parameters for smart updates
 
         // Initialize stops UI with callback
         this.stopsUI = new StopsUIManager(this.stopsManager, () => {
@@ -81,6 +90,7 @@ class PixelEffectsApp {
         this.renderer.clear();
         this.ui.clearImageInfo();
         this.currentSamples = [];
+        this.lastParams = null; // Reset parameter tracking for next image
     }
 
     /**
@@ -93,7 +103,7 @@ class PixelEffectsApp {
     }
 
     /**
-     * Process image and render to SVG
+     * Process image and render to SVG with smart caching
      */
     async processAndRender() {
         // Cancel any pending render to prevent race conditions
@@ -109,32 +119,45 @@ class PixelEffectsApp {
                 // Get current parameters
                 const params = this.ui.getParameters();
 
-                // Draw image to canvas without effects
-                this.imageProcessor.drawToCanvas({});
-
-                // Get image dimensions
+                // Get image dimensions (from cached imageData)
                 const dimensions = this.imageProcessor.getDimensions();
                 params.imageWidth = dimensions.width;
                 params.imageHeight = dimensions.height;
 
-                // Sample pixels - returns { samples, stepSize }
-                const samplingMethod = params.jitterEnabled ? 'jittered' : 'grid';
-                const result = this.imageProcessor.samplePixels(
-                    params.gridSize,
-                    samplingMethod
-                );
+                // Determine if we need to resample based on parameter changes
+                const needsResampling = this.needsResampling(params);
 
-                this.currentSamples = result.samples;
-                params.stepSize = result.stepSize;
+                // Only resample if sampling parameters changed
+                if (needsResampling) {
+                    const samplingMethod = params.jitterEnabled ? 'jittered' : 'grid';
+                    const result = this.imageProcessor.samplePixels(
+                        params.gridSize,
+                        samplingMethod
+                    );
+
+                    this.currentSamples = result.samples;
+                    params.stepSize = result.stepSize;
+                } else {
+                    // Reuse cached samples
+                    params.stepSize = params.gridSize;
+                }
+
                 params.stopsManager = this.stopsManager;
 
                 // Apply random erasure effect (only for shapes mode)
+                // Note: This modifies samples, so we create a copy for rendering if needed
+                let renderSamples = this.currentSamples;
                 if (this.currentSamples.length > 0 && params.mode === 'shapes' && params.randomErase && params.eraseAmount > 0) {
-                    this.applyRandomErasure(this.currentSamples, params);
+                    // Create shallow copy to avoid modifying cached samples
+                    renderSamples = this.currentSamples.map(s => ({...s}));
+                    this.applyRandomErasure(renderSamples, params);
                 }
 
-                // Render to SVG
-                this.renderer.render(this.currentSamples, params.mode, params);
+                // Render to SVG (always fast since we're just updating visuals)
+                this.renderer.render(renderSamples, params.mode, params);
+
+                // Store current params for next comparison
+                this.lastParams = params;
 
                 // Enable export buttons
                 this.ui.enableExportButtons();
@@ -145,6 +168,24 @@ class PixelEffectsApp {
                 this.ui.hideLoading();
             }
         }, PixelEffectsApp.RENDER_DELAY_MS);
+    }
+
+    /**
+     * Determine if resampling is needed based on parameter changes
+     * @param {Object} newParams - New parameters
+     * @returns {boolean} True if resampling needed
+     */
+    needsResampling(newParams) {
+        if (!this.lastParams) return true; // First render
+
+        // Check if any sampling parameters changed
+        for (const param of PixelEffectsApp.SAMPLING_PARAMS) {
+            if (this.lastParams[param] !== newParams[param]) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

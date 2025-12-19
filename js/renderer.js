@@ -30,7 +30,7 @@ class Renderer {
             return;
         }
 
-        // Use actual image dimensions - this prevents blank space
+        // Use actual image dimensions for viewBox
         const baseWidth = params.imageWidth || 100;
         const baseHeight = params.imageHeight || 100;
 
@@ -42,16 +42,15 @@ class Renderer {
         // Set viewBox to actual image dimensions
         this.svg.attr('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
 
-        // Set width/height to base dimensions for proper preview sizing
-        // CSS will constrain these with max-width/max-height
-        this.svg.attr('width', baseWidth);
-        this.svg.attr('height', baseHeight);
+        // Set width/height to 100% to fill available container space
+        this.svg.attr('width', '100%');
+        this.svg.attr('height', '100%');
 
         // Store scaled dimensions as data attributes for export
         this.svg.attr('data-export-width', scaledWidth);
         this.svg.attr('data-export-height', scaledHeight);
 
-        // Ensure proper aspect ratio preservation
+        // Use 'meet' to fit entire image without cropping (no letterboxing needed since we removed crop)
         this.svg.attr('preserveAspectRatio', 'xMidYMid meet');
 
         // Set shape-rendering to auto for smooth edges
@@ -77,13 +76,20 @@ class Renderer {
     }
 
     /**
-     * Enable pan and zoom controls on the SVG
+     * Enable pan and zoom controls on the SVG (only if not already enabled)
      */
     enablePanZoom() {
-        // Destroy existing instance if any
+        // Only initialize if not already created
         if (this.panZoomInstance) {
-            this.panZoomInstance.destroy();
-            this.panZoomInstance = null;
+            // Just reset the view instead of recreating
+            try {
+                this.panZoomInstance.resize();
+                this.panZoomInstance.fit();
+                this.panZoomInstance.center();
+            } catch (e) {
+                console.warn('Failed to reset pan/zoom:', e);
+            }
+            return;
         }
 
         // Initialize pan/zoom if library is available
