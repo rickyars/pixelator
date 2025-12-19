@@ -16,6 +16,7 @@ class StopsUIManager {
             randomMappingBtn: document.getElementById('randomMappingBtn'),
             randomPositionBtn: document.getElementById('randomPositionBtn'),
             randomAsciiBtn: document.getElementById('randomAsciiBtn'),
+            sortByLuminanceBtn: document.getElementById('sortByLuminanceBtn'),
             randomFontColorsBtn: document.getElementById('randomFontColorsBtn'),
             randomBgColorsBtn: document.getElementById('randomBgColorsBtn'),
             presetBasic: document.getElementById('presetBasic'),
@@ -65,6 +66,10 @@ class StopsUIManager {
 
         this.elements.randomAsciiBtn.addEventListener('click', () => {
             this.randomizeASCIICharacters();
+        });
+
+        this.elements.sortByLuminanceBtn.addEventListener('click', () => {
+            this.sortCharactersByLuminance();
         });
 
         // Color operation buttons
@@ -613,5 +618,80 @@ class StopsUIManager {
                 this.stopsManager.updateStop(stop.id, { value: randomChar });
             }
         });
+    }
+
+    /**
+     * Sort characters by luminance (brightness/density)
+     * Measures the visual weight of each character and sorts them
+     */
+    sortCharactersByLuminance() {
+        const stops = this.stopsManager.getStops();
+        if (stops.length === 0) return;
+
+        // Filter only text stops that have characters
+        const textStops = stops.filter(s => s.type === 'text' && s.value);
+
+        // Calculate luminance for each character
+        const charsWithLuminance = textStops.map(stop => ({
+            stop: stop,
+            char: stop.value,
+            luminance: this.calculateCharacterLuminance(stop.value, this.elements.fontFamily.value)
+        }));
+
+        // Sort by luminance (darkest first, lightest last)
+        charsWithLuminance.sort((a, b) => a.luminance - b.luminance);
+
+        // Reassign characters to stops in brightness order (0% = darkest, 100% = lightest)
+        const step = 100 / (textStops.length - 1 || 1);
+        charsWithLuminance.forEach((item, index) => {
+            const percentage = Math.round(index * step);
+            this.stopsManager.updateStop(item.stop.id, {
+                value: item.char,
+                percentage: percentage
+            });
+        });
+    }
+
+    /**
+     * Calculate character luminance by rendering it to canvas and measuring pixel darkness
+     * @param {string} char - Character to measure
+     * @param {string} fontFamily - Font to use for rendering
+     * @returns {number} Luminance value (0-255, 0 = darkest, 255 = brightest)
+     */
+    calculateCharacterLuminance(char, fontFamily) {
+        // Create offscreen canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 100;
+        canvas.height = 100;
+        const ctx = canvas.getContext('2d');
+
+        // Set white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw character in black
+        ctx.fillStyle = '#000000';
+        ctx.font = `bold 60px ${fontFamily}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(char, 50, 50);
+
+        // Get pixel data and calculate average darkness
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        let totalDarkness = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            // Calculate pixel darkness (inverse of brightness)
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const brightness = (r + g + b) / 3;
+            totalDarkness += (255 - brightness);
+        }
+
+        // Average darkness across all pixels (0-255 scale)
+        const averageDarkness = totalDarkness / (canvas.width * canvas.height);
+        return averageDarkness;
     }
 }
