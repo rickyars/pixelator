@@ -51,7 +51,7 @@ class Renderer {
         this.svg.attr('data-export-width', scaledWidth);
         this.svg.attr('data-export-height', scaledHeight);
 
-        // Use 'meet' to fit entire image without cropping (no letterboxing needed since we removed crop)
+        // Use 'meet' to fit entire image without cropping
         this.svg.attr('preserveAspectRatio', 'xMidYMid meet');
 
         // Set shape-rendering to auto for smooth edges
