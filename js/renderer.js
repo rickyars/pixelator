@@ -102,19 +102,7 @@ class Renderer {
         // Store current viewBox
         this.lastViewBox = currentViewBox;
 
-        // If viewBox changed, completely reset pan/zoom
-        if (viewBoxChanged) {
-            if (this.panZoomInstance) {
-                try {
-                    this.disablePanZoom();
-                } catch (e) {
-                    console.warn('Failed to disable pan/zoom:', e);
-                }
-            }
-            this.panZoomInstance = null;
-        }
-
-        // Initialize or reinitialize pan/zoom
+        // Initialize pan/zoom if not already done
         if (!this.panZoomInstance && typeof svgPanZoom !== 'undefined') {
             try {
                 this.panZoomInstance = svgPanZoom('#svgCanvas', {
@@ -129,12 +117,37 @@ class Renderer {
             } catch (e) {
                 console.warn('Failed to initialize pan/zoom:', e);
             }
-        } else if (this.panZoomInstance && !viewBoxChanged) {
-            // Only call resize/fit/center if viewBox didn't change (to preserve user zoom)
+        } else if (this.panZoomInstance) {
+            // Pan/zoom exists - update it based on whether viewBox changed
             try {
-                this.panZoomInstance.resize();
+                if (viewBoxChanged) {
+                    // ViewBox changed - destroy and recreate on next frame
+                    this.disablePanZoom();
+                    this.panZoomInstance = null;
+                    // Schedule recreation for next frame after DOM settles
+                    requestAnimationFrame(() => {
+                        if (!this.panZoomInstance && typeof svgPanZoom !== 'undefined') {
+                            try {
+                                this.panZoomInstance = svgPanZoom('#svgCanvas', {
+                                    zoomEnabled: true,
+                                    controlIconsEnabled: false,
+                                    fit: true,
+                                    center: true,
+                                    minZoom: 0.1,
+                                    maxZoom: 20,
+                                    zoomScaleSensitivity: 0.3
+                                });
+                            } catch (e) {
+                                console.warn('Failed to recreate pan/zoom:', e);
+                            }
+                        }
+                    });
+                } else {
+                    // ViewBox unchanged - just update view to preserve user zoom
+                    this.panZoomInstance.resize();
+                }
             } catch (e) {
-                console.warn('Failed to resize pan/zoom:', e);
+                console.warn('Failed to update pan/zoom:', e);
             }
         }
     }
