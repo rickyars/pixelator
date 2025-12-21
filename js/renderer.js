@@ -147,13 +147,20 @@ class Renderer {
                 console.log('[PanZoom] Instance created, scheduling manual fit/center');
                 // Manually fit and center based on viewBox and container size
                 setTimeout(() => {
+                    console.log('[PanZoom] Manual fit/center callback starting');
                     try {
                         if (this.panZoomInstance) {
                             const svgElement = this.svg.node();
                             const viewBoxStr = this.svg.attr('viewBox');
                             const parentElement = svgElement.parentElement;
 
-                            if (viewBoxStr) {
+                            console.log('[PanZoom] Elements found:', {
+                                hasSvgElement: !!svgElement,
+                                hasParentElement: !!parentElement,
+                                viewBoxStr
+                            });
+
+                            if (viewBoxStr && parentElement) {
                                 const [vx, vy, vw, vh] = viewBoxStr.split(' ').map(Number);
                                 // Use parent container dimensions, not SVG dimensions
                                 // The SVG is sized to image dimensions, but we need the viewport size
@@ -182,15 +189,21 @@ class Renderer {
                                 });
 
                                 // Apply zoom and pan directly
+                                console.log('[PanZoom] About to call zoom and pan');
                                 this.panZoomInstance.zoom(zoom);
                                 this.panZoomInstance.pan({ x: panX, y: panY });
+                                console.log('[PanZoom] Zoom and pan applied');
 
                                 // Verify the result
                                 setTimeout(() => {
                                     const transform = this.panZoomInstance.getTransform();
                                     console.log('[PanZoom] Applied transform:', transform);
                                 }, 50);
+                            } else {
+                                console.warn('[PanZoom] Missing viewBoxStr or parentElement', { viewBoxStr, hasParent: !!parentElement });
                             }
+                        } else {
+                            console.warn('[PanZoom] panZoomInstance is null in callback');
                         }
                     } catch (e) {
                         console.warn('Failed to manually fit/center pan/zoom:', e);
@@ -217,6 +230,7 @@ class Renderer {
      */
     disablePanZoom() {
         if (this.panZoomInstance) {
+            console.log('[PanZoom] Destroying instance');
             this.panZoomInstance.destroy();
             this.panZoomInstance = null;
         }
