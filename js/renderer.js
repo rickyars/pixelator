@@ -149,6 +149,8 @@ class Renderer {
                 setTimeout(() => {
                     try {
                         if (this.panZoomInstance) {
+                            console.log('[PanZoom] Calling reset()');
+                            this.panZoomInstance.reset();
                             console.log('[PanZoom] Calling fit()');
                             this.panZoomInstance.fit();
                             console.log('[PanZoom] Calling center()');
