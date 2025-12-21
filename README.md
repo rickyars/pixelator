@@ -1,34 +1,15 @@
 # Pixel Effects Tool
 
-A powerful, open-source web-based tool that converts raster images into creative vector graphics by replacing pixels with shapes, ASCII characters, or custom symbols. Inspired by tools like Ruri Pixel, but completely free and browser-based.
-
-![License](https://img.shields.io/badge/license-MIT-green)
-![Built with D3.js](https://img.shields.io/badge/built%20with-D3.js-orange)
+A web-based tool that converts raster images into creative vector graphics by replacing pixels with shapes, ASCII characters, or custom symbols.
 
 ## Features
 
-### 🎨 Multiple Rendering Modes
-- **Shape Mode**: Replace pixels with geometric shapes (circles, squares, triangles, diamonds, stars, crosses)
-- **ASCII Mode**: Convert images to ASCII art with customizable character sets
-
-### 🎯 Powerful Controls
+- **Multiple Rendering Modes**: Shape mode (circles, squares, diamonds, etc.) and ASCII mode with customizable character sets
 - **Flexible Sampling**: Grid or random pixel sampling patterns
-- **Resolution Control**: Adjust detail level from 10-200 samples
-- **Color Modes**:
-  - Original colors from source image
-  - Grayscale conversion
-  - Duotone with custom color palettes
-- **Size Modulation**: Scale shapes based on pixel brightness
-- **Rotation Control**: Fixed or random rotation with adjustable ranges
-- **Random Erasure**: Randomly remove pixels for distressed/artistic effects (0-100%)
-
-### 📤 Export Options
-- Download as **SVG** (vector format - infinitely scalable)
-- Download as **PNG** (raster format with 2x resolution)
-- Copy SVG code to clipboard
-
-### 🎭 Marshmallow Horror Aesthetic
-Dark, minimal interface with neon green accents and smooth animations.
+- **Color Modes**: Original, grayscale, or duotone
+- **Dynamic Sizing**: Scale shapes based on pixel brightness
+- **Rotation & Effects**: Control rotation and random pixel erasure
+- **Export**: Download as SVG (vector) or PNG (raster)
 
 ## Demo
 
@@ -135,125 +116,7 @@ pixelator/
 
 ## Technical Details
 
-### Technologies Used
-- **D3.js v7**: SVG generation and manipulation
-- **Canvas API**: Image loading and pixel sampling
-- **Vanilla JavaScript**: Core application logic
-- **HTML5/CSS3**: User interface
-
-### How It Works
-
-1. **Image Loading**: Uses FileReader API to load image into memory
-2. **Pixel Sampling**: Draws image to hidden canvas and samples pixel data
-3. **Data Transformation**: Maps pixel RGB values to visual elements
-4. **SVG Rendering**: Uses D3.js to create SVG elements bound to pixel data
-5. **Export**: Serializes SVG or converts to PNG via canvas
-
-### Performance Considerations
-
-- **Debounced rendering**: Parameter changes are debounced by 300ms
-- **Async processing**: Heavy operations use setTimeout to prevent UI blocking
-- **Optimized for**: Up to 10,000 elements render smoothly
-- **Memory efficient**: Cleans up resources after export
-
-## API Reference
-
-### ImageProcessor
-
-```javascript
-class ImageProcessor {
-  loadImage(file)           // Load image from File object
-  samplePixels(resolution, method)  // Sample pixels from image
-  getPixelColor(x, y)       // Get RGB values at coordinates
-  getBrightness(r, g, b)    // Calculate perceived brightness
-  getDimensions()           // Get image width/height
-  clear()                   // Clear loaded image
-}
-```
-
-### ShapeGenerator
-
-```javascript
-class ShapeGenerator {
-  static circle(size)       // Generate circle path
-  static square(size)       // Generate square path
-  static triangle(size)     // Generate triangle path
-  static diamond(size)      // Generate diamond path
-  static star(size)         // Generate star path
-  static cross(size)        // Generate cross path
-  static generate(sample, params)  // Generate shape with transforms
-  static getColor(sample, params)  // Get color based on mode
-}
-```
-
-### ASCIIMapper
-
-```javascript
-class ASCIIMapper {
-  static CHARSETS           // Predefined character sets
-  static mapBrightness(brightness, charset, invert)
-  static generate(sample, params)  // Generate text element
-}
-```
-
-### Renderer
-
-```javascript
-class Renderer {
-  render(samples, mode, params)     // Render samples to SVG
-  renderShapes(samples, params)     // Render shapes mode
-  renderASCII(samples, params)      // Render ASCII mode
-  clear()                           // Clear SVG canvas
-  updateViewBox(width, height)      // Update SVG dimensions
-  getSVGElement()                   // Get SVG DOM element
-}
-```
-
-### Exporter
-
-```javascript
-class Exporter {
-  static toSVG(svgElement, filename)      // Export as SVG file
-  static toPNG(svgElement, scale, filename)  // Export as PNG file
-  static toClipboard(svgElement)          // Copy SVG to clipboard
-}
-```
-
-## Development Roadmap
-
-### Phase 1: MVP ✅
-- [x] Basic image upload and preview
-- [x] Grid pixel sampling
-- [x] Circle shape rendering
-- [x] Original color mode
-- [x] SVG export
-
-### Phase 2: Shape System (In Progress)
-- [x] All shape types (square, triangle, diamond, star, cross)
-- [x] Size by brightness scaling
-- [x] Rotation controls
-- [x] All color modes (grayscale, duotone)
-- [x] Random sampling mode
-
-### Phase 3: ASCII System (In Progress)
-- [x] ASCII character mapping
-- [x] Multiple character sets
-- [x] Font controls
-- [x] Brightness inversion
-
-### Phase 4: Polish & Export
-- [ ] PNG export with custom scaling
-- [ ] Preset templates
-- [ ] Share URLs (encode params in URL hash)
-- [ ] Performance optimization for large images
-
-### Phase 5: Advanced Features (Future)
-- [ ] Custom shape SVG upload
-- [ ] Emoji replacement mode
-- [ ] Halftone sampling pattern
-- [ ] Animation export
-- [ ] Batch processing
-- [ ] WebGL acceleration
+Built with D3.js v7 for SVG generation, Canvas API for image sampling, and vanilla JavaScript.
 
 ## Contributing
 
@@ -277,16 +140,10 @@ Contributions are welcome! Here's how you can help:
 
 ## Browser Compatibility
 
-- ✅ Chrome/Edge 90+
-- ✅ Firefox 88+
-- ✅ Safari 14+
-- ⚠️ Mobile browsers (limited - use desktop for best experience)
-
-## Known Issues
-
-- Very large images (>4000px) may cause performance issues
-- PNG export doesn't work in some older browsers
-- Mobile drag-and-drop may be unreliable
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+- Mobile browsers (limited - use desktop for best experience)
 
 ## License
 
@@ -316,27 +173,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Inspiration & Credits
+## License
 
-- Inspired by [Ruri.design](https://ruri.design) and their excellent Ruri Pixel tool
-- Built with ❤️ by the open source community
-- Uses [D3.js](https://d3js.org/) for SVG rendering
-
-## Support
-
-- 🐛 **Found a bug?** [Open an issue](https://github.com/rickyars/pixelator/issues)
-- 💡 **Have an idea?** [Start a discussion](https://github.com/rickyars/pixelator/discussions)
-- 📧 **Need help?** Contact via GitHub issues
-
-## Acknowledgments
-
-Special thanks to:
-- The D3.js team for their amazing library
-- Ruri.design for the inspiration
-- All contributors and users
-
----
-
-**Made with 🖤 by the marshmallow horror aesthetic**
-
-[⬆ Back to top](#pixel-effects-tool)
+This project is licensed under the MIT License.
