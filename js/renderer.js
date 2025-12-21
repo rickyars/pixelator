@@ -80,6 +80,13 @@ class Renderer {
             this.contentGroup = this.svg.append('g').attr('class', 'content-group');
         }
 
+        console.log('[Render] SVG setup:', {
+            viewBox: this.svg.attr('viewBox'),
+            width: this.svg.attr('width'),
+            height: this.svg.attr('height'),
+            contentGroupExists: !!this.contentGroup
+        });
+
         // Render based on mode
         if (mode === 'shapes') {
             this.renderShapes(samples, params);
@@ -154,6 +161,15 @@ class Renderer {
                             console.log('[PanZoom] SVG viewport:', {
                                 clientWidth: svgElement.clientWidth,
                                 clientHeight: svgElement.clientHeight
+                            });
+
+                            // Log children bboxes
+                            console.log('[PanZoom] SVG children:');
+                            Array.from(svgElement.children).forEach((child, i) => {
+                                console.log(`  [${i}] ${child.tagName}:`, {
+                                    class: child.getAttribute('class'),
+                                    bbox: child.getBBox ? child.getBBox() : 'N/A'
+                                });
                             });
                         }
                     } catch (e) {
