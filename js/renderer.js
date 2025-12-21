@@ -6,6 +6,9 @@ class Renderer {
         this.svg = d3.select(`#${svgElementId}`);
         this.currentSamples = [];
         this.panZoomInstance = null;
+        this.lastMode = null;
+        this.contentGroup = null;
+        this.lastViewBox = '';
     }
 
     /**
@@ -19,8 +22,11 @@ class Renderer {
         // Store samples for export
         this.currentSamples = samples;
 
-        // Clear previous render
-        this.clear();
+        // If mode changed, clear and reset
+        if (this.lastMode !== mode) {
+            this.clear();
+            this.lastMode = mode;
+        }
 
         // Use actual image dimensions for viewBox to prevent blank space
         if (samples.length === 0) {
@@ -38,6 +44,14 @@ class Renderer {
         const scaleFactor = params.outputScale / 100;
         const scaledWidth = baseWidth * scaleFactor;
         const scaledHeight = baseHeight * scaleFactor;
+
+        // CRITICAL: Disable pan/zoom BEFORE changing SVG dimensions
+        // svg-pan-zoom doesn't handle viewBox/width/height changes well after initialization
+        if (this.panZoomInstance) {
+            console.log('[Render] Disabling pan/zoom before SVG attribute changes');
+            this.disablePanZoom();
+            this.panZoomInstance = null;
+        }
 
         // Set viewBox to actual image dimensions
         this.svg.attr('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
@@ -57,13 +71,36 @@ class Renderer {
         // Set shape-rendering to auto for smooth edges
         this.svg.attr('shape-rendering', 'auto');
 
-        // Add background rectangle
+        // Create or reuse content group for main elements
+        if (!this.contentGroup) {
+            this.contentGroup = this.svg.append('g').attr('class', 'content-group');
+        }
+
+        // Update or add background rectangle INSIDE content group (with proper z-order via selectAll ordering)
+        // Keep background rect at the beginning of content group by always rendering it first
+        const bgData = params.backgroundColor ? [params.backgroundColor] : [];
+        const bgSelection = this.contentGroup.selectAll('rect.bg-rect').data(bgData);
+        bgSelection.exit().remove();
+
+        // Remove and re-add to ensure it's first
+        bgSelection.remove();
+
         if (params.backgroundColor) {
-            this.svg.append('rect')
+            this.contentGroup.insert('rect', ':first-child')
+                .attr('class', 'bg-rect')
+                .attr('x', 0)
+                .attr('y', 0)
                 .attr('width', baseWidth)
                 .attr('height', baseHeight)
                 .attr('fill', params.backgroundColor);
         }
+
+        console.log('[Render] SVG setup:', {
+            viewBox: this.svg.attr('viewBox'),
+            width: this.svg.attr('width'),
+            height: this.svg.attr('height'),
+            contentGroupExists: !!this.contentGroup
+        });
 
         // Render based on mode
         if (mode === 'shapes') {
@@ -77,24 +114,13 @@ class Renderer {
     }
 
     /**
-     * Enable pan and zoom controls on the SVG (only if not already enabled)
+     * Enable pan and zoom controls on the SVG
      */
     enablePanZoom() {
-        // Only initialize if not already created
-        if (this.panZoomInstance) {
-            // Just reset the view instead of recreating
-            try {
-                this.panZoomInstance.resize();
-                this.panZoomInstance.fit();
-                this.panZoomInstance.center();
-            } catch (e) {
-                console.warn('Failed to reset pan/zoom:', e);
-            }
-            return;
-        }
-
-        // Initialize pan/zoom if library is available
-        if (typeof svgPanZoom !== 'undefined') {
+        // Always create a fresh pan/zoom instance
+        // (Instance was already destroyed in render() before SVG changes)
+        if (!this.panZoomInstance && typeof svgPanZoom !== 'undefined') {
+            console.log('[PanZoom] Creating new pan/zoom instance');
             try {
                 this.panZoomInstance = svgPanZoom('#svgCanvas', {
                     zoomEnabled: true,
@@ -105,6 +131,76 @@ class Renderer {
                     maxZoom: 20,
                     zoomScaleSensitivity: 0.3
                 });
+                console.log('[PanZoom] Instance created, scheduling manual fit/center');
+                // Manually fit and center based on viewBox and container size
+                // Store the viewBox NOW before svg-pan-zoom modifies anything
+                const viewBoxAtCreation = this.svg.attr('viewBox');
+                console.log('[PanZoom] ViewBox at instance creation:', viewBoxAtCreation);
+
+                setTimeout(() => {
+                    console.log('[PanZoom] Manual fit/center callback starting');
+                    try {
+                        if (this.panZoomInstance) {
+                            const svgElement = this.svg.node();
+                            const viewBoxStr = this.svg.attr('viewBox') || viewBoxAtCreation;
+                            const parentElement = svgElement.parentElement;
+
+                            console.log('[PanZoom] Elements found:', {
+                                hasSvgElement: !!svgElement,
+                                hasParentElement: !!parentElement,
+                                viewBoxStr,
+                                viewBoxAtCreation
+                            });
+
+                            if (viewBoxStr && parentElement) {
+                                const [vx, vy, vw, vh] = viewBoxStr.split(' ').map(Number);
+                                // Use parent container dimensions, not SVG dimensions
+                                // The SVG is sized to image dimensions, but we need the viewport size
+                                const containerWidth = parentElement.clientWidth;
+                                const containerHeight = parentElement.clientHeight;
+
+                                console.log('[PanZoom] Viewport dimensions:', {
+                                    svgWidth: svgElement.clientWidth,
+                                    svgHeight: svgElement.clientHeight,
+                                    containerWidth,
+                                    containerHeight,
+                                    viewBox: { x: vx, y: vy, width: vw, height: vh }
+                                });
+
+                                // Calculate zoom to fit entire viewBox in container
+                                const zoomX = containerWidth / vw;
+                                const zoomY = containerHeight / vh;
+                                const zoom = Math.min(zoomX, zoomY);
+
+                                // Calculate pan to center
+                                const panX = (containerWidth - vw * zoom) / 2 - vx * zoom;
+                                const panY = (containerHeight - vh * zoom) / 2 - vy * zoom;
+
+                                console.log('[PanZoom] Calculated:', {
+                                    zoomX, zoomY, zoom, panX, panY
+                                });
+
+                                // Apply zoom and pan directly
+                                console.log('[PanZoom] About to call zoom and pan');
+                                this.panZoomInstance.zoom(zoom);
+                                this.panZoomInstance.pan({ x: panX, y: panY });
+                                console.log('[PanZoom] Zoom and pan applied');
+
+                                // Verify the result
+                                setTimeout(() => {
+                                    const transform = this.panZoomInstance.getTransform();
+                                    console.log('[PanZoom] Applied transform:', transform);
+                                }, 50);
+                            } else {
+                                console.warn('[PanZoom] Missing viewBoxStr or parentElement', { viewBoxStr, hasParent: !!parentElement });
+                            }
+                        } else {
+                            console.warn('[PanZoom] panZoomInstance is null in callback');
+                        }
+                    } catch (e) {
+                        console.warn('Failed to manually fit/center pan/zoom:', e);
+                    }
+                }, 0);
             } catch (e) {
                 console.warn('Failed to initialize pan/zoom:', e);
             }
@@ -116,6 +212,7 @@ class Renderer {
      */
     disablePanZoom() {
         if (this.panZoomInstance) {
+            console.log('[PanZoom] Destroying instance');
             this.panZoomInstance.destroy();
             this.panZoomInstance = null;
         }
@@ -127,8 +224,11 @@ class Renderer {
      * @param {Object} params - Shape parameters
      */
     renderShapes(samples, params) {
+        // Clear previous shapes (they may not match the new grid)
+        this.contentGroup.selectAll('path').remove();
+
         // Create shape elements
-        const shapes = this.svg.selectAll('path')
+        const shapes = this.contentGroup.selectAll('path')
             .data(samples)
             .enter()
             .append('path');
@@ -154,13 +254,18 @@ class Renderer {
         // Process samples with stops system
         const elements = ASCIIMapper.processSamples(samples, params, params.stepSize);
 
+        // Clear previous ASCII elements
+        this.contentGroup.selectAll('image').remove();
+        this.contentGroup.selectAll('rect.text-bg').remove();
+        this.contentGroup.selectAll('text').remove();
+
         // Separate images and text
         const images = elements.filter(e => e.type === 'image');
         const texts = elements.filter(e => e.type === 'text');
 
         // Render images
         if (images.length > 0) {
-            this.svg.selectAll('image')
+            this.contentGroup.selectAll('image')
                 .data(images)
                 .enter()
                 .append('image')
@@ -174,10 +279,10 @@ class Renderer {
 
         // Render text with backgrounds
         if (texts.length > 0) {
-            // First render background rectangles for texts that have them
+            // Render background rectangles for texts that have them
             const textsWithBg = texts.filter(t => t.bgColor);
             if (textsWithBg.length > 0) {
-                this.svg.selectAll('rect.text-bg')
+                this.contentGroup.selectAll('rect.text-bg')
                     .data(textsWithBg)
                     .enter()
                     .append('rect')
@@ -189,9 +294,8 @@ class Renderer {
                     .attr('fill', d => d.bgColor);
             }
 
-            // Then render the text on top
-            // Center text in cell (font size = cell size for maximum coverage)
-            this.svg.selectAll('text')
+            // Render the text on top
+            this.contentGroup.selectAll('text')
                 .data(texts)
                 .enter()
                 .append('text')
@@ -212,6 +316,7 @@ class Renderer {
     clear() {
         this.disablePanZoom();
         this.svg.selectAll('*').remove();
+        this.contentGroup = null;
     }
 
     /**

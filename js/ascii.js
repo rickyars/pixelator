@@ -100,7 +100,7 @@ class ASCIIMapper {
     }
 
     /**
-     * Find the maximum square merge size for a cell
+     * Find the maximum square merge size for a cell using binary search
      * @param {Object} cell - Cell to merge
      * @param {Map} grid - Grid map
      * @param {number} min - Minimum merge size
@@ -112,31 +112,43 @@ class ASCIIMapper {
     static findMergeSize(cell, grid, min, max, stepSize, processed) {
         if (!cell.stop) return 1;
 
-        let size = 1;
+        // Binary search for maximum valid size
+        let low = min, high = max, result = 1;
 
-        // Try to expand the square
-        for (let s = min; s <= max; s++) {
-            let canMerge = true;
+        while (low <= high) {
+            const mid = Math.floor((low + high) / 2);
 
-            // Check if all cells in the square have the same stop
-            for (let r = 0; r < s && canMerge; r++) {
-                for (let c = 0; c < s && canMerge; c++) {
-                    const checkKey = `${cell.col + c}-${cell.row + r}-${cell.stop.id}`;
-
-                    if (!grid.has(checkKey) || processed.has(checkKey)) {
-                        canMerge = false;
-                    }
-                }
-            }
-
-            if (canMerge) {
-                size = s;
+            if (this.canMergeSize(cell, grid, mid, processed)) {
+                result = mid;
+                low = mid + 1;
             } else {
-                break;
+                high = mid - 1;
             }
         }
 
-        return size;
+        return result;
+    }
+
+    /**
+     * Check if a cell can be merged to a specific size
+     * @param {Object} cell - Cell to check
+     * @param {Map} grid - Grid map
+     * @param {number} size - Size to check
+     * @param {Set} processed - Set of processed cells
+     * @returns {boolean} Whether the cell can be merged to this size
+     */
+    static canMergeSize(cell, grid, size, processed) {
+        // Check if all cells in the square have the same stop
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+                const checkKey = `${cell.col + c}-${cell.row + r}-${cell.stop.id}`;
+
+                if (!grid.has(checkKey) || processed.has(checkKey)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
