@@ -6,6 +6,8 @@ class Renderer {
         this.svg = d3.select(`#${svgElementId}`);
         this.currentSamples = [];
         this.panZoomInstance = null;
+        this.lastMode = null;
+        this.contentGroup = null;
     }
 
     /**
@@ -19,8 +21,11 @@ class Renderer {
         // Store samples for export
         this.currentSamples = samples;
 
-        // Clear previous render
-        this.clear();
+        // If mode changed, clear and reset
+        if (this.lastMode !== mode) {
+            this.clear();
+            this.lastMode = mode;
+        }
 
         // Use actual image dimensions for viewBox to prevent blank space
         if (samples.length === 0) {
@@ -57,13 +62,21 @@ class Renderer {
         // Set shape-rendering to auto for smooth edges
         this.svg.attr('shape-rendering', 'auto');
 
-        // Add background rectangle
-        if (params.backgroundColor) {
-            this.svg.append('rect')
-                .attr('width', baseWidth)
-                .attr('height', baseHeight)
-                .attr('fill', params.backgroundColor);
+        // Create or reuse content group for main elements
+        if (!this.contentGroup) {
+            this.contentGroup = this.svg.append('g').attr('class', 'content-group');
         }
+
+        // Update or add background rectangle
+        const bg = this.svg.selectAll('rect.bg-rect').data(params.backgroundColor ? [params.backgroundColor] : []);
+        bg.exit().remove();
+        bg.enter()
+            .append('rect')
+            .attr('class', 'bg-rect')
+            .merge(bg)
+            .attr('width', baseWidth)
+            .attr('height', baseHeight)
+            .attr('fill', d => d);
 
         // Render based on mode
         if (mode === 'shapes') {
@@ -122,18 +135,21 @@ class Renderer {
     }
 
     /**
-     * Render shapes
+     * Render shapes with incremental updates
      * @param {Array} samples - Pixel samples
      * @param {Object} params - Shape parameters
      */
     renderShapes(samples, params) {
-        // Create shape elements
-        const shapes = this.svg.selectAll('path')
-            .data(samples)
-            .enter()
-            .append('path');
+        // Use D3's full join pattern for incremental updates
+        const shapes = this.contentGroup.selectAll('path')
+            .data(samples, (d, i) => `${d.x}-${d.y}-${i}`)
+            .join(
+                enter => enter.append('path'),
+                update => update,
+                exit => exit.remove()
+            );
 
-        // Apply shape attributes
+        // Apply shape attributes to all elements (new and existing)
         shapes.each(function(d) {
             const shapeData = ShapeGenerator.generate(d, params);
             d3.select(this)
@@ -146,7 +162,7 @@ class Renderer {
     }
 
     /**
-     * Render ASCII/Image Map elements
+     * Render ASCII/Image Map elements with incremental updates
      * @param {Array} samples - Pixel samples
      * @param {Object} params - Rendering parameters
      */
@@ -158,52 +174,52 @@ class Renderer {
         const images = elements.filter(e => e.type === 'image');
         const texts = elements.filter(e => e.type === 'text');
 
-        // Render images
-        if (images.length > 0) {
-            this.svg.selectAll('image')
-                .data(images)
-                .enter()
-                .append('image')
-                .attr('x', d => d.x)
-                .attr('y', d => d.y)
-                .attr('width', d => d.width)
-                .attr('height', d => d.height)
-                .attr('href', d => d.image)
-                .attr('preserveAspectRatio', 'none');
-        }
+        // Render images with incremental updates
+        this.contentGroup.selectAll('image')
+            .data(images, (d, i) => `img-${d.x}-${d.y}-${i}`)
+            .join(
+                enter => enter.append('image'),
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('x', d => d.x)
+            .attr('y', d => d.y)
+            .attr('width', d => d.width)
+            .attr('height', d => d.height)
+            .attr('href', d => d.image)
+            .attr('preserveAspectRatio', 'none');
 
-        // Render text with backgrounds
-        if (texts.length > 0) {
-            // First render background rectangles for texts that have them
-            const textsWithBg = texts.filter(t => t.bgColor);
-            if (textsWithBg.length > 0) {
-                this.svg.selectAll('rect.text-bg')
-                    .data(textsWithBg)
-                    .enter()
-                    .append('rect')
-                    .attr('class', 'text-bg')
-                    .attr('x', d => d.bgX)
-                    .attr('y', d => d.bgY)
-                    .attr('width', d => d.bgSize)
-                    .attr('height', d => d.bgSize)
-                    .attr('fill', d => d.bgColor);
-            }
+        // Render background rectangles for texts that have them
+        const textsWithBg = texts.filter(t => t.bgColor);
+        this.contentGroup.selectAll('rect.text-bg')
+            .data(textsWithBg, (d, i) => `bg-${d.bgX}-${d.bgY}-${i}`)
+            .join(
+                enter => enter.append('rect').attr('class', 'text-bg'),
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('x', d => d.bgX)
+            .attr('y', d => d.bgY)
+            .attr('width', d => d.bgSize)
+            .attr('height', d => d.bgSize)
+            .attr('fill', d => d.bgColor);
 
-            // Then render the text on top
-            // Center text in cell (font size = cell size for maximum coverage)
-            this.svg.selectAll('text')
-                .data(texts)
-                .enter()
-                .append('text')
-                .attr('x', d => d.x)
-                .attr('y', d => d.y)
-                .attr('font-size', d => d.fontSize)
-                .attr('font-family', d => d.fontFamily)
-                .attr('fill', d => d.fill)
-                .attr('dominant-baseline', 'middle')
-                .attr('text-anchor', 'middle')
-                .text(d => d.text);
-        }
+        // Render the text on top
+        this.contentGroup.selectAll('text')
+            .data(texts, (d, i) => `text-${d.x}-${d.y}-${i}`)
+            .join(
+                enter => enter.append('text'),
+                update => update,
+                exit => exit.remove()
+            )
+            .attr('x', d => d.x)
+            .attr('y', d => d.y)
+            .attr('font-size', d => d.fontSize)
+            .attr('font-family', d => d.fontFamily)
+            .attr('fill', d => d.fill)
+            .attr('dominant-baseline', 'middle')
+            .attr('text-anchor', 'middle')
+            .text(d => d.text);
     }
 
     /**
@@ -212,6 +228,7 @@ class Renderer {
     clear() {
         this.disablePanZoom();
         this.svg.selectAll('*').remove();
+        this.contentGroup = null;
     }
 
     /**
