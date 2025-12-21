@@ -61,6 +61,27 @@ class PixelEffectsApp {
         this.ui.onExportPNG = () => {
             this.exportPNG();
         };
+
+        // Window resize handler to update pan/zoom
+        window.addEventListener('resize', () => {
+            this.handleWindowResize();
+        });
+    }
+
+    /**
+     * Handle window resize to update pan/zoom and SVG
+     */
+    handleWindowResize() {
+        if (this.renderer.panZoomInstance && this.imageProcessor.image) {
+            try {
+                // Notify pan/zoom instance of resize
+                this.renderer.panZoomInstance.resize();
+                this.renderer.panZoomInstance.fit();
+                this.renderer.panZoomInstance.center();
+            } catch (e) {
+                console.warn('Failed to handle resize:', e);
+            }
+        }
     }
 
     /**
