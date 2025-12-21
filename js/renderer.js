@@ -8,6 +8,7 @@ class Renderer {
         this.panZoomInstance = null;
         this.lastMode = null;
         this.contentGroup = null;
+        this.lastDimensions = { width: 0, height: 0 };
     }
 
     /**
@@ -91,36 +92,55 @@ class Renderer {
     }
 
     /**
-     * Enable pan and zoom controls on the SVG (only if not already enabled)
+     * Enable pan and zoom controls on the SVG
      */
     enablePanZoom() {
-        // Only initialize if not already created
-        if (this.panZoomInstance) {
-            // Just reset the view instead of recreating
+        // Get current SVG dimensions
+        const currentWidth = parseInt(this.svg.attr('width')) || 0;
+        const currentHeight = parseInt(this.svg.attr('height')) || 0;
+
+        // Check if dimensions changed significantly (more than 5% difference)
+        const widthChanged = Math.abs(currentWidth - this.lastDimensions.width) / Math.max(currentWidth, this.lastDimensions.width) > 0.05;
+        const heightChanged = Math.abs(currentHeight - this.lastDimensions.height) / Math.max(currentHeight, this.lastDimensions.height) > 0.05;
+        const dimensionsChanged = widthChanged || heightChanged;
+
+        // Store current dimensions
+        this.lastDimensions = { width: currentWidth, height: currentHeight };
+
+        // If dimensions changed significantly, reset pan/zoom instance
+        if (dimensionsChanged && this.panZoomInstance) {
+            try {
+                this.disablePanZoom();
+            } catch (e) {
+                console.warn('Failed to disable pan/zoom:', e);
+            }
+        }
+
+        // Initialize or reset pan/zoom
+        if (!this.panZoomInstance) {
+            if (typeof svgPanZoom !== 'undefined') {
+                try {
+                    this.panZoomInstance = svgPanZoom('#svgCanvas', {
+                        zoomEnabled: true,
+                        controlIconsEnabled: false,
+                        fit: true,
+                        center: true,
+                        minZoom: 0.1,
+                        maxZoom: 20,
+                        zoomScaleSensitivity: 0.3
+                    });
+                } catch (e) {
+                    console.warn('Failed to initialize pan/zoom:', e);
+                }
+            }
+        } else {
+            // Pan/zoom exists and dimensions haven't changed much, just update view
             try {
                 this.panZoomInstance.resize();
                 this.panZoomInstance.fit();
                 this.panZoomInstance.center();
             } catch (e) {
-                console.warn('Failed to reset pan/zoom:', e);
-            }
-            return;
-        }
-
-        // Initialize pan/zoom if library is available
-        if (typeof svgPanZoom !== 'undefined') {
-            try {
-                this.panZoomInstance = svgPanZoom('#svgCanvas', {
-                    zoomEnabled: true,
-                    controlIconsEnabled: false,
-                    fit: true,
-                    center: true,
-                    minZoom: 0.1,
-                    maxZoom: 20,
-                    zoomScaleSensitivity: 0.3
-                });
-            } catch (e) {
-                console.warn('Failed to initialize pan/zoom:', e);
+                console.warn('Failed to reset pan/zoom view:', e);
             }
         }
     }
