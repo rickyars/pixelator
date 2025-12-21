@@ -8,7 +8,7 @@ class Renderer {
         this.panZoomInstance = null;
         this.lastMode = null;
         this.contentGroup = null;
-        this.lastDimensions = { width: 0, height: 0 };
+        this.lastViewBox = '';
     }
 
     /**
@@ -95,20 +95,15 @@ class Renderer {
      * Enable pan and zoom controls on the SVG
      */
     enablePanZoom() {
-        // Get current SVG dimensions
-        const currentWidth = parseInt(this.svg.attr('width')) || 0;
-        const currentHeight = parseInt(this.svg.attr('height')) || 0;
+        // Get current viewBox (this changes when pixel size changes)
+        const currentViewBox = this.svg.attr('viewBox');
+        const viewBoxChanged = currentViewBox !== this.lastViewBox;
 
-        // Check if dimensions changed significantly (more than 5% difference)
-        const widthChanged = Math.abs(currentWidth - this.lastDimensions.width) / Math.max(currentWidth, this.lastDimensions.width) > 0.05;
-        const heightChanged = Math.abs(currentHeight - this.lastDimensions.height) / Math.max(currentHeight, this.lastDimensions.height) > 0.05;
-        const dimensionsChanged = widthChanged || heightChanged;
+        // Store current viewBox
+        this.lastViewBox = currentViewBox;
 
-        // Store current dimensions
-        this.lastDimensions = { width: currentWidth, height: currentHeight };
-
-        // If dimensions changed significantly, reset pan/zoom instance
-        if (dimensionsChanged && this.panZoomInstance) {
+        // If viewBox changed, reset pan/zoom instance to recalculate
+        if (viewBoxChanged && this.panZoomInstance) {
             try {
                 this.disablePanZoom();
             } catch (e) {
@@ -134,7 +129,7 @@ class Renderer {
                 }
             }
         } else {
-            // Pan/zoom exists and dimensions haven't changed much, just update view
+            // Pan/zoom exists and viewBox hasn't changed, just update view
             try {
                 this.panZoomInstance.resize();
                 this.panZoomInstance.fit();
