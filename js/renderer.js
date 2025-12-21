@@ -45,6 +45,14 @@ class Renderer {
         const scaledWidth = baseWidth * scaleFactor;
         const scaledHeight = baseHeight * scaleFactor;
 
+        // CRITICAL: Disable pan/zoom BEFORE changing SVG dimensions
+        // svg-pan-zoom doesn't handle viewBox/width/height changes well after initialization
+        if (this.panZoomInstance) {
+            console.log('[Render] Disabling pan/zoom before SVG attribute changes');
+            this.disablePanZoom();
+            this.panZoomInstance = null;
+        }
+
         // Set viewBox to actual image dimensions
         this.svg.attr('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
 
@@ -109,36 +117,8 @@ class Renderer {
      * Enable pan and zoom controls on the SVG
      */
     enablePanZoom() {
-        // Get current viewBox (this changes when pixel size changes)
-        const currentViewBox = this.svg.attr('viewBox');
-        const viewBoxChanged = currentViewBox !== this.lastViewBox;
-
-        console.log('[PanZoom Debug]', {
-            currentViewBox,
-            lastViewBox: this.lastViewBox,
-            viewBoxChanged,
-            hasInstance: !!this.panZoomInstance,
-            svgDimensions: {
-                width: this.svg.attr('width'),
-                height: this.svg.attr('height')
-            }
-        });
-
-        // Store current viewBox
-        this.lastViewBox = currentViewBox;
-
-        // If viewBox changed and pan/zoom exists, destroy it
-        if (viewBoxChanged && this.panZoomInstance) {
-            console.log('[PanZoom] ViewBox changed, destroying old instance');
-            try {
-                this.disablePanZoom();
-            } catch (e) {
-                console.warn('Failed to disable pan/zoom:', e);
-            }
-            this.panZoomInstance = null;
-        }
-
-        // Initialize pan/zoom if not already done
+        // Always create a fresh pan/zoom instance
+        // (Instance was already destroyed in render() before SVG changes)
         if (!this.panZoomInstance && typeof svgPanZoom !== 'undefined') {
             console.log('[PanZoom] Creating new pan/zoom instance');
             try {
@@ -224,16 +204,6 @@ class Renderer {
             } catch (e) {
                 console.warn('Failed to initialize pan/zoom:', e);
             }
-        } else if (this.panZoomInstance && !viewBoxChanged) {
-            // ViewBox unchanged - just update view to preserve user zoom
-            console.log('[PanZoom] ViewBox unchanged, calling resize()');
-            try {
-                this.panZoomInstance.resize();
-            } catch (e) {
-                console.warn('Failed to resize pan/zoom:', e);
-            }
-        } else if (this.panZoomInstance && viewBoxChanged) {
-            console.log('[PanZoom] ViewBox changed but instance exists - waiting for recreation');
         }
     }
 
@@ -242,7 +212,7 @@ class Renderer {
      */
     disablePanZoom() {
         if (this.panZoomInstance) {
-            console.log('[PanZoom] Destroying instance', new Error().stack);
+            console.log('[PanZoom] Destroying instance');
             this.panZoomInstance.destroy();
             this.panZoomInstance = null;
         }
