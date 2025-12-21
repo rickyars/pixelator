@@ -153,18 +153,23 @@ class Renderer {
                 });
                 console.log('[PanZoom] Instance created, scheduling manual fit/center');
                 // Manually fit and center based on viewBox and container size
+                // Store the viewBox NOW before svg-pan-zoom modifies anything
+                const viewBoxAtCreation = this.svg.attr('viewBox');
+                console.log('[PanZoom] ViewBox at instance creation:', viewBoxAtCreation);
+
                 setTimeout(() => {
                     console.log('[PanZoom] Manual fit/center callback starting');
                     try {
                         if (this.panZoomInstance) {
                             const svgElement = this.svg.node();
-                            const viewBoxStr = this.svg.attr('viewBox');
+                            const viewBoxStr = this.svg.attr('viewBox') || viewBoxAtCreation;
                             const parentElement = svgElement.parentElement;
 
                             console.log('[PanZoom] Elements found:', {
                                 hasSvgElement: !!svgElement,
                                 hasParentElement: !!parentElement,
-                                viewBoxStr
+                                viewBoxStr,
+                                viewBoxAtCreation
                             });
 
                             if (viewBoxStr && parentElement) {
@@ -237,7 +242,7 @@ class Renderer {
      */
     disablePanZoom() {
         if (this.panZoomInstance) {
-            console.log('[PanZoom] Destroying instance');
+            console.log('[PanZoom] Destroying instance', new Error().stack);
             this.panZoomInstance.destroy();
             this.panZoomInstance = null;
         }
