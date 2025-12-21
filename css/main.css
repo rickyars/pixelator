@@ -147,12 +147,10 @@ body {
     right: 2rem;
     display: flex;
     gap: 0.5rem;
-    background: rgba(26, 26, 26, 0.95);
+    background: rgba(26, 26, 26, 0.98);
     padding: 0.5rem;
     border-radius: 8px;
     border: 1px solid var(--border);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
     z-index: 10;
 }
 
@@ -176,7 +174,6 @@ body {
     border-color: var(--accent);
     color: var(--accent);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 255, 136, 0.2);
 }
 
 .zoom-btn:active {
@@ -198,7 +195,6 @@ body {
     height: 100%;
     display: block;
     border: 1px solid var(--border);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* Loading Indicator */
