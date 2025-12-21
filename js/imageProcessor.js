@@ -23,12 +23,6 @@ class ImageProcessor {
      * @returns {Promise<HTMLImageElement>}
      */
     loadImage(file) {
-        // Validate file size (10MB limit)
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-        if (file.size > MAX_FILE_SIZE) {
-            return Promise.reject(new Error('File too large. Maximum size is 10MB.'));
-        }
-
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
 
@@ -36,16 +30,6 @@ class ImageProcessor {
                 const img = new Image();
 
                 img.onload = () => {
-                    // Validate image dimensions (4096px limit)
-                    const MAX_DIMENSION = 4096;
-                    const imgWidth = img.naturalWidth || img.width;
-                    const imgHeight = img.naturalHeight || img.height;
-
-                    if (imgWidth > MAX_DIMENSION || imgHeight > MAX_DIMENSION) {
-                        reject(new Error(`Image dimensions too large. Maximum is ${MAX_DIMENSION}px per side.`));
-                        return;
-                    }
-
                     this.image = img;
                     this.drawToCanvas();
                     resolve(img);

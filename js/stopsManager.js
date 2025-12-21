@@ -204,13 +204,23 @@ class StopsManager {
     randomizeStopPositions() {
         if (this.stops.length === 0) return;
 
-        // Generate random percentages
+        // Generate random percentages evenly distributed from 0 to 100
         const randomPercentages = [];
-        for (let i = 0; i < this.stops.length; i++) {
-            randomPercentages.push(Math.floor(Math.random() * 101));
+
+        // Always start at 0
+        randomPercentages.push(0);
+
+        // Generate random intermediate percentages
+        for (let i = 1; i < this.stops.length - 1; i++) {
+            randomPercentages.push(Math.floor(Math.random() * 99) + 1);
         }
 
-        // Sort to avoid overlaps
+        // Always end at 100
+        if (this.stops.length > 1) {
+            randomPercentages.push(100);
+        }
+
+        // Sort to maintain order
         randomPercentages.sort((a, b) => a - b);
 
         // Assign to stops

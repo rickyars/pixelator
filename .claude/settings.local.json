@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd luminance-based character sorting and fix random position distribution\n\n- Add \"Sort Luminance\" button to sort characters by visual weight/density\n- Implement character luminance calculation using canvas pixel sampling\n- Characters rendered in current font and measured for darkness\n- Sorted from darkest \\(0%\\) to brightest \\(100%\\) for proper ASCII art mapping\n- Fix Random Position to always start at 0 and end at 100\n- Random intermediate positions generated between 0-100\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)"
+    ]
+  }
+}
