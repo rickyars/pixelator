@@ -151,13 +151,18 @@ class Renderer {
                         if (this.panZoomInstance) {
                             const svgElement = this.svg.node();
                             const viewBoxStr = this.svg.attr('viewBox');
+                            const parentElement = svgElement.parentElement;
 
                             if (viewBoxStr) {
                                 const [vx, vy, vw, vh] = viewBoxStr.split(' ').map(Number);
-                                const containerWidth = svgElement.clientWidth;
-                                const containerHeight = svgElement.clientHeight;
+                                // Use parent container dimensions, not SVG dimensions
+                                // The SVG is sized to image dimensions, but we need the viewport size
+                                const containerWidth = parentElement.clientWidth;
+                                const containerHeight = parentElement.clientHeight;
 
                                 console.log('[PanZoom] Viewport dimensions:', {
+                                    svgWidth: svgElement.clientWidth,
+                                    svgHeight: svgElement.clientHeight,
                                     containerWidth,
                                     containerHeight,
                                     viewBox: { x: vx, y: vy, width: vw, height: vh }
@@ -180,7 +185,11 @@ class Renderer {
                                 this.panZoomInstance.zoom(zoom);
                                 this.panZoomInstance.pan({ x: panX, y: panY });
 
-                                console.log('[PanZoom] Manual fit/center complete');
+                                // Verify the result
+                                setTimeout(() => {
+                                    const transform = this.panZoomInstance.getTransform();
+                                    console.log('[PanZoom] Applied transform:', transform);
+                                }, 50);
                             }
                         }
                     } catch (e) {
