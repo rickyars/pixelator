@@ -144,38 +144,47 @@ class Renderer {
                     maxZoom: 20,
                     zoomScaleSensitivity: 0.3
                 });
-                console.log('[PanZoom] Instance created, scheduling fit/center');
-                // Explicitly fit and center after initialization
+                console.log('[PanZoom] Instance created, scheduling manual fit/center');
+                // Manually fit and center based on viewBox and container size
                 setTimeout(() => {
                     try {
                         if (this.panZoomInstance) {
-                            console.log('[PanZoom] Calling reset()');
-                            this.panZoomInstance.reset();
-                            console.log('[PanZoom] Calling fit()');
-                            this.panZoomInstance.fit();
-                            console.log('[PanZoom] Calling center()');
-                            this.panZoomInstance.center();
-                            console.log('[PanZoom] fit() and center() complete');
-
-                            // Log the resulting transform
                             const svgElement = this.svg.node();
-                            console.log('[PanZoom] SVG getBBox:', svgElement.getBBox());
-                            console.log('[PanZoom] SVG viewport:', {
-                                clientWidth: svgElement.clientWidth,
-                                clientHeight: svgElement.clientHeight
-                            });
+                            const viewBoxStr = this.svg.attr('viewBox');
 
-                            // Log children bboxes
-                            console.log('[PanZoom] SVG children:');
-                            Array.from(svgElement.children).forEach((child, i) => {
-                                console.log(`  [${i}] ${child.tagName}:`, {
-                                    class: child.getAttribute('class'),
-                                    bbox: child.getBBox ? child.getBBox() : 'N/A'
+                            if (viewBoxStr) {
+                                const [vx, vy, vw, vh] = viewBoxStr.split(' ').map(Number);
+                                const containerWidth = svgElement.clientWidth;
+                                const containerHeight = svgElement.clientHeight;
+
+                                console.log('[PanZoom] Viewport dimensions:', {
+                                    containerWidth,
+                                    containerHeight,
+                                    viewBox: { x: vx, y: vy, width: vw, height: vh }
                                 });
-                            });
+
+                                // Calculate zoom to fit entire viewBox in container
+                                const zoomX = containerWidth / vw;
+                                const zoomY = containerHeight / vh;
+                                const zoom = Math.min(zoomX, zoomY);
+
+                                // Calculate pan to center
+                                const panX = (containerWidth - vw * zoom) / 2 - vx * zoom;
+                                const panY = (containerHeight - vh * zoom) / 2 - vy * zoom;
+
+                                console.log('[PanZoom] Calculated:', {
+                                    zoomX, zoomY, zoom, panX, panY
+                                });
+
+                                // Apply zoom and pan directly
+                                this.panZoomInstance.zoom(zoom);
+                                this.panZoomInstance.pan({ x: panX, y: panY });
+
+                                console.log('[PanZoom] Manual fit/center complete');
+                            }
                         }
                     } catch (e) {
-                        console.warn('Failed to fit/center pan/zoom:', e);
+                        console.warn('Failed to manually fit/center pan/zoom:', e);
                     }
                 }, 0);
             } catch (e) {
