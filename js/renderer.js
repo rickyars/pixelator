@@ -63,21 +63,28 @@ class Renderer {
         // Set shape-rendering to auto for smooth edges
         this.svg.attr('shape-rendering', 'auto');
 
-        // Update or add background rectangle to the main SVG (before content group for correct z-order)
-        const bgData = params.backgroundColor ? [params.backgroundColor] : [];
-        const bgSelection = this.svg.selectAll('rect.bg-rect').data(bgData);
-        bgSelection.exit().remove();
-        bgSelection.enter()
-            .insert('rect', ':first-child')
-            .attr('class', 'bg-rect')
-            .merge(bgSelection)
-            .attr('width', baseWidth)
-            .attr('height', baseHeight)
-            .attr('fill', d => d);
-
         // Create or reuse content group for main elements
         if (!this.contentGroup) {
             this.contentGroup = this.svg.append('g').attr('class', 'content-group');
+        }
+
+        // Update or add background rectangle INSIDE content group (with proper z-order via selectAll ordering)
+        // Keep background rect at the beginning of content group by always rendering it first
+        const bgData = params.backgroundColor ? [params.backgroundColor] : [];
+        const bgSelection = this.contentGroup.selectAll('rect.bg-rect').data(bgData);
+        bgSelection.exit().remove();
+
+        // Remove and re-add to ensure it's first
+        bgSelection.remove();
+
+        if (params.backgroundColor) {
+            this.contentGroup.insert('rect', ':first-child')
+                .attr('class', 'bg-rect')
+                .attr('x', 0)
+                .attr('y', 0)
+                .attr('width', baseWidth)
+                .attr('height', baseHeight)
+                .attr('fill', params.backgroundColor);
         }
 
         console.log('[Render] SVG setup:', {
