@@ -99,11 +99,23 @@ class Renderer {
         const currentViewBox = this.svg.attr('viewBox');
         const viewBoxChanged = currentViewBox !== this.lastViewBox;
 
+        console.log('[PanZoom Debug]', {
+            currentViewBox,
+            lastViewBox: this.lastViewBox,
+            viewBoxChanged,
+            hasInstance: !!this.panZoomInstance,
+            svgDimensions: {
+                width: this.svg.attr('width'),
+                height: this.svg.attr('height')
+            }
+        });
+
         // Store current viewBox
         this.lastViewBox = currentViewBox;
 
         // If viewBox changed and pan/zoom exists, destroy it
         if (viewBoxChanged && this.panZoomInstance) {
+            console.log('[PanZoom] ViewBox changed, destroying old instance');
             try {
                 this.disablePanZoom();
             } catch (e) {
@@ -114,6 +126,7 @@ class Renderer {
 
         // Initialize pan/zoom if not already done
         if (!this.panZoomInstance && typeof svgPanZoom !== 'undefined') {
+            console.log('[PanZoom] Creating new pan/zoom instance');
             try {
                 this.panZoomInstance = svgPanZoom('#svgCanvas', {
                     zoomEnabled: true,
@@ -124,12 +137,24 @@ class Renderer {
                     maxZoom: 20,
                     zoomScaleSensitivity: 0.3
                 });
+                console.log('[PanZoom] Instance created, scheduling fit/center');
                 // Explicitly fit and center after initialization
                 setTimeout(() => {
                     try {
                         if (this.panZoomInstance) {
+                            console.log('[PanZoom] Calling fit()');
                             this.panZoomInstance.fit();
+                            console.log('[PanZoom] Calling center()');
                             this.panZoomInstance.center();
+                            console.log('[PanZoom] fit() and center() complete');
+
+                            // Log the resulting transform
+                            const svgElement = this.svg.node();
+                            console.log('[PanZoom] SVG getBBox:', svgElement.getBBox());
+                            console.log('[PanZoom] SVG viewport:', {
+                                clientWidth: svgElement.clientWidth,
+                                clientHeight: svgElement.clientHeight
+                            });
                         }
                     } catch (e) {
                         console.warn('Failed to fit/center pan/zoom:', e);
@@ -140,11 +165,14 @@ class Renderer {
             }
         } else if (this.panZoomInstance && !viewBoxChanged) {
             // ViewBox unchanged - just update view to preserve user zoom
+            console.log('[PanZoom] ViewBox unchanged, calling resize()');
             try {
                 this.panZoomInstance.resize();
             } catch (e) {
                 console.warn('Failed to resize pan/zoom:', e);
             }
+        } else if (this.panZoomInstance && viewBoxChanged) {
+            console.log('[PanZoom] ViewBox changed but instance exists - waiting for recreation');
         }
     }
 
