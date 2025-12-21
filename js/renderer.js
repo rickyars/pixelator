@@ -102,6 +102,16 @@ class Renderer {
         // Store current viewBox
         this.lastViewBox = currentViewBox;
 
+        // If viewBox changed and pan/zoom exists, destroy it
+        if (viewBoxChanged && this.panZoomInstance) {
+            try {
+                this.disablePanZoom();
+            } catch (e) {
+                console.warn('Failed to disable pan/zoom:', e);
+            }
+            this.panZoomInstance = null;
+        }
+
         // Initialize pan/zoom if not already done
         if (!this.panZoomInstance && typeof svgPanZoom !== 'undefined') {
             try {
@@ -114,40 +124,26 @@ class Renderer {
                     maxZoom: 20,
                     zoomScaleSensitivity: 0.3
                 });
+                // Explicitly fit and center after initialization
+                setTimeout(() => {
+                    try {
+                        if (this.panZoomInstance) {
+                            this.panZoomInstance.fit();
+                            this.panZoomInstance.center();
+                        }
+                    } catch (e) {
+                        console.warn('Failed to fit/center pan/zoom:', e);
+                    }
+                }, 0);
             } catch (e) {
                 console.warn('Failed to initialize pan/zoom:', e);
             }
-        } else if (this.panZoomInstance) {
-            // Pan/zoom exists - update it based on whether viewBox changed
+        } else if (this.panZoomInstance && !viewBoxChanged) {
+            // ViewBox unchanged - just update view to preserve user zoom
             try {
-                if (viewBoxChanged) {
-                    // ViewBox changed - destroy and recreate on next frame
-                    this.disablePanZoom();
-                    this.panZoomInstance = null;
-                    // Schedule recreation for next frame after DOM settles
-                    requestAnimationFrame(() => {
-                        if (!this.panZoomInstance && typeof svgPanZoom !== 'undefined') {
-                            try {
-                                this.panZoomInstance = svgPanZoom('#svgCanvas', {
-                                    zoomEnabled: true,
-                                    controlIconsEnabled: false,
-                                    fit: true,
-                                    center: true,
-                                    minZoom: 0.1,
-                                    maxZoom: 20,
-                                    zoomScaleSensitivity: 0.3
-                                });
-                            } catch (e) {
-                                console.warn('Failed to recreate pan/zoom:', e);
-                            }
-                        }
-                    });
-                } else {
-                    // ViewBox unchanged - just update view to preserve user zoom
-                    this.panZoomInstance.resize();
-                }
+                this.panZoomInstance.resize();
             } catch (e) {
-                console.warn('Failed to update pan/zoom:', e);
+                console.warn('Failed to resize pan/zoom:', e);
             }
         }
     }
