@@ -102,40 +102,39 @@ class Renderer {
         // Store current viewBox
         this.lastViewBox = currentViewBox;
 
-        // If viewBox changed, reset pan/zoom instance to recalculate
-        if (viewBoxChanged && this.panZoomInstance) {
-            try {
-                this.disablePanZoom();
-            } catch (e) {
-                console.warn('Failed to disable pan/zoom:', e);
-            }
-        }
-
-        // Initialize or reset pan/zoom
-        if (!this.panZoomInstance) {
-            if (typeof svgPanZoom !== 'undefined') {
+        // If viewBox changed, completely reset pan/zoom
+        if (viewBoxChanged) {
+            if (this.panZoomInstance) {
                 try {
-                    this.panZoomInstance = svgPanZoom('#svgCanvas', {
-                        zoomEnabled: true,
-                        controlIconsEnabled: false,
-                        fit: true,
-                        center: true,
-                        minZoom: 0.1,
-                        maxZoom: 20,
-                        zoomScaleSensitivity: 0.3
-                    });
+                    this.disablePanZoom();
                 } catch (e) {
-                    console.warn('Failed to initialize pan/zoom:', e);
+                    console.warn('Failed to disable pan/zoom:', e);
                 }
             }
-        } else {
-            // Pan/zoom exists and viewBox hasn't changed, just update view
+            this.panZoomInstance = null;
+        }
+
+        // Initialize or reinitialize pan/zoom
+        if (!this.panZoomInstance && typeof svgPanZoom !== 'undefined') {
+            try {
+                this.panZoomInstance = svgPanZoom('#svgCanvas', {
+                    zoomEnabled: true,
+                    controlIconsEnabled: false,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.1,
+                    maxZoom: 20,
+                    zoomScaleSensitivity: 0.3
+                });
+            } catch (e) {
+                console.warn('Failed to initialize pan/zoom:', e);
+            }
+        } else if (this.panZoomInstance && !viewBoxChanged) {
+            // Only call resize/fit/center if viewBox didn't change (to preserve user zoom)
             try {
                 this.panZoomInstance.resize();
-                this.panZoomInstance.fit();
-                this.panZoomInstance.center();
             } catch (e) {
-                console.warn('Failed to reset pan/zoom view:', e);
+                console.warn('Failed to resize pan/zoom:', e);
             }
         }
     }
