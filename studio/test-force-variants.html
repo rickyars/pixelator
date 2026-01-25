@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Force Variants Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 20px; }
+        h2 { margin: 20px 0 10px; color: #888; font-size: 14px; }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .control {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .control label { font-size: 12px; color: #888; }
+        .control input, .control select {
+            padding: 8px;
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 4px;
+        }
+        .charset-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .char-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f0f0f0;
+            padding: 4px;
+            border-radius: 2px;
+        }
+        .char-cell canvas {
+            border: 1px solid #ccc;
+        }
+        .char-label {
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
+        }
+        .variant-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+        .variant-group {
+            text-align: center;
+        }
+        .variant-group h3 {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .overlay-demo {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .overlay-example {
+            text-align: center;
+        }
+        .overlay-example canvas {
+            border: 1px solid #444;
+        }
+        .overlay-example p {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Force Variants Test</h1>
+
+    <div class="controls">
+        <div class="control">
+            <label>Cell Size</label>
+            <input type="range" id="cellSize" min="10" max="40" value="20">
+            <span id="cellSizeValue">20</span>
+        </div>
+        <div class="control">
+            <label>Font</label>
+            <select id="fontFamily">
+                <option value="'Courier New', monospace">Courier New</option>
+                <option value="monospace">Monospace</option>
+                <option value="Consolas, monospace">Consolas</option>
+            </select>
+        </div>
+        <div class="control">
+            <label>Strike Variants</label>
+            <input type="range" id="strikeVariants" min="1" max="6" value="3">
+            <span id="strikeVariantsValue">3</span>
+        </div>
+        <div class="control">
+            <label>Ink Noise</label>
+            <input type="range" id="inkNoise" min="0" max="20" value="8">
+            <span id="inkNoiseValue">0.08</span>
+        </div>
+    </div>
+
+    <h2>Character Variants (each char at different strike forces)</h2>
+    <div id="charsetGrid" class="charset-grid"></div>
+
+    <h2>Layer Multiplication Demo (4 layers overlapping)</h2>
+    <div id="overlayDemo" class="overlay-demo"></div>
+
+    <h2>Grayscale Values</h2>
+    <div id="grayscaleInfo" style="font-size: 12px; color: #888; margin-top: 10px;"></div>
+
+    <script>
+        const testChars = ' .,\':;ioxX#@M';
+
+        function renderCharset() {
+            const cellSize = parseInt(document.getElementById('cellSize').value);
+            const fontFamily = document.getElementById('fontFamily').value;
+            const strikeVariants = parseInt(document.getElementById('strikeVariants').value);
+            const inkNoise = parseInt(document.getElementById('inkNoise').value) / 100;
+
+            document.getElementById('cellSizeValue').textContent = cellSize;
+            document.getElementById('strikeVariantsValue').textContent = strikeVariants;
+            document.getElementById('inkNoiseValue').textContent = inkNoise.toFixed(2);
+
+            // Character dimensions
+            const charWidth = Math.ceil(cellSize * 0.8);
+            const charHeight = Math.ceil(cellSize * 1.2);
+
+            const grid = document.getElementById('charsetGrid');
+            grid.innerHTML = '';
+
+            const allChars = []; // Store for overlay demo
+
+            for (const char of testChars) {
+                const group = document.createElement('div');
+                group.className = 'variant-group';
+                group.innerHTML = `<h3>${char === ' ' ? 'SPC' : char}</h3>`;
+
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.gap = '2px';
+
+                for (let v = 0; v < strikeVariants; v++) {
+                    // Strike force: 0.25 (very light) to 1.0 (full) - like real typewriter
+                    const strikeForce = strikeVariants === 1 ? 1.0 : 0.25 + (v / (strikeVariants - 1)) * 0.75;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = charWidth;
+                    canvas.height = charHeight;
+                    const ctx = canvas.getContext('2d');
+
+                    const centerX = charWidth / 2;
+                    const centerY = charHeight / 2;
+
+                    // White background
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, charWidth, charHeight);
+
+                    if (char !== ' ') {
+                        // Render character at full black first
+                        ctx.fillStyle = 'black';
+                        ctx.font = `${cellSize}px ${fontFamily}`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(char, charWidth / 2, charHeight / 2);
+                    }
+
+                    // Get image data and apply typewriter ink simulation
+                    const imageData = ctx.getImageData(0, 0, charWidth, charHeight);
+                    const grayscale = new Float32Array(charWidth * charHeight);
+                    let avgValue = 0;
+
+                    for (let i = 0; i < grayscale.length; i++) {
+                        const x = i % charWidth;
+                        const y = Math.floor(i / charWidth);
+
+                        const r = imageData.data[i * 4];
+                        const g = imageData.data[i * 4 + 1];
+                        const b = imageData.data[i * 4 + 2];
+                        let value = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+                        // Only process ink pixels (non-white)
+                        if (value < 0.98) {
+                            // 1. Apply strike force
+                            value = 1 - (1 - value) * strikeForce;
+
+                            // 2. Uneven ink density: darker in center
+                            const dx = (x - centerX) / centerX;
+                            const dy = (y - centerY) / centerY;
+                            const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+                            const densityFalloff = 1 - distFromCenter * 0.15 * (1 - strikeForce);
+                            value = 1 - (1 - value) * Math.max(0.5, densityFalloff);
+
+                            // 3. Ink texture noise
+                            if (inkNoise > 0) {
+                                const noise = (Math.random() - 0.5) * inkNoise * 2.5;
+                                value = Math.max(0, Math.min(1, value + noise));
+                            }
+
+                            // 4. Ink dropout for light strikes
+                            if (strikeForce < 0.5 && Math.random() > strikeForce + 0.3) {
+                                value = Math.min(1, value + 0.3);
+                            }
+                        }
+
+                        grayscale[i] = value;
+                        avgValue += value;
+
+                        // Write back
+                        const byte = Math.round(value * 255);
+                        imageData.data[i * 4] = byte;
+                        imageData.data[i * 4 + 1] = byte;
+                        imageData.data[i * 4 + 2] = byte;
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+                    avgValue /= grayscale.length;
+
+                    const cell = document.createElement('div');
+                    cell.className = 'char-cell';
+                    cell.appendChild(canvas);
+
+                    const label = document.createElement('div');
+                    label.className = 'char-label';
+                    label.textContent = `${(strikeForce * 100).toFixed(0)}%`;
+                    cell.appendChild(label);
+
+                    row.appendChild(cell);
+
+                    // Store for overlay demo
+                    if (char !== ' ') {
+                        allChars.push({ char, strikeForce, grayscale, charWidth, charHeight, avgValue });
+                    }
+                }
+
+                group.appendChild(row);
+                grid.appendChild(group);
+            }
+
+            // Render overlay demo
+            renderOverlayDemo(allChars, charWidth, charHeight);
+        }
+
+        function renderOverlayDemo(chars, charWidth, charHeight) {
+            const demo = document.getElementById('overlayDemo');
+            demo.innerHTML = '';
+
+            if (chars.length === 0) return;
+
+            // Pick some chars for demo
+            const demoChars = chars.filter(c => ['.', 'o', 'x', '#'].includes(c.char));
+            if (demoChars.length < 4) return;
+
+            // Single character
+            const single = createOverlayCanvas([demoChars[0]], charWidth, charHeight);
+            demo.appendChild(createOverlayExample(single, 'Single: ' + demoChars[0].char));
+
+            // Two overlapping (offset by half)
+            const two = createOverlayCanvas([demoChars[0], demoChars[1]], charWidth, charHeight, true);
+            demo.appendChild(createOverlayExample(two, '2 layers: ' + demoChars[0].char + ' × ' + demoChars[1].char));
+
+            // Four overlapping
+            const four = createOverlayCanvas(demoChars.slice(0, 4), charWidth, charHeight, true);
+            demo.appendChild(createOverlayExample(four, '4 layers: . × o × x × #'));
+
+            // Show multiplication math
+            const info = document.getElementById('grayscaleInfo');
+            const vals = demoChars.slice(0, 4).map(c => c.avgValue.toFixed(3));
+            const product = demoChars.slice(0, 4).reduce((acc, c) => acc * c.avgValue, 1);
+            info.innerHTML = `
+                <strong>Layer multiplication example:</strong><br>
+                ${vals.join(' × ')} = ${product.toFixed(3)}<br>
+                <em>Darker areas result from multiple overlapping characters</em>
+            `;
+        }
+
+        function createOverlayCanvas(chars, charWidth, charHeight, offset = false) {
+            const padding = offset ? Math.max(charWidth, charHeight) : 0;
+            const canvas = document.createElement('canvas');
+            canvas.width = charWidth + padding;
+            canvas.height = charHeight + padding;
+            const ctx = canvas.getContext('2d');
+
+            // Start with white (1.0)
+            const result = new Float32Array(canvas.width * canvas.height).fill(1.0);
+
+            // Multiply each character layer
+            chars.forEach((charData, idx) => {
+                const offsetX = offset ? Math.floor((idx % 2) * charWidth * 0.5) : 0;
+                const offsetY = offset ? Math.floor(Math.floor(idx / 2) * charHeight * 0.5) : 0;
+
+                for (let dy = 0; dy < charHeight; dy++) {
+                    for (let dx = 0; dx < charWidth; dx++) {
+                        const srcIdx = dy * charWidth + dx;
+                        const dstIdx = (dy + offsetY) * canvas.width + (dx + offsetX);
+                        result[dstIdx] *= charData.grayscale[srcIdx];
+                    }
+                }
+            });
+
+            // Render result
+            const imageData = ctx.createImageData(canvas.width, canvas.height);
+            for (let i = 0; i < result.length; i++) {
+                const byte = Math.round(result[i] * 255);
+                imageData.data[i * 4] = byte;
+                imageData.data[i * 4 + 1] = byte;
+                imageData.data[i * 4 + 2] = byte;
+                imageData.data[i * 4 + 3] = 255;
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            return canvas;
+        }
+
+        function createOverlayExample(canvas, label) {
+            const div = document.createElement('div');
+            div.className = 'overlay-example';
+            div.appendChild(canvas);
+            const p = document.createElement('p');
+            p.textContent = label;
+            div.appendChild(p);
+            return div;
+        }
+
+        // Event listeners
+        document.getElementById('cellSize').addEventListener('input', renderCharset);
+        document.getElementById('fontFamily').addEventListener('change', renderCharset);
+        document.getElementById('strikeVariants').addEventListener('input', renderCharset);
+        document.getElementById('inkNoise').addEventListener('input', renderCharset);
+
+        // Initial render
+        renderCharset();
+    </script>
+</body>
+</html>
