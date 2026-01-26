@@ -13,14 +13,15 @@ const ShapeMode = {
     render(ctx, canvas, img, params) {
         const prepared = Core.prepareImage(img);
         const { width, height, data } = prepared;
+        const scale = params.outputScale || 1;
 
-        // Set canvas size
-        canvas.width = width;
-        canvas.height = height;
+        // Set canvas size (scaled)
+        canvas.width = width * scale;
+        canvas.height = height * scale;
 
         // Background
         ctx.fillStyle = params.bgColor;
-        ctx.fillRect(0, 0, width, height);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Sample grid
         const samples = Core.sampleGrid(data, width, height, params.cellSize);
@@ -62,11 +63,11 @@ const ShapeMode = {
             // Skip if scale is zero
             if (transform.scX === 0 || transform.scY === 0) continue;
 
-            // Apply transforms
+            // Apply transforms (scaled coordinates)
             ctx.save();
-            const cx = x + transform.offX;
-            const cy = y + transform.offY;
-            const size = Math.max(0, params.cellSize - params.gap);
+            const cx = (x + transform.offX) * scale;
+            const cy = (y + transform.offY) * scale;
+            const size = Math.max(0, params.cellSize - params.gap) * scale;
 
             ctx.translate(cx, cy);
             ctx.rotate(transform.rot);

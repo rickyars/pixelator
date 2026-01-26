@@ -39,6 +39,7 @@ class PixelatorStudio {
             bgColor: '#000000',
             useOriginalColor: true,
             monoColor: '#ffffff',
+            outputScale: 1,
 
             // Shape mode
             algorithm: 'halftone',
@@ -69,10 +70,8 @@ class PixelatorStudio {
             // Quadtree mode
             quadtreeIterations: 5000,
             quadtreeSizeSensitive: false,
-            quadtreeRenderMode: 'color',
-            quadtreeChar: '#',
-            quadtreeFontFamily: 'monospace',
-            quadtreeFontSize: 12,
+            quadtreeMonoColor: '#000000',
+            quadtreeUseOriginalColor: true,
 
             // Actions
             uploadImage: () => this.imageInput.click(),
@@ -100,14 +99,14 @@ class PixelatorStudio {
         pane.addInput(this.params, 'mode', {
             label: 'Mode',
             options: {
-                'Shape Effects': 'shape',
-                'ASCII Art': 'ascii',
-                'Typewriter Art': 'typewriter',
-                'Emoji Art': 'emoji',
-                'Quadtree Compression': 'quadtree'
+                'Shape': 'shape',
+                'ASCII': 'ascii',
+                'Typewriter': 'typewriter',
+                'Emoji': 'emoji',
+                'Quadtree': 'quadtree'
             }
         }).on('change', () => {
-            if (this.params.mode === 'typewriter') {
+            if (this.params.mode === 'typewriter' || this.params.mode === 'quadtree') {
                 this.params.bgColor = '#ffffff';
                 this.bgColorControl.refresh();
             }
@@ -138,27 +137,37 @@ class PixelatorStudio {
             step: 0.25
         }).on('change', () => this.render());
 
-        this.contrastControl = commonFolder.addInput(this.params, 'contrast', {
+        this.bgColorControl = commonFolder.addInput(this.params, 'bgColor', {
+            label: 'Background'
+        }).on('change', () => this.render());
+
+        this.outputScaleControl = commonFolder.addInput(this.params, 'outputScale', {
+            label: 'Output Scale',
+            min: 1,
+            max: 4,
+            step: 0.5
+        }).on('change', () => this.render());
+
+        // Shape mode folder
+        this.shapeFolder = pane.addFolder({ title: 'Shape Settings', expanded: true });
+
+        this.shapeFolder.addInput(this.params, 'contrast', {
             label: 'Contrast',
             min: -100,
             max: 100,
             step: 1
         }).on('change', () => this.render());
 
-        this.bgColorControl = commonFolder.addInput(this.params, 'bgColor', {
-            label: 'Background'
-        }).on('change', () => this.render());
-
-        this.monoColorControl = commonFolder.addInput(this.params, 'monoColor', {
+        this.shapeFolder.addInput(this.params, 'monoColor', {
             label: 'Foreground'
         }).on('change', () => this.render());
 
-        this.useOriginalColorControl = commonFolder.addInput(this.params, 'useOriginalColor', {
+        this.shapeFolder.addInput(this.params, 'useOriginalColor', {
             label: 'Original Color'
         }).on('change', () => this.render());
 
-        // Shape mode folder
-        this.shapeFolder = pane.addFolder({ title: 'Shape Settings', expanded: true });
+        this.shapeFolder.addSeparator();
+
         this.shapeFolder.addInput(this.params, 'algorithm', {
             label: 'Algorithm',
             options: Algorithms.getAlgorithmList()
@@ -393,6 +402,16 @@ class PixelatorStudio {
             hidden: true
         });
 
+        this.quadtreeFolder.addInput(this.params, 'quadtreeMonoColor', {
+            label: 'Foreground'
+        }).on('change', () => this.render());
+
+        this.quadtreeFolder.addInput(this.params, 'quadtreeUseOriginalColor', {
+            label: 'Original Color'
+        }).on('change', () => this.render());
+
+        this.quadtreeFolder.addSeparator();
+
         this.quadtreeFolder.addInput(this.params, 'quadtreeIterations', {
             label: 'Max Iterations',
             min: 100,
@@ -404,43 +423,6 @@ class PixelatorStudio {
             label: 'Prioritize Large'
         }).on('change', () => this.render());
 
-        this.quadtreeFolder.addInput(this.params, 'quadtreeRenderMode', {
-            label: 'Render Mode',
-            options: {
-                'Color Rectangles': 'color',
-                'ASCII Characters': 'ascii'
-            }
-        }).on('change', () => {
-            this.updateUIVisibility();
-            this.render();
-        });
-
-        // ASCII-specific controls (hidden by default)
-        this.quadtreeCharControl = this.quadtreeFolder.addInput(
-            this.params, 'quadtreeChar', {
-            label: 'Character',
-            hidden: true
-        }).on('change', () => this.render());
-
-        this.quadtreeFontControl = this.quadtreeFolder.addInput(
-            this.params, 'quadtreeFontFamily', {
-            label: 'Font',
-            options: {
-                'Monospace': 'monospace',
-                'Courier New': "'Courier New', monospace",
-                'Consolas': 'Consolas, monospace'
-            },
-            hidden: true
-        }).on('change', () => this.render());
-
-        this.quadtreeFontSizeControl = this.quadtreeFolder.addInput(
-            this.params, 'quadtreeFontSize', {
-            label: 'Font Size',
-            min: 6,
-            max: 72,
-            step: 1,
-            hidden: true
-        }).on('change', () => this.render());
 
         this.pane = pane;
 
@@ -459,16 +441,8 @@ class PixelatorStudio {
         // Cell size not used by quadtree
         this.cellSizeControl.hidden = mode === 'quadtree';
 
-        // Gap only for shape mode
-        this.gapControl.hidden = mode !== 'shape';
-
-        // Contrast hidden for ASCII/emoji/quadtree
-        this.contrastControl.hidden = mode === 'ascii' || mode === 'emoji' || mode === 'quadtree';
-
-        // Color controls
-        this.bgColorControl.hidden = mode === 'ascii';
-        this.monoColorControl.hidden = mode === 'typewriter' || mode === 'ascii' || mode === 'emoji';
-        this.useOriginalColorControl.hidden = mode === 'typewriter' || mode === 'ascii' || mode === 'emoji';
+        // Gap not used by quadtree (uses its own subdivision)
+        this.gapControl.hidden = mode === 'quadtree';
 
         // Mode folders
         this.shapeFolder.hidden = mode !== 'shape';
@@ -477,13 +451,6 @@ class PixelatorStudio {
         this.emojiFolder.hidden = mode !== 'emoji';
         this.quadtreeFolder.hidden = mode !== 'quadtree';
 
-        // Quadtree ASCII controls visibility
-        if (mode === 'quadtree') {
-            const isAscii = this.params.quadtreeRenderMode === 'ascii';
-            this.quadtreeCharControl.hidden = !isAscii;
-            this.quadtreeFontControl.hidden = !isAscii;
-            this.quadtreeFontSizeControl.hidden = !isAscii;
-        }
     }
 
     /**

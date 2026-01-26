@@ -507,6 +507,8 @@ const AsciiMode = {
     setupRender(ctx, canvas, img, params) {
         const prepared = Core.prepareImage(img);
         const { width, height, data } = prepared;
+        const scale = params.outputScale || 1;
+        const gap = params.gap || 0;
 
         const cellSize = params.cellSize;
         const fontFamily = params.fontFamily || 'monospace';
@@ -528,8 +530,15 @@ const AsciiMode = {
         const cols = Math.floor(width / charWidth);
         const rows = Math.floor(height / charHeight);
 
-        canvas.width = cols * charWidth;
-        canvas.height = rows * charHeight;
+        // Scaled dimensions for rendering (including gap)
+        const scaledCharWidth = charWidth * scale;
+        const scaledCharHeight = charHeight * scale;
+        const scaledCellSize = cellSize * scale;
+        const scaledGap = gap * scale;
+
+        // Canvas includes gaps between cells
+        canvas.width = cols * scaledCharWidth + (cols - 1) * scaledGap;
+        canvas.height = rows * scaledCharHeight + (rows - 1) * scaledGap;
 
         // Recompute character data if needed
         if (!this.charDensities ||
@@ -547,9 +556,9 @@ const AsciiMode = {
         ctx.fillStyle = this.bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Setup font
+        // Setup font (scaled)
         ctx.fillStyle = this.fgColor;
-        ctx.font = `${cellSize}px ${fontFamily}`;
+        ctx.font = `${scaledCellSize}px ${fontFamily}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
@@ -559,14 +568,14 @@ const AsciiMode = {
         const invert = params.asciiInvert || false;
         const useOriginalColor = params.asciiUseOriginalColor || false;
 
-        return { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor };
+        return { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor, scale, scaledCharWidth, scaledCharHeight, scaledGap };
     },
 
     /**
      * Algorithm 1: Simple brightness mapping
      */
     renderBrightness(ctx, canvas, img, params) {
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor } =
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor, scaledCharWidth, scaledCharHeight, scaledGap } =
             this.setupRender(ctx, canvas, img, params);
 
         for (let row = 0; row < rows; row++) {
@@ -605,8 +614,8 @@ const AsciiMode = {
                 const char = this.sortedByDensity[charIndex].char;
 
                 const stopData = this.getStopData(char);
-                const drawX = col * charWidth;
-                const drawY = row * charHeight;
+                const drawX = col * (scaledCharWidth + scaledGap);
+                const drawY = row * (scaledCharHeight + scaledGap);
 
                 // Determine colors
                 let fgColor = stopData.fg;
@@ -620,16 +629,16 @@ const AsciiMode = {
 
                 // Draw cell background
                 ctx.fillStyle = bgColor;
-                ctx.fillRect(drawX, drawY, charWidth, charHeight);
+                ctx.fillRect(drawX, drawY, scaledCharWidth, scaledCharHeight);
 
                 if (char !== ' ') {
                     if (stopData.image) {
                         // Draw uploaded image
-                        this.drawImageStop(ctx, stopData, drawX, drawY, charWidth, charHeight);
+                        this.drawImageStop(ctx, stopData, drawX, drawY, scaledCharWidth, scaledCharHeight);
                     } else {
                         // Draw text character
                         ctx.fillStyle = fgColor;
-                        ctx.fillText(char, drawX + charWidth / 2, drawY + charHeight / 2);
+                        ctx.fillText(char, drawX + scaledCharWidth / 2, drawY + scaledCharHeight / 2);
                     }
                 }
             }
@@ -640,7 +649,7 @@ const AsciiMode = {
      * Algorithm 2: Shade + Shape hybrid (asciiart.club style)
      */
     renderShadeShape(ctx, canvas, img, params) {
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor } =
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor, scaledCharWidth, scaledCharHeight, scaledGap } =
             this.setupRender(ctx, canvas, img, params);
 
         for (let row = 0; row < rows; row++) {
@@ -685,8 +694,8 @@ const AsciiMode = {
                 const char = this.findBestShapeMatch(candidates, imageShape);
 
                 const stopData = this.getStopData(char);
-                const drawX = col * charWidth;
-                const drawY = row * charHeight;
+                const drawX = col * (scaledCharWidth + scaledGap);
+                const drawY = row * (scaledCharHeight + scaledGap);
 
                 // Determine colors
                 let fgColor = stopData.fg;
@@ -700,16 +709,16 @@ const AsciiMode = {
 
                 // Draw cell background
                 ctx.fillStyle = bgColor;
-                ctx.fillRect(drawX, drawY, charWidth, charHeight);
+                ctx.fillRect(drawX, drawY, scaledCharWidth, scaledCharHeight);
 
                 if (char !== ' ') {
                     if (stopData.image) {
                         // Draw uploaded image
-                        this.drawImageStop(ctx, stopData, drawX, drawY, charWidth, charHeight);
+                        this.drawImageStop(ctx, stopData, drawX, drawY, scaledCharWidth, scaledCharHeight);
                     } else {
                         // Draw text character
                         ctx.fillStyle = fgColor;
-                        ctx.fillText(char, drawX + charWidth / 2, drawY + charHeight / 2);
+                        ctx.fillText(char, drawX + scaledCharWidth / 2, drawY + scaledCharHeight / 2);
                     }
                 }
             }
@@ -801,7 +810,7 @@ const AsciiMode = {
      * Runs Sobel on full image, then matches tiles to edge characters
      */
     renderEdge(ctx, canvas, img, params) {
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor } =
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor, scaledCharWidth, scaledCharHeight, scaledGap } =
             this.setupRender(ctx, canvas, img, params);
 
         // Step 1: Run Sobel edge detection on full image
@@ -852,8 +861,8 @@ const AsciiMode = {
                 const char = this.matchEdgeTile(tile, edgeCount);
 
                 const stopData = this.getStopData(char);
-                const drawX = col * charWidth;
-                const drawY = row * charHeight;
+                const drawX = col * (scaledCharWidth + scaledGap);
+                const drawY = row * (scaledCharHeight + scaledGap);
 
                 // Determine colors
                 let fgColor = stopData.fg;
@@ -867,16 +876,16 @@ const AsciiMode = {
 
                 // Draw cell background
                 ctx.fillStyle = bgColor;
-                ctx.fillRect(drawX, drawY, charWidth, charHeight);
+                ctx.fillRect(drawX, drawY, scaledCharWidth, scaledCharHeight);
 
                 if (char !== ' ') {
                     if (stopData.image) {
                         // Draw uploaded image
-                        this.drawImageStop(ctx, stopData, drawX, drawY, charWidth, charHeight);
+                        this.drawImageStop(ctx, stopData, drawX, drawY, scaledCharWidth, scaledCharHeight);
                     } else {
                         // Draw text character
                         ctx.fillStyle = fgColor;
-                        ctx.fillText(char, drawX + charWidth / 2, drawY + charHeight / 2);
+                        ctx.fillText(char, drawX + scaledCharWidth / 2, drawY + scaledCharHeight / 2);
                     }
                 }
             }

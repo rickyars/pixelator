@@ -198,6 +198,8 @@ const EmojiMode = {
     render(ctx, canvas, img, params) {
         const cellSize = params.cellSize || 16;
         const bgColor = params.bgColor || '#000000';
+        const scale = params.outputScale || 1;
+        const gap = params.gap || 0;
 
         // Prepare source image
         const prepared = Core.prepareImage(img);
@@ -209,23 +211,25 @@ const EmojiMode = {
         const cols = Math.floor(srcWidth / cellSize);
         const rows = Math.floor(srcHeight / cellSize);
 
-        // Set canvas size
-        canvas.width = cols * cellSize;
-        canvas.height = rows * cellSize;
+        // Set canvas size (scaled, with gaps)
+        const scaledCellSize = cellSize * scale;
+        const scaledGap = gap * scale;
+        canvas.width = cols * scaledCellSize + (cols - 1) * scaledGap;
+        canvas.height = rows * scaledCellSize + (rows - 1) * scaledGap;
 
         // Fill background
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Set font for emoji rendering
-        ctx.font = `${cellSize}px sans-serif`;
+        // Set font for emoji rendering (scaled)
+        ctx.font = `${scaledCellSize}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
         // Process each cell
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
-                // Calculate average color of this cell
+                // Calculate average color of this cell (from original image)
                 const { r, g, b } = this.getAverageColor(
                     srcData, srcWidth,
                     col * cellSize, row * cellSize,
@@ -235,9 +239,9 @@ const EmojiMode = {
                 // Find matching emoji
                 const emoji = this.findClosestEmoji(r, g, b);
 
-                // Draw emoji centered in cell
-                const x = col * cellSize + cellSize / 2;
-                const y = row * cellSize + cellSize / 2;
+                // Draw emoji centered in cell (scaled coordinates with gap)
+                const x = col * (scaledCellSize + scaledGap) + scaledCellSize / 2;
+                const y = row * (scaledCellSize + scaledGap) + scaledCellSize / 2;
                 ctx.fillText(emoji, x, y);
             }
         }

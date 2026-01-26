@@ -35,29 +35,27 @@ const QuadTreeMode = {
             this.cacheKey = currentKey;
         }
 
-        // Setup canvas
-        canvas.width = width;
-        canvas.height = height;
+        // Output scale factor for higher resolution rendering
+        const scale = params.outputScale || 1;
+
+        // Setup canvas at scaled resolution
+        canvas.width = width * scale;
+        canvas.height = height * scale;
 
         // Fill background
         ctx.fillStyle = params.bgColor || '#000000';
-        ctx.fillRect(0, 0, width, height);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Render based on mode (using cached leaves)
-        const renderMode = params.quadtreeRenderMode || 'color';
-        if (renderMode === 'color') {
-            this.renderColor(ctx, this.cachedLeaves, params);
-        } else {
-            this.renderAscii(ctx, this.cachedLeaves, params);
-        }
+        // Render leaves as colored rectangles
+        this.renderColor(ctx, this.cachedLeaves, params, scale);
     },
 
     /**
      * Render colored rectangles for each leaf node
      */
-    renderColor(ctx, leaves, params) {
-        const useOriginalColor = params.useOriginalColor !== undefined
-            ? params.useOriginalColor
+    renderColor(ctx, leaves, params, scale) {
+        const useOriginalColor = params.quadtreeUseOriginalColor !== undefined
+            ? params.quadtreeUseOriginalColor
             : true;
 
         for (const node of leaves) {
@@ -66,39 +64,9 @@ const QuadTreeMode = {
             // Apply color mode
             const rgb = this.applyColorMode({ r, g, b }, params, useOriginalColor);
 
-            // Draw rectangle
+            // Draw rectangle at scaled coordinates
             ctx.fillStyle = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
-            ctx.fillRect(node.x, node.y, node.width, node.height);
-        }
-    },
-
-    /**
-     * Render ASCII characters for each leaf node
-     * Uses fixed font size - density creates detail (more small nodes = more characters)
-     */
-    renderAscii(ctx, leaves, params) {
-        const char = params.quadtreeChar || '#';
-        const fontFamily = params.quadtreeFontFamily || 'monospace';
-        const fontSize = params.quadtreeFontSize || 12;
-        const useOriginalColor = params.useOriginalColor !== undefined
-            ? params.useOriginalColor
-            : true;
-
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = `${fontSize}px ${fontFamily}`;
-
-        for (const node of leaves) {
-            const { r, g, b } = node.color;
-
-            // Apply color mode
-            const rgb = this.applyColorMode({ r, g, b }, params, useOriginalColor);
-            ctx.fillStyle = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
-
-            // Draw character at node center (fixed size, density creates detail)
-            const x = node.x + node.width / 2;
-            const y = node.y + node.height / 2;
-            ctx.fillText(char, x, y);
+            ctx.fillRect(node.x * scale, node.y * scale, node.width * scale, node.height * scale);
         }
     },
 
@@ -115,7 +83,7 @@ const QuadTreeMode = {
         const normalized = lum / 255;
 
         // Parse mono color
-        const monoColor = params.monoColor || '#ffffff';
+        const monoColor = params.quadtreeMonoColor || '#ffffff';
         const hex = monoColor.replace('#', '');
         const monoR = parseInt(hex.substring(0, 2), 16);
         const monoG = parseInt(hex.substring(2, 4), 16);
