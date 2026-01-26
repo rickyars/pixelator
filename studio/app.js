@@ -66,6 +66,14 @@ class PixelatorStudio {
             // Emoji mode
             emojiSet: 'default',
 
+            // Quadtree mode
+            quadtreeIterations: 5000,
+            quadtreeSizeSensitive: false,
+            quadtreeRenderMode: 'color',
+            quadtreeChar: '#',
+            quadtreeFontFamily: 'monospace',
+            quadtreeFontSize: 12,
+
             // Actions
             uploadImage: () => this.imageInput.click(),
             loadSVG: () => this.svgInput.click(),
@@ -95,7 +103,8 @@ class PixelatorStudio {
                 'Shape Effects': 'shape',
                 'ASCII Art': 'ascii',
                 'Typewriter Art': 'typewriter',
-                'Emoji Art': 'emoji'
+                'Emoji Art': 'emoji',
+                'Quadtree Compression': 'quadtree'
             }
         }).on('change', () => {
             if (this.params.mode === 'typewriter') {
@@ -115,7 +124,7 @@ class PixelatorStudio {
 
         // Common settings
         const commonFolder = pane.addFolder({ title: 'Common', expanded: true });
-        commonFolder.addInput(this.params, 'cellSize', {
+        this.cellSizeControl = commonFolder.addInput(this.params, 'cellSize', {
             label: 'Cell Size',
             min: 4,
             max: 40,
@@ -377,6 +386,62 @@ class PixelatorStudio {
             this.render();
         });
 
+        // Quadtree mode folder
+        this.quadtreeFolder = pane.addFolder({
+            title: 'Quadtree Settings',
+            expanded: true,
+            hidden: true
+        });
+
+        this.quadtreeFolder.addInput(this.params, 'quadtreeIterations', {
+            label: 'Max Iterations',
+            min: 100,
+            max: 50000,
+            step: 100
+        }).on('change', () => this.render());
+
+        this.quadtreeFolder.addInput(this.params, 'quadtreeSizeSensitive', {
+            label: 'Prioritize Large'
+        }).on('change', () => this.render());
+
+        this.quadtreeFolder.addInput(this.params, 'quadtreeRenderMode', {
+            label: 'Render Mode',
+            options: {
+                'Color Rectangles': 'color',
+                'ASCII Characters': 'ascii'
+            }
+        }).on('change', () => {
+            this.updateUIVisibility();
+            this.render();
+        });
+
+        // ASCII-specific controls (hidden by default)
+        this.quadtreeCharControl = this.quadtreeFolder.addInput(
+            this.params, 'quadtreeChar', {
+            label: 'Character',
+            hidden: true
+        }).on('change', () => this.render());
+
+        this.quadtreeFontControl = this.quadtreeFolder.addInput(
+            this.params, 'quadtreeFontFamily', {
+            label: 'Font',
+            options: {
+                'Monospace': 'monospace',
+                'Courier New': "'Courier New', monospace",
+                'Consolas': 'Consolas, monospace'
+            },
+            hidden: true
+        }).on('change', () => this.render());
+
+        this.quadtreeFontSizeControl = this.quadtreeFolder.addInput(
+            this.params, 'quadtreeFontSize', {
+            label: 'Font Size',
+            min: 6,
+            max: 72,
+            step: 1,
+            hidden: true
+        }).on('change', () => this.render());
+
         this.pane = pane;
 
         // Initialize stops editor
@@ -391,13 +456,16 @@ class PixelatorStudio {
     updateUIVisibility() {
         const mode = this.params.mode;
 
+        // Cell size not used by quadtree
+        this.cellSizeControl.hidden = mode === 'quadtree';
+
         // Gap only for shape mode
         this.gapControl.hidden = mode !== 'shape';
 
-        // Contrast hidden for ASCII/emoji (ASCII uses black/white point, emoji matches colors directly)
-        this.contrastControl.hidden = mode === 'ascii' || mode === 'emoji';
+        // Contrast hidden for ASCII/emoji/quadtree
+        this.contrastControl.hidden = mode === 'ascii' || mode === 'emoji' || mode === 'quadtree';
 
-        // Color controls not relevant for typewriter/ascii/emoji (colors are per-character via stops)
+        // Color controls
         this.bgColorControl.hidden = mode === 'ascii';
         this.monoColorControl.hidden = mode === 'typewriter' || mode === 'ascii' || mode === 'emoji';
         this.useOriginalColorControl.hidden = mode === 'typewriter' || mode === 'ascii' || mode === 'emoji';
@@ -407,6 +475,15 @@ class PixelatorStudio {
         this.asciiFolder.hidden = mode !== 'ascii';
         this.typewriterFolder.hidden = mode !== 'typewriter';
         this.emojiFolder.hidden = mode !== 'emoji';
+        this.quadtreeFolder.hidden = mode !== 'quadtree';
+
+        // Quadtree ASCII controls visibility
+        if (mode === 'quadtree') {
+            const isAscii = this.params.quadtreeRenderMode === 'ascii';
+            this.quadtreeCharControl.hidden = !isAscii;
+            this.quadtreeFontControl.hidden = !isAscii;
+            this.quadtreeFontSizeControl.hidden = !isAscii;
+        }
     }
 
     /**
@@ -589,6 +666,8 @@ class PixelatorStudio {
                     TypewriterMode.render(this.ctx, this.canvas, this.image, this.params);
                 } else if (mode === 'emoji') {
                     EmojiMode.render(this.ctx, this.canvas, this.image, this.params);
+                } else if (mode === 'quadtree') {
+                    QuadTreeMode.render(this.ctx, this.canvas, this.image, this.params);
                 }
 
                 this.renderedCanvas = true;
