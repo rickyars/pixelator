@@ -18,6 +18,15 @@ class PixelatorStudio {
         this.processing = false;
         this.customFont = null;
 
+        // Pan/Zoom state
+        this.zoom = 1;
+        this.panX = 0;
+        this.panY = 0;
+        this.isDragging = false;
+        this.dragStartX = 0;
+        this.dragStartY = 0;
+        this.renderedCanvas = null;
+
         // Parameters
         this.params = {
             // Mode
@@ -44,6 +53,7 @@ class PixelatorStudio {
             asciiWhitePoint: 1,   // Values above become white
             asciiInvert: false,   // Draw bright areas with dense characters
             asciiUseOriginalColor: false,  // Use image colors for characters
+            asciiForceSquareCells: false,  // Force square cells instead of font metrics
 
             // Typewriter mode (Jules Kuehn algorithm)
             layers: '4x1',  // Layer configuration
@@ -65,6 +75,7 @@ class PixelatorStudio {
 
         this.initUI();
         this.initEvents();
+        this.initPanZoom();
         this.loadDefaultImage();
     }
 
@@ -223,6 +234,10 @@ class PixelatorStudio {
 
         this.asciiFolder.addInput(this.params, 'asciiUseOriginalColor', {
             label: 'Original Color'
+        }).on('change', () => this.render());
+
+        this.asciiFolder.addInput(this.params, 'asciiForceSquareCells', {
+            label: 'Square Cells'
         }).on('change', () => this.render());
 
         this.asciiFolder.addButton({ title: 'Swap Black/White' }).on('click', () => {
@@ -450,6 +465,92 @@ class PixelatorStudio {
     }
 
     /**
+     * Initialize pan/zoom controls
+     */
+    initPanZoom() {
+        const container = this.canvas.parentElement;
+
+        // Mouse wheel for zoom
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = Math.max(0.1, Math.min(20, this.zoom * delta));
+
+            // Zoom toward mouse position
+            const rect = this.canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const scale = newZoom / this.zoom;
+            this.panX = mouseX - (mouseX - this.panX) * scale;
+            this.panY = mouseY - (mouseY - this.panY) * scale;
+            this.zoom = newZoom;
+
+            this.applyTransform();
+        }, { passive: false });
+
+        // Mouse drag for pan
+        container.addEventListener('mousedown', (e) => {
+            if (e.button === 0) {
+                this.isDragging = true;
+                this.dragStartX = e.clientX - this.panX;
+                this.dragStartY = e.clientY - this.panY;
+                container.style.cursor = 'grabbing';
+            }
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (this.isDragging) {
+                this.panX = e.clientX - this.dragStartX;
+                this.panY = e.clientY - this.dragStartY;
+                this.applyTransform();
+            }
+        });
+
+        container.addEventListener('mouseup', () => {
+            if (this.isDragging) {
+                this.isDragging = false;
+                container.style.cursor = 'grab';
+            }
+        });
+
+        container.addEventListener('mouseleave', () => {
+            if (this.isDragging) {
+                this.isDragging = false;
+                container.style.cursor = 'grab';
+            }
+        });
+
+        // Double-click to reset zoom
+        container.addEventListener('dblclick', () => {
+            this.resetZoom();
+        });
+
+        container.style.cursor = 'grab';
+    }
+
+    /**
+     * Apply current pan/zoom transform to canvas
+     */
+    applyTransform() {
+        if (this.renderedCanvas) {
+            this.canvas.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
+            this.canvas.style.transformOrigin = '0 0';
+            this.canvas.style.imageRendering = 'pixelated';
+        }
+    }
+
+    /**
+     * Reset pan/zoom to default
+     */
+    resetZoom() {
+        this.zoom = 1;
+        this.panX = 0;
+        this.panY = 0;
+        this.applyTransform();
+    }
+
+    /**
      * Load default image
      */
     loadDefaultImage() {
@@ -466,7 +567,12 @@ class PixelatorStudio {
      * Render current mode
      */
     render() {
-        if (!this.image || this.processing) return;
+        if (!this.image) return;
+
+        if (this.processing) {
+            setTimeout(() => this.render(), 100);
+            return;
+        }
 
         this.processing = true;
         this.loading.classList.add('active');
@@ -484,6 +590,9 @@ class PixelatorStudio {
                 } else if (mode === 'emoji') {
                     EmojiMode.render(this.ctx, this.canvas, this.image, this.params);
                 }
+
+                this.renderedCanvas = true;
+                this.applyTransform();
             } catch (error) {
                 console.error('Render error:', error);
                 alert('Render error: ' + error.message);

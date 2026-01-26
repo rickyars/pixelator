@@ -26,6 +26,8 @@ const AsciiMode = {
     // Cache keys
     _lastCellSize: null,
     _lastFont: null,
+    _lastSquareCells: null,
+    _useSquareCells: false,
 
     /**
      * Initialize with default character set
@@ -34,6 +36,16 @@ const AsciiMode = {
         this.characters = ' .`\'^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
         this.bgColor = '#ffffff';
         this.fgColor = '#000000';
+
+        // Initialize stops from characters
+        this.stops = this.characters.split('').map((char, i) => ({
+            id: i,
+            percentage: Math.round(i / (this.characters.length - 1) * 100),
+            value: char,
+            color: this.fgColor,
+            bgColor: this.bgColor
+        }));
+        this.stopIdCounter = this.stops.length;
     },
 
     /**
@@ -61,11 +73,19 @@ const AsciiMode = {
      */
     computeDensities(cellSize, fontFamily) {
         const canvas = document.createElement('canvas');
-        const measureCtx = canvas.getContext('2d');
-        measureCtx.font = `${cellSize}px ${fontFamily}`;
-        const metrics = measureCtx.measureText('M');
-        const charWidth = Math.ceil(metrics.width);
-        const charHeight = cellSize;
+        let charWidth, charHeight;
+
+        if (this._useSquareCells) {
+            charWidth = cellSize;
+            charHeight = cellSize;
+        } else {
+            const measureCtx = document.createElement('canvas').getContext('2d');
+            measureCtx.font = `${cellSize}px ${fontFamily}`;
+            const metrics = measureCtx.measureText('M');
+            charWidth = Math.ceil(metrics.width);
+            charHeight = cellSize;
+        }
+
         canvas.width = charWidth;
         canvas.height = charHeight;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -74,27 +94,45 @@ const AsciiMode = {
         const densityList = [];
 
         for (const char of this.characters) {
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, charWidth, charHeight);
+            // Check if this char has an image stop
+            const stop = this.stops.find(s => s.value === char);
+            let density = 0;
 
-            if (char !== ' ') {
-                ctx.fillStyle = 'black';
-                ctx.font = `${cellSize}px ${fontFamily}`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(char, charWidth / 2, charHeight / 2);
+            if (stop && stop.imageData) {
+                // Compute density from uploaded image
+                const imgData = stop.imageData.data;
+                let darkPixels = 0;
+                for (let i = 0; i < imgData.length; i += 4) {
+                    // Use luminance to determine darkness
+                    const luma = (imgData[i] * 0.299 + imgData[i + 1] * 0.587 + imgData[i + 2] * 0.114) / 255;
+                    darkPixels += (1 - luma);
+                }
+                density = darkPixels / (imgData.length / 4);
+            } else {
+                // Render text character and measure density
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, charWidth, charHeight);
+
+                if (char !== ' ') {
+                    ctx.fillStyle = 'black';
+                    ctx.font = `${cellSize}px ${fontFamily}`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(char, charWidth / 2, charHeight / 2);
+                }
+
+                const imageData = ctx.getImageData(0, 0, charWidth, charHeight);
+                let blackPixels = 0;
+                const totalPixels = charWidth * charHeight;
+
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    // Count dark pixels (inverted: 0=white, 255=black)
+                    blackPixels += (255 - imageData.data[i]) / 255;
+                }
+
+                density = blackPixels / totalPixels;
             }
 
-            const imageData = ctx.getImageData(0, 0, charWidth, charHeight);
-            let blackPixels = 0;
-            const totalPixels = charWidth * charHeight;
-
-            for (let i = 0; i < imageData.data.length; i += 4) {
-                // Count dark pixels (inverted: 0=white, 255=black)
-                blackPixels += (255 - imageData.data[i]) / 255;
-            }
-
-            const density = blackPixels / totalPixels;
             this.charDensities.set(char, density);
             densityList.push({ char, density });
         }
@@ -108,11 +146,19 @@ const AsciiMode = {
      */
     computeShapes(cellSize, fontFamily) {
         const canvas = document.createElement('canvas');
-        const measureCtx = canvas.getContext('2d');
-        measureCtx.font = `${cellSize}px ${fontFamily}`;
-        const metrics = measureCtx.measureText('M');
-        const charWidth = Math.ceil(metrics.width);
-        const charHeight = cellSize;
+        let charWidth, charHeight;
+
+        if (this._useSquareCells) {
+            charWidth = cellSize;
+            charHeight = cellSize;
+        } else {
+            const measureCtx = document.createElement('canvas').getContext('2d');
+            measureCtx.font = `${cellSize}px ${fontFamily}`;
+            const metrics = measureCtx.measureText('M');
+            charWidth = Math.ceil(metrics.width);
+            charHeight = cellSize;
+        }
+
         canvas.width = charWidth;
         canvas.height = charHeight;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -176,11 +222,19 @@ const AsciiMode = {
      */
     computeEdgeCharImages(cellSize, fontFamily) {
         const canvas = document.createElement('canvas');
-        const measureCtx = canvas.getContext('2d');
-        measureCtx.font = `${cellSize}px ${fontFamily}`;
-        const metrics = measureCtx.measureText('M');
-        const charWidth = Math.ceil(metrics.width);
-        const charHeight = cellSize;
+        let charWidth, charHeight;
+
+        if (this._useSquareCells) {
+            charWidth = cellSize;
+            charHeight = cellSize;
+        } else {
+            const measureCtx = document.createElement('canvas').getContext('2d');
+            measureCtx.font = `${cellSize}px ${fontFamily}`;
+            const metrics = measureCtx.measureText('M');
+            charWidth = Math.ceil(metrics.width);
+            charHeight = cellSize;
+        }
+
         canvas.width = charWidth;
         canvas.height = charHeight;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -319,14 +373,132 @@ const AsciiMode = {
     },
 
     /**
-     * Get colors for a character from stops
+     * Get stop data for a character (colors and optional image)
      */
-    getCharColors(char) {
+    getStopData(char) {
         const stop = this.stops.find(s => s.value === char);
         return {
             fg: stop && stop.color ? stop.color : this.fgColor,
-            bg: stop && stop.bgColor ? stop.bgColor : this.bgColor
+            bg: stop && stop.bgColor ? stop.bgColor : this.bgColor,
+            image: stop ? stop.image : null,
+            imageData: stop ? stop.imageData : null
         };
+    },
+
+    /**
+     * Draw an image stop with FG/BG colors applied
+     * Black pixels -> FG color, White pixels -> BG color
+     */
+    drawImageStop(ctx, stopData, x, y, w, h) {
+        if (!stopData.imageData) {
+            if (stopData.image) {
+                ctx.drawImage(stopData.image, x, y, w, h);
+            }
+            return;
+        }
+
+        const fg = this.parseColor(stopData.fg);
+        const bg = this.parseColor(stopData.bg);
+
+        const srcW = stopData.imageData.width;
+        const srcH = stopData.imageData.height;
+        const src = stopData.imageData.data;
+
+        // Create temp canvas for colorized image at source size
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = srcW;
+        tempCanvas.height = srcH;
+        const tempCtx = tempCanvas.getContext('2d');
+
+        const outData = tempCtx.createImageData(srcW, srcH);
+        const dst = outData.data;
+
+        for (let i = 0; i < src.length; i += 4) {
+            const r = src[i];
+            const g = src[i + 1];
+            const b = src[i + 2];
+            const a = src[i + 3];
+
+            if (a < 128) {
+                dst[i] = bg.r;
+                dst[i + 1] = bg.g;
+                dst[i + 2] = bg.b;
+                dst[i + 3] = 255;
+            } else {
+                const luma = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+                dst[i] = Math.round(fg.r * luma + bg.r * (1 - luma));
+                dst[i + 1] = Math.round(fg.g * luma + bg.g * (1 - luma));
+                dst[i + 2] = Math.round(fg.b * luma + bg.b * (1 - luma));
+                dst[i + 3] = 255;
+            }
+        }
+
+        tempCtx.putImageData(outData, 0, 0);
+
+        // Draw colorized image scaled to cell with nearest-neighbor
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(tempCanvas, x, y, w, h);
+        ctx.imageSmoothingEnabled = true;
+    },
+
+    parseColor(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : { r: 0, g: 0, b: 0 };
+    },
+
+    /**
+     * Load an image into a stop
+     */
+    loadStopImage(stopId, file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Get image data
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, img.width, img.height);
+
+                    // Store in stop
+                    const stop = this.stops.find(s => s.id === stopId);
+                    if (stop) {
+                        stop.image = img;
+                        stop.imageData = imageData;
+                        // Recompute densities since we have a new "character"
+                        this.charDensities = null;
+                        this.charShapes = null;
+                        this.sortedByDensity = null;
+                    }
+                    resolve();
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    },
+
+    /**
+     * Remove image from a stop
+     */
+    removeStopImage(stopId) {
+        const stop = this.stops.find(s => s.id === stopId);
+        if (stop) {
+            stop.image = null;
+            stop.imageData = null;
+            this.charDensities = null;
+            this.charShapes = null;
+            this.sortedByDensity = null;
+        }
     },
 
     /**
@@ -339,10 +511,19 @@ const AsciiMode = {
         const cellSize = params.cellSize;
         const fontFamily = params.fontFamily || 'monospace';
 
-        ctx.font = `${cellSize}px ${fontFamily}`;
-        const metrics = ctx.measureText('M');
-        const charWidth = Math.ceil(metrics.width);
-        const charHeight = cellSize;
+        // Use square cells ONLY if checkbox is checked
+        const useSquareCells = params.asciiForceSquareCells || false;
+
+        let charWidth, charHeight;
+        if (useSquareCells) {
+            charWidth = cellSize;
+            charHeight = cellSize;
+        } else {
+            ctx.font = `${cellSize}px ${fontFamily}`;
+            const metrics = ctx.measureText('M');
+            charWidth = Math.ceil(metrics.width);
+            charHeight = cellSize;
+        }
 
         const cols = Math.floor(width / charWidth);
         const rows = Math.floor(height / charHeight);
@@ -353,10 +534,13 @@ const AsciiMode = {
         // Recompute character data if needed
         if (!this.charDensities ||
             this._lastCellSize !== cellSize ||
-            this._lastFont !== fontFamily) {
+            this._lastFont !== fontFamily ||
+            this._lastSquareCells !== useSquareCells) {
+            this._useSquareCells = useSquareCells; // Set before computing
             this.precomputeCharData(cellSize, fontFamily);
             this._lastCellSize = cellSize;
             this._lastFont = fontFamily;
+            this._lastSquareCells = useSquareCells;
         }
 
         // Fill background
@@ -420,24 +604,33 @@ const AsciiMode = {
                 );
                 const char = this.sortedByDensity[charIndex].char;
 
-                const colors = this.getCharColors(char);
+                const stopData = this.getStopData(char);
                 const drawX = col * charWidth;
                 const drawY = row * charHeight;
 
+                // Determine colors
+                let fgColor = stopData.fg;
+                let bgColor = stopData.bg;
+                if (useOriginalColor && count > 0) {
+                    const r = Math.round(rSum / count);
+                    const g = Math.round(gSum / count);
+                    const b = Math.round(bSum / count);
+                    fgColor = `rgb(${r},${g},${b})`;
+                }
+
                 // Draw cell background
-                ctx.fillStyle = colors.bg;
+                ctx.fillStyle = bgColor;
                 ctx.fillRect(drawX, drawY, charWidth, charHeight);
 
                 if (char !== ' ') {
-                    if (useOriginalColor && count > 0) {
-                        const r = Math.round(rSum / count);
-                        const g = Math.round(gSum / count);
-                        const b = Math.round(bSum / count);
-                        ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    if (stopData.image) {
+                        // Draw uploaded image
+                        this.drawImageStop(ctx, stopData, drawX, drawY, charWidth, charHeight);
                     } else {
-                        ctx.fillStyle = colors.fg;
+                        // Draw text character
+                        ctx.fillStyle = fgColor;
+                        ctx.fillText(char, drawX + charWidth / 2, drawY + charHeight / 2);
                     }
-                    ctx.fillText(char, drawX + charWidth / 2, drawY + charHeight / 2);
                 }
             }
         }
@@ -491,24 +684,33 @@ const AsciiMode = {
                 // Find best shape match among candidates
                 const char = this.findBestShapeMatch(candidates, imageShape);
 
-                const colors = this.getCharColors(char);
+                const stopData = this.getStopData(char);
                 const drawX = col * charWidth;
                 const drawY = row * charHeight;
 
+                // Determine colors
+                let fgColor = stopData.fg;
+                let bgColor = stopData.bg;
+                if (useOriginalColor && count > 0) {
+                    const r = Math.round(rSum / count);
+                    const g = Math.round(gSum / count);
+                    const b = Math.round(bSum / count);
+                    fgColor = `rgb(${r},${g},${b})`;
+                }
+
                 // Draw cell background
-                ctx.fillStyle = colors.bg;
+                ctx.fillStyle = bgColor;
                 ctx.fillRect(drawX, drawY, charWidth, charHeight);
 
                 if (char !== ' ') {
-                    if (useOriginalColor && count > 0) {
-                        const r = Math.round(rSum / count);
-                        const g = Math.round(gSum / count);
-                        const b = Math.round(bSum / count);
-                        ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    if (stopData.image) {
+                        // Draw uploaded image
+                        this.drawImageStop(ctx, stopData, drawX, drawY, charWidth, charHeight);
                     } else {
-                        ctx.fillStyle = colors.fg;
+                        // Draw text character
+                        ctx.fillStyle = fgColor;
+                        ctx.fillText(char, drawX + charWidth / 2, drawY + charHeight / 2);
                     }
-                    ctx.fillText(char, drawX + charWidth / 2, drawY + charHeight / 2);
                 }
             }
         }
@@ -649,24 +851,33 @@ const AsciiMode = {
                 // Find best matching edge character
                 const char = this.matchEdgeTile(tile, edgeCount);
 
-                const colors = this.getCharColors(char);
+                const stopData = this.getStopData(char);
                 const drawX = col * charWidth;
                 const drawY = row * charHeight;
 
+                // Determine colors
+                let fgColor = stopData.fg;
+                let bgColor = stopData.bg;
+                if (useOriginalColor && colorCount > 0) {
+                    const r = Math.round(rSum / colorCount);
+                    const g = Math.round(gSum / colorCount);
+                    const b = Math.round(bSum / colorCount);
+                    fgColor = `rgb(${r},${g},${b})`;
+                }
+
                 // Draw cell background
-                ctx.fillStyle = colors.bg;
+                ctx.fillStyle = bgColor;
                 ctx.fillRect(drawX, drawY, charWidth, charHeight);
 
                 if (char !== ' ') {
-                    if (useOriginalColor && colorCount > 0) {
-                        const r = Math.round(rSum / colorCount);
-                        const g = Math.round(gSum / colorCount);
-                        const b = Math.round(bSum / colorCount);
-                        ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    if (stopData.image) {
+                        // Draw uploaded image
+                        this.drawImageStop(ctx, stopData, drawX, drawY, charWidth, charHeight);
                     } else {
-                        ctx.fillStyle = colors.fg;
+                        // Draw text character
+                        ctx.fillStyle = fgColor;
+                        ctx.fillText(char, drawX + charWidth / 2, drawY + charHeight / 2);
                     }
-                    ctx.fillText(char, drawX + charWidth / 2, drawY + charHeight / 2);
                 }
             }
         }
@@ -708,7 +919,6 @@ const AsciiMode = {
     syncFromStops() {
         if (this.stops.length > 0) {
             this.characters = this.stops.map(s => s.value).join('');
-            // Don't override globals - each stop has its own colors
             this.charDensities = null;
             this.charShapes = null;
             this.sortedByDensity = null;
