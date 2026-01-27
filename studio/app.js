@@ -290,6 +290,14 @@ class PixelatorStudio {
 
         this.asciiFolder.addSeparator();
 
+        // Image presets
+        this.asciiFolder.addButton({ title: 'Preset: Minesweeper' }).on('click', async () => {
+            await AsciiMode.applyImagePreset('minesweeper');
+            this.render();
+        });
+
+        this.asciiFolder.addSeparator();
+
         // Edit characters button
         this.asciiFolder.addButton({ title: 'Edit Characters...' }).on('click', () => {
             this.stopsEditor.open('ascii');

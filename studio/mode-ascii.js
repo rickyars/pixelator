@@ -381,7 +381,8 @@ const AsciiMode = {
             fg: stop && stop.color ? stop.color : this.fgColor,
             bg: stop && stop.bgColor ? stop.bgColor : this.bgColor,
             image: stop ? stop.image : null,
-            imageData: stop ? stop.imageData : null
+            imageData: stop ? stop.imageData : null,
+            preserveOriginalColors: stop ? stop.preserveOriginalColors : false
         };
     },
 
@@ -390,6 +391,14 @@ const AsciiMode = {
      * Black pixels -> FG color, White pixels -> BG color
      */
     drawImageStop(ctx, stopData, x, y, w, h) {
+        // If preserve original colors, just draw the image as-is
+        if (stopData.preserveOriginalColors && stopData.image) {
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(stopData.image, x, y, w, h);
+            ctx.imageSmoothingEnabled = true;
+            return;
+        }
+
         if (!stopData.imageData) {
             if (stopData.image) {
                 ctx.drawImage(stopData.image, x, y, w, h);
@@ -484,6 +493,38 @@ const AsciiMode = {
             };
             reader.onerror = reject;
             reader.readAsDataURL(file);
+        });
+    },
+
+    /**
+     * Load an image into a stop from URL
+     */
+    loadStopImageFromURL(stopId, url) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                // Get image data
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const imageData = ctx.getImageData(0, 0, img.width, img.height);
+
+                // Store in stop
+                const stop = this.stops.find(s => s.id === stopId);
+                if (stop) {
+                    stop.image = img;
+                    stop.imageData = imageData;
+                    // Recompute densities since we have a new "character"
+                    this.charDensities = null;
+                    this.charShapes = null;
+                    this.sortedByDensity = null;
+                }
+                resolve();
+            };
+            img.onerror = () => reject(new Error(`Failed to load image from ${url}`));
+            img.src = url;
         });
     },
 
@@ -982,6 +1023,61 @@ const AsciiMode = {
                 bgColor: this.bgColor
             }));
             this.stopIdCounter = this.stops.length;
+        }
+    },
+
+    /**
+     * Apply an image preset (e.g., minesweeper tiles)
+     */
+    async applyImagePreset(presetName) {
+        if (presetName === 'minesweeper') {
+            const tiles = [
+                { percentage: 0, file: 'TileEmpty.png' },
+                { percentage: 12.5, file: 'Tile1.png' },
+                { percentage: 25, file: 'Tile2.png' },
+                { percentage: 37.5, file: 'Tile3.png' },
+                { percentage: 50, file: 'Tile5.png' },
+                { percentage: 62.5, file: 'Tile7.png' },
+                { percentage: 75, file: 'TileUnknown.png' },
+                { percentage: 87.5, file: 'TileMine.png' },
+                { percentage: 100, file: 'TileExploded.png' }
+            ];
+
+            // Clear existing stops
+            this.stops = [];
+            this.characters = '';
+
+            // Add stops and load images
+            for (const tile of tiles) {
+                const url = `assets/minesweeper/${tile.file}`;
+                const stopId = this.stopIdCounter++;
+
+                this.stops.push({
+                    id: stopId,
+                    percentage: tile.percentage,
+                    value: String.fromCharCode(9600 + stopId), // Use unique placeholder char
+                    color: this.fgColor,
+                    bgColor: this.bgColor,
+                    image: null,
+                    imageData: null,
+                    preserveOriginalColors: true  // Keep minesweeper tiles colorful
+                });
+
+                try {
+                    await this.loadStopImageFromURL(stopId, url);
+                } catch (error) {
+                    console.error(`Failed to load ${tile.file}:`, error);
+                }
+            }
+
+            // Update characters string
+            this.characters = this.stops.map(s => s.value).join('');
+
+            // Clear cached data
+            this.charDensities = null;
+            this.charShapes = null;
+            this.sortedByDensity = null;
+            this.edgeCharImages = null;
         }
     },
 

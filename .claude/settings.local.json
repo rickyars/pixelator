@@ -21,7 +21,8 @@
       "WebFetch(domain:arxiv.org)",
       "WebFetch(domain:www.tooooools.app)",
       "WebFetch(domain:crocidb.com)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(wc:*)"
     ]
   }
 }

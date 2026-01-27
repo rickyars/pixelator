@@ -222,6 +222,7 @@ class StopsEditor {
         // Image upload button (ASCII mode only)
         let imageBtn = null;
         let clearBtn = null;
+        let preserveCheckbox = null;
         if (this.currentMode === 'ascii') {
             imageBtn = document.createElement('button');
             imageBtn.textContent = 'Upload';
@@ -252,6 +253,26 @@ class StopsEditor {
                     this.render();
                     if (this.onUpdate) this.onUpdate();
                 });
+
+                // Preserve colors checkbox
+                preserveCheckbox = document.createElement('label');
+                preserveCheckbox.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:11px; color:#aaa; margin-left:8px; cursor:pointer;';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = stop.preserveOriginalColors || false;
+                checkbox.style.cssText = 'cursor:pointer;';
+                checkbox.addEventListener('change', (e) => {
+                    stop.preserveOriginalColors = e.target.checked;
+                    if (this.onUpdate) this.onUpdate();
+                });
+
+                const label = document.createElement('span');
+                label.textContent = 'Preserve Colors';
+                label.title = 'Keep original image colors instead of applying FG/BG colors';
+
+                preserveCheckbox.appendChild(checkbox);
+                preserveCheckbox.appendChild(label);
             }
         }
 
@@ -283,6 +304,9 @@ class StopsEditor {
         }
         if (clearBtn) {
             item.appendChild(clearBtn);
+        }
+        if (preserveCheckbox) {
+            item.appendChild(preserveCheckbox);
         }
         item.appendChild(removeBtn);
 
