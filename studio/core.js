@@ -39,7 +39,7 @@ const Core = {
 
         if (w > maxSize) {
             w = maxSize;
-            h = w / aspect;
+            h = Math.floor(w / aspect);
         }
 
         const canvas = document.createElement('canvas');
