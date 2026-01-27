@@ -55,6 +55,8 @@ class PixelatorStudio {
             asciiInvert: false,   // Draw bright areas with dense characters
             asciiUseOriginalColor: false,  // Use image colors for characters
             asciiForceSquareCells: false,  // Force square cells instead of font metrics
+            asciiEdgeOverlay: false,  // Edge overlay on brightness/shadeShape
+            asciiEdgeCanny: true,  // Use Canny post-processing for cleaner edges
 
             // Typewriter mode (Jules Kuehn algorithm)
             layers: '4x1',  // Layer configuration
@@ -210,7 +212,10 @@ class PixelatorStudio {
                 'Shade + Shape': 'shadeShape',
                 'Edge Detection': 'edge'
             }
-        }).on('change', () => this.render());
+        }).on('change', () => {
+            this.updateAsciiEdgeControlsVisibility();
+            this.render();
+        });
 
         this.asciiFolder.addInput(this.params, 'fontFamily', {
             label: 'Font',
@@ -258,6 +263,21 @@ class PixelatorStudio {
             label: 'Square Cells'
         }).on('change', () => this.render());
 
+        this.asciiFolder.addSeparator();
+
+        // Edge overlay controls (only visible for brightness and shadeShape)
+        this.asciiEdgeOverlayControl = this.asciiFolder.addInput(this.params, 'asciiEdgeOverlay', {
+            label: 'Edge Overlay'
+        }).on('change', () => {
+            this.updateAsciiEdgeControlsVisibility();
+            this.render();
+        });
+
+        this.asciiEdgeCannyControl = this.asciiFolder.addInput(this.params, 'asciiEdgeCanny', {
+            label: 'Canny Edges',
+            hidden: true
+        }).on('change', () => this.render());
+
         this.asciiFolder.addButton({ title: 'Swap Black/White' }).on('click', () => {
             // Swap colors for each stop individually
             for (const stop of AsciiMode.stops) {
@@ -287,6 +307,10 @@ class PixelatorStudio {
             AsciiMode.loadPreset('blocks');
             this.render();
         });
+        this.asciiFolder.addButton({ title: 'Preset: Braille' }).on('click', () => {
+            AsciiMode.loadPreset('braille');
+            this.render();
+        });
 
         this.asciiFolder.addSeparator();
 
@@ -294,6 +318,48 @@ class PixelatorStudio {
         this.asciiFolder.addButton({ title: 'Preset: Minesweeper' }).on('click', async () => {
             await AsciiMode.applyImagePreset('minesweeper');
             this.render();
+        });
+
+        this.asciiFolder.addSeparator();
+
+        // Custom preset controls
+        this.asciiFolder.addButton({ title: 'New Custom' }).on('click', () => {
+            // Start with minimal default: space at 0% and @ at 100%
+            AsciiMode.stops = [
+                { id: 0, percentage: 0, value: ' ', color: AsciiMode.fgColor, bgColor: AsciiMode.bgColor },
+                { id: 1, percentage: 100, value: '@', color: AsciiMode.fgColor, bgColor: AsciiMode.bgColor }
+            ];
+            AsciiMode.stopIdCounter = 2;
+            AsciiMode.syncFromStops();
+            this.stopsEditor.open('ascii');
+        });
+
+        this.asciiFolder.addButton({ title: 'Import Preset...' }).on('click', () => {
+            const input = prompt('Paste JSON preset or plain character string:');
+            if (input) {
+                if (AsciiMode.loadCustomPreset(input)) {
+                    this.render();
+                } else {
+                    alert('Failed to load preset. Check format.');
+                }
+            }
+        });
+
+        this.asciiFolder.addButton({ title: 'Export Preset' }).on('click', () => {
+            const preset = {
+                stops: AsciiMode.stops.map(s => ({
+                    percentage: s.percentage,
+                    value: s.value,
+                    color: s.color,
+                    bgColor: s.bgColor
+                }))
+            };
+            const json = JSON.stringify(preset, null, 2);
+            navigator.clipboard.writeText(json).then(() => {
+                alert('Preset copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy to clipboard:\n\n' + json);
+            });
         });
 
         this.asciiFolder.addSeparator();
@@ -438,6 +504,18 @@ class PixelatorStudio {
         this.stopsEditor = new StopsEditor(() => this.render());
 
         this.updateUIVisibility();
+        this.updateAsciiEdgeControlsVisibility();
+    }
+
+    /**
+     * Update ASCII edge controls visibility based on algorithm
+     */
+    updateAsciiEdgeControlsVisibility() {
+        const algorithm = this.params.asciiAlgorithm;
+        const showEdgeControls = algorithm === 'brightness' || algorithm === 'shadeShape';
+
+        this.asciiEdgeOverlayControl.hidden = !showEdgeControls;
+        this.asciiEdgeCannyControl.hidden = !showEdgeControls || !this.params.asciiEdgeOverlay;
     }
 
     /**

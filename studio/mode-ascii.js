@@ -296,7 +296,7 @@ const AsciiMode = {
 
     /**
      * Apply Sobel edge detection to full image
-     * Returns edge magnitude array (0-1 normalized)
+     * Returns { magnitude, direction } arrays (both 0-1 normalized for magnitude, radians for direction)
      */
     sobelFullImage(data, width, height) {
         // First convert to grayscale
@@ -310,7 +310,8 @@ const AsciiMode = {
         const blurred = this.gaussianBlur(gray, width, height);
 
         // Apply Sobel
-        const edges = new Float32Array(width * height);
+        const magnitude = new Float32Array(width * height);
+        const direction = new Float32Array(width * height);
         const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
         const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
 
@@ -331,19 +332,181 @@ const AsciiMode = {
                 }
 
                 const mag = Math.sqrt(gx * gx + gy * gy);
-                edges[y * width + x] = mag;
+                magnitude[y * width + x] = mag;
+                direction[y * width + x] = Math.atan2(gy, gx);
                 if (mag > maxMag) maxMag = mag;
             }
         }
 
-        // Normalize to 0-1
+        // Normalize magnitude to 0-1
         if (maxMag > 0) {
-            for (let i = 0; i < edges.length; i++) {
-                edges[i] /= maxMag;
+            for (let i = 0; i < magnitude.length; i++) {
+                magnitude[i] /= maxMag;
             }
         }
 
-        return edges;
+        return { magnitude, direction };
+    },
+
+    /**
+     * Apply Canny edge detection (non-maximum suppression + hysteresis)
+     * Returns cleaned edge magnitude array
+     */
+    cannyEdges(magnitude, direction, width, height) {
+        const suppressed = new Float32Array(magnitude.length);
+
+        // Pass 1: Non-maximum suppression
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
+                const idx = y * width + x;
+                const angle = direction[idx];
+                const mag = magnitude[idx];
+
+                // Normalize angle to 0-180 degrees
+                let angleDeg = (angle * 180 / Math.PI) % 180;
+                if (angleDeg < 0) angleDeg += 180;
+
+                // Determine neighbors to compare based on gradient direction
+                let n1, n2;
+                if (angleDeg < 22.5 || angleDeg >= 157.5) {
+                    // Horizontal edge (0°)
+                    n1 = magnitude[idx - 1];
+                    n2 = magnitude[idx + 1];
+                } else if (angleDeg >= 22.5 && angleDeg < 67.5) {
+                    // Diagonal edge (45°)
+                    n1 = magnitude[(y - 1) * width + (x + 1)];
+                    n2 = magnitude[(y + 1) * width + (x - 1)];
+                } else if (angleDeg >= 67.5 && angleDeg < 112.5) {
+                    // Vertical edge (90°)
+                    n1 = magnitude[(y - 1) * width + x];
+                    n2 = magnitude[(y + 1) * width + x];
+                } else {
+                    // Diagonal edge (135°)
+                    n1 = magnitude[(y - 1) * width + (x - 1)];
+                    n2 = magnitude[(y + 1) * width + (x + 1)];
+                }
+
+                // Keep only if local maximum
+                if (mag >= n1 && mag >= n2) {
+                    suppressed[idx] = mag;
+                }
+            }
+        }
+
+        // Pass 2: Double threshold + hysteresis
+        const lowThreshold = 0.05;
+        const highThreshold = 0.15;
+        const result = new Float32Array(magnitude.length);
+        const visited = new Uint8Array(magnitude.length);
+
+        // Mark strong edges
+        for (let i = 0; i < suppressed.length; i++) {
+            if (suppressed[i] >= highThreshold) {
+                result[i] = suppressed[i];
+                visited[i] = 2; // Strong edge
+            } else if (suppressed[i] >= lowThreshold) {
+                visited[i] = 1; // Weak edge
+            }
+        }
+
+        // Hysteresis: connect weak edges to strong edges
+        const queue = [];
+        for (let i = 0; i < visited.length; i++) {
+            if (visited[i] === 2) queue.push(i);
+        }
+
+        while (queue.length > 0) {
+            const idx = queue.shift();
+            const y = Math.floor(idx / width);
+            const x = idx % width;
+
+            // Check 8 neighbors
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const ny = y + dy;
+                    const nx = x + dx;
+                    if (ny < 0 || ny >= height || nx < 0 || nx >= width) continue;
+
+                    const nidx = ny * width + nx;
+                    if (visited[nidx] === 1) {
+                        result[nidx] = suppressed[nidx];
+                        visited[nidx] = 2;
+                        queue.push(nidx);
+                    }
+                }
+            }
+        }
+
+        return result;
+    },
+
+    /**
+     * Get directional edge character for a tile
+     * Returns character if edge detected, null otherwise
+     */
+    getEdgeChar(direction, magnitude, width, imgX, imgY, charWidth, charHeight, isCanny = false) {
+        // Compute magnitude-weighted average angle in tile
+        let totalMag = 0;
+        let maxMag = 0;
+        let edgePixelCount = 0;
+        let sinSum = 0;
+        let cosSum = 0;
+
+        for (let py = 0; py < charHeight; py++) {
+            for (let px = 0; px < charWidth; px++) {
+                const x = imgX + px;
+                const y = imgY + py;
+                if (x >= width || y >= magnitude.length / width) continue;
+
+                const idx = y * width + x;
+                const mag = magnitude[idx];
+                const angle = direction[idx];
+
+                if (mag > 0.01) edgePixelCount++;
+                totalMag += mag;
+                if (mag > maxMag) maxMag = mag;
+                sinSum += Math.sin(angle) * mag;
+                cosSum += Math.cos(angle) * mag;
+            }
+        }
+
+        // Threshold: different for Canny (sparse edges) vs regular Sobel
+        const totalPixels = charWidth * charHeight;
+        let hasEdge = false;
+
+        if (isCanny) {
+            // Canny produces sparse edges - check if we have enough edge pixels
+            const edgeRatio = edgePixelCount / totalPixels;
+            hasEdge = edgeRatio > 0.02 || maxMag > 0.3;
+        } else {
+            // Regular Sobel - use average magnitude
+            const avgMag = totalMag / totalPixels;
+            hasEdge = avgMag > 0.08;
+        }
+
+        if (!hasEdge) return null;
+
+        // Compute dominant gradient angle
+        const gradientAngle = Math.atan2(sinSum, cosSum);
+
+        // Gradient is perpendicular to edge - rotate 90° to get edge orientation
+        const edgeAngle = gradientAngle + Math.PI / 2;
+
+        // Normalize to 0-180 degrees
+        let angleDeg = (edgeAngle * 180 / Math.PI) % 180;
+        if (angleDeg < 0) angleDeg += 180;
+
+        // Map angle to directional character
+        if (angleDeg < 22.5 || angleDeg >= 157.5) {
+            return '-'; // Horizontal edge
+        } else if (angleDeg >= 22.5 && angleDeg < 67.5) {
+            return '/'; // Diagonal
+        } else if (angleDeg >= 67.5 && angleDeg < 112.5) {
+            return '|'; // Vertical edge
+        } else {
+            return '\\'; // Diagonal
+        }
     },
 
     /**
@@ -594,11 +757,11 @@ const AsciiMode = {
         }
 
         // Fill background
-        ctx.fillStyle = this.bgColor;
+        ctx.fillStyle = params.bgColor || this.bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Setup font (scaled)
-        ctx.fillStyle = this.fgColor;
+        ctx.fillStyle = params.monoColor || this.fgColor;
         ctx.font = `${scaledCellSize}px ${fontFamily}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -618,6 +781,20 @@ const AsciiMode = {
     renderBrightness(ctx, canvas, img, params) {
         const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor, scaledCharWidth, scaledCharHeight, scaledGap } =
             this.setupRender(ctx, canvas, img, params);
+
+        // Edge overlay preprocessing
+        let edgeMagnitude = null;
+        let edgeDirection = null;
+        if (params.asciiEdgeOverlay) {
+            const result = this.sobelFullImage(data, width, height);
+            edgeMagnitude = result.magnitude;
+            edgeDirection = result.direction;
+
+            // Optionally apply Canny post-processing
+            if (params.asciiEdgeCanny) {
+                edgeMagnitude = this.cannyEdges(edgeMagnitude, edgeDirection, width, height);
+            }
+        }
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
@@ -647,14 +824,24 @@ const AsciiMode = {
                 // Normal: dark areas = dense characters. Invert: bright areas = dense characters
                 const density = invert ? brightness : 1 - brightness;
 
-                // Map to character by density
+                // Map to character by density (for color lookup)
                 const charIndex = Math.min(
                     this.sortedByDensity.length - 1,
                     Math.floor(density * this.sortedByDensity.length)
                 );
-                const char = this.sortedByDensity[charIndex].char;
+                const baseChar = this.sortedByDensity[charIndex].char;
 
-                const stopData = this.getStopData(char);
+                // Check for edge overlay
+                let char = baseChar;
+                if (edgeMagnitude && edgeDirection) {
+                    const edgeChar = this.getEdgeChar(edgeDirection, edgeMagnitude, width, imgX, imgY, charWidth, charHeight, params.asciiEdgeCanny);
+                    if (edgeChar) {
+                        char = edgeChar;
+                    }
+                }
+
+                // Always use colors from the base character
+                const stopData = this.getStopData(baseChar);
                 const drawX = col * (scaledCharWidth + scaledGap);
                 const drawY = row * (scaledCharHeight + scaledGap);
 
@@ -692,6 +879,20 @@ const AsciiMode = {
     renderShadeShape(ctx, canvas, img, params) {
         const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor, scaledCharWidth, scaledCharHeight, scaledGap } =
             this.setupRender(ctx, canvas, img, params);
+
+        // Edge overlay preprocessing
+        let edgeMagnitude = null;
+        let edgeDirection = null;
+        if (params.asciiEdgeOverlay) {
+            const result = this.sobelFullImage(data, width, height);
+            edgeMagnitude = result.magnitude;
+            edgeDirection = result.direction;
+
+            // Optionally apply Canny post-processing
+            if (params.asciiEdgeCanny) {
+                edgeMagnitude = this.cannyEdges(edgeMagnitude, edgeDirection, width, height);
+            }
+        }
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
@@ -731,10 +932,20 @@ const AsciiMode = {
                     blackPoint, whitePoint, invert
                 );
 
-                // Find best shape match among candidates
-                const char = this.findBestShapeMatch(candidates, imageShape);
+                // Find best shape match among candidates (for color lookup)
+                const baseChar = this.findBestShapeMatch(candidates, imageShape);
 
-                const stopData = this.getStopData(char);
+                // Check for edge overlay
+                let char = baseChar;
+                if (edgeMagnitude && edgeDirection) {
+                    const edgeChar = this.getEdgeChar(edgeDirection, edgeMagnitude, width, imgX, imgY, charWidth, charHeight, params.asciiEdgeCanny);
+                    if (edgeChar) {
+                        char = edgeChar;
+                    }
+                }
+
+                // Always use colors from the base character
+                const stopData = this.getStopData(baseChar);
                 const drawX = col * (scaledCharWidth + scaledGap);
                 const drawY = row * (scaledCharHeight + scaledGap);
 
@@ -855,7 +1066,7 @@ const AsciiMode = {
             this.setupRender(ctx, canvas, img, params);
 
         // Step 1: Run Sobel edge detection on full image
-        const edges = this.sobelFullImage(data, width, height);
+        const { magnitude: edges } = this.sobelFullImage(data, width, height);
 
         // Step 2: Apply levels and threshold to binary
         const threshold = 0.1; // Edge threshold
@@ -1006,6 +1217,7 @@ const AsciiMode = {
             dense: '.:;+xX#@',
             letters: ' .oO0@',
             dots: ' .·•●',
+            braille: '⠀⣀⣄⣤⣦⣶⣷⣿',
         };
 
         if (presets[preset]) {
@@ -1023,6 +1235,58 @@ const AsciiMode = {
                 bgColor: this.bgColor
             }));
             this.stopIdCounter = this.stops.length;
+        }
+    },
+
+    /**
+     * Load custom preset from JSON or plain string
+     * Returns true on success, false on failure
+     */
+    loadCustomPreset(input) {
+        try {
+            let stops;
+
+            // Try to parse as JSON first
+            try {
+                const parsed = JSON.parse(input);
+                if (parsed.stops && Array.isArray(parsed.stops)) {
+                    // JSON format with stops array
+                    stops = parsed.stops.map((s, i) => ({
+                        id: i,
+                        percentage: s.percentage !== undefined ? s.percentage : 0,
+                        value: s.value || ' ',
+                        color: s.color || this.fgColor,
+                        bgColor: s.bgColor || this.bgColor
+                    }));
+                } else {
+                    throw new Error('Invalid JSON format');
+                }
+            } catch (jsonError) {
+                // Not valid JSON, treat as plain character string
+                const chars = input.split('');
+                if (chars.length === 0) {
+                    return false;
+                }
+
+                // Auto-space percentages evenly
+                stops = chars.map((char, i) => ({
+                    id: i,
+                    percentage: chars.length > 1 ? Math.round(i / (chars.length - 1) * 100) : 0,
+                    value: char,
+                    color: this.fgColor,
+                    bgColor: this.bgColor
+                }));
+            }
+
+            // Apply the stops
+            this.stops = stops;
+            this.stopIdCounter = stops.length;
+            this.syncFromStops();
+
+            return true;
+        } catch (error) {
+            console.error('Failed to load custom preset:', error);
+            return false;
         }
     },
 
