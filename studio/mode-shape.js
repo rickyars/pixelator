@@ -47,6 +47,13 @@ const ShapeMode = {
             // Calculate luminance
             const luma = Core.getLuma(r, g, b);
 
+            // Apply random erase
+            if (params.randomErase) {
+                if (Algorithms.seededRandom(x, y) < params.erasePercent / 100) {
+                    continue;
+                }
+            }
+
             // Apply algorithm
             const transform = Algorithms.apply(
                 params.algorithm,
@@ -60,6 +67,13 @@ const ShapeMode = {
                 idx
             );
 
+            // Apply optional halftone sizing
+            if (params.applyHalftone) {
+                const halftoneScale = luma * params.halftoneIntensity * 1.5;
+                transform.scX *= halftoneScale;
+                transform.scY *= halftoneScale;
+            }
+
             // Skip if scale is zero
             if (transform.scX === 0 || transform.scY === 0) continue;
 
@@ -67,11 +81,17 @@ const ShapeMode = {
             ctx.save();
             const cx = (x + transform.offX) * scale;
             const cy = (y + transform.offY) * scale;
-            const size = Math.max(0, params.cellSize - params.gap) * scale;
+            const size = params.cellSize * scale;
 
             ctx.translate(cx, cy);
             ctx.rotate(transform.rot);
             ctx.scale(transform.scX, transform.scY);
+
+            // Apply gap as a final scale reduction
+            if (params.gap > 0) {
+                const gapScale = Math.max(0, (params.cellSize - params.gap) / params.cellSize);
+                ctx.scale(gapScale, gapScale);
+            }
 
             // Set color
             if (params.useOriginalColor) {

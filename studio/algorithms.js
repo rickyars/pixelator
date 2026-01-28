@@ -4,6 +4,18 @@
  */
 class Algorithms {
     /**
+     * Seeded random function based on position
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @returns {number} Pseudo-random value (0-1)
+     */
+    static seededRandom(x, y) {
+        const seed = x * 12.9898 + y * 78.233;
+        const val = Math.sin(seed) * 43758.5453;
+        return val - Math.floor(val);
+    }
+
+    /**
      * Apply algorithm to get transform properties
      * @param {string} mode - Algorithm mode
      * @param {number} luma - Luminance value (0-1)
@@ -49,13 +61,13 @@ class Algorithms {
 
             case 'random_rot':
                 // Random rotation
-                rot = Math.random() * Math.PI * 2;
+                rot = this.seededRandom(x, y) * Math.PI * 2;
                 break;
 
             // Scale modes
             case 'random_size':
                 // Random size chaos
-                scX = scY = Math.random() * baseScale;
+                scX = scY = this.seededRandom(x, y) * baseScale;
                 break;
 
             // Opacity modes
@@ -104,17 +116,13 @@ class Algorithms {
             case 'melt':
                 // Vertical drip effect
                 offY = luma * step * 2 * intensity;
-                scX = scY = luma * baseScale;
                 break;
 
             case 'jitter':
                 // Mosaic scatter
-                const jit = (Math.random() - 0.5) * step * 2;
-                if (luma > 0.5) {
-                    offX = jit * intensity;
-                    offY = jit * intensity;
-                }
-                scX = scY = luma * baseScale;
+                const jit = (this.seededRandom(x, y) - 0.5) * step * 2;
+                offX = jit * intensity;
+                offY = jit * intensity;
                 break;
 
             // Flow field
@@ -138,7 +146,6 @@ class Algorithms {
                     const dy = lB - luma;
 
                     rot = Math.atan2(dy, dx) * intensity;
-                    scX = scY = luma * baseScale * 1.2;
                 }
                 break;
 
@@ -156,64 +163,24 @@ class Algorithms {
                 }
                 break;
 
-            // Checker pattern
-            case 'checker':
-                const gridX = Math.floor(x / step);
-                const gridY = Math.floor(y / step);
-                if ((gridX + gridY) % 2 === 0) {
-                    scX = scY = luma * baseScale * 1.5;
-                } else {
-                    scX = scY = (1.0 - luma) * baseScale * 1.5;
-                }
-                break;
-
-            // Posterize
-            case 'posterize':
-                let level = 0.2;
-                if (luma > 0.3) level = 0.5;
-                if (luma > 0.6) level = 0.8;
-                if (luma > 0.8) level = 1.0;
-                scX = scY = level * baseScale;
-                break;
-
-            // Interference pattern
-            case 'interference':
-                const pattern = Math.sin((x * y) * 0.0001 * intensity);
-                scX = scY = (luma + pattern) * 0.5 * baseScale * 1.5;
-                break;
-
-            // CRT Scanline
-            case 'crt_scan':
-                const line = Math.floor(y / step);
-                if (line % 2 === 0) {
-                    scX = baseScale * 1.2;
-                    scY = baseScale * 0.2;
-                    offX = 2 * intensity;
-                } else {
-                    scX = luma * baseScale;
-                    scY = baseScale * 0.8;
-                }
-                break;
-
-            // Bio-Organic
-            case 'bio':
-                rot = Math.sin(luma * Math.PI * 2) + Math.random() * 0.5;
-                scX = scY = (luma + 0.2) * baseScale;
-                break;
-
-            // Eraser noise
-            case 'eraser':
-                if (Math.random() > luma * intensity) {
-                    scX = scY = 0;
-                }
-                break;
-
             default:
                 // Fallback to flat
                 break;
         }
 
         return { scX, scY, rot, offX, offY, alpha };
+    }
+
+    /**
+     * Check if algorithm uses intensity parameter
+     * @param {string} mode - Algorithm mode
+     * @returns {boolean} True if algorithm uses intensity
+     */
+    static usesIntensity(mode) {
+        const intensityModes = [
+            'glitch', 'melt', 'jitter', 'flow', 'edges'
+        ];
+        return intensityModes.includes(mode);
     }
 
     /**
@@ -252,13 +219,7 @@ class Algorithms {
 
             // Advanced
             'Flow Field (Direction)': 'flow',
-            'Edge Detect (Outline)': 'edges',
-            'Checkerboard (Alt)': 'checker',
-            'Posterize (Levels)': 'posterize',
-            'Interference (Moiré)': 'interference',
-            'CRT TV (Scanline)': 'crt_scan',
-            'Bio-Organic (Cellular)': 'bio',
-            'Eraser (Noise)': 'eraser'
+            'Edge Detect (Outline)': 'edges'
         };
     }
 }

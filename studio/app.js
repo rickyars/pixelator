@@ -34,7 +34,7 @@ class PixelatorStudio {
 
             // Common
             cellSize: 10,
-            gap: 1,
+            gap: 0,
             contrast: 0,
             bgColor: '#000000',
             useOriginalColor: true,
@@ -46,6 +46,10 @@ class PixelatorStudio {
             baseScale: 0.9,
             intensity: 1.0,
             shape: 'circle',
+            applyHalftone: false,
+            halftoneIntensity: 1.0,
+            randomErase: false,
+            erasePercent: 20,
 
             // ASCII mode
             fontFamily: 'monospace',
@@ -173,7 +177,10 @@ class PixelatorStudio {
         this.shapeFolder.addInput(this.params, 'algorithm', {
             label: 'Algorithm',
             options: Algorithms.getAlgorithmList()
-        }).on('change', () => this.render());
+        }).on('change', () => {
+            this.updateIntensityVisibility();
+            this.render();
+        });
 
         this.shapeFolder.addInput(this.params, 'baseScale', {
             label: 'Scale',
@@ -182,12 +189,40 @@ class PixelatorStudio {
             step: 0.025
         }).on('change', () => this.render());
 
-        this.shapeFolder.addInput(this.params, 'intensity', {
+        this.intensityControl = this.shapeFolder.addInput(this.params, 'intensity', {
             label: 'Intensity',
             min: 0,
             max: 5.0,
             step: 0.05
         }).on('change', () => this.render());
+
+        this.shapeFolder.addSeparator();
+
+        this.shapeFolder.addInput(this.params, 'applyHalftone', {
+            label: 'Brightness → Size'
+        }).on('change', () => this.render());
+
+        this.shapeFolder.addInput(this.params, 'halftoneIntensity', {
+            label: 'Size Intensity',
+            min: 0,
+            max: 2.0,
+            step: 0.05
+        }).on('change', () => this.render());
+
+        this.shapeFolder.addSeparator();
+
+        this.shapeFolder.addInput(this.params, 'randomErase', {
+            label: 'Random Erase'
+        }).on('change', () => this.render());
+
+        this.shapeFolder.addInput(this.params, 'erasePercent', {
+            label: 'Erase %',
+            min: 0,
+            max: 100,
+            step: 1
+        }).on('change', () => this.render());
+
+        this.shapeFolder.addSeparator();
 
         this.shapeFolder.addInput(this.params, 'shape', {
             label: 'Shape',
@@ -505,6 +540,16 @@ class PixelatorStudio {
 
         this.updateUIVisibility();
         this.updateAsciiEdgeControlsVisibility();
+        this.updateIntensityVisibility();
+    }
+
+    /**
+     * Update intensity control visibility based on algorithm
+     */
+    updateIntensityVisibility() {
+        if (this.intensityControl) {
+            this.intensityControl.hidden = !Algorithms.usesIntensity(this.params.algorithm);
+        }
     }
 
     /**
