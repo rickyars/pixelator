@@ -271,7 +271,7 @@ const TypewriterMode = {
 
         // Render to canvas (scaled, with gaps)
         const scale = params.outputScale || 1;
-        const gap = params.gap || 0;
+        const gap = 0;
         const scaledGap = gap * scale;
         const scaledCharWidth = this.charWidth * scale;
         const scaledCharHeight = this.charHeight * scale;
@@ -563,52 +563,42 @@ const TypewriterMode = {
      * Load preset character set
      */
     loadPreset(preset) {
-        const presets = {
-            typewriter: [
-                { percentage: 0, value: ' ', color: '#000000' },
-                { percentage: 8, value: '.', color: '#000000' },
-                { percentage: 16, value: ',', color: '#000000' },
-                { percentage: 24, value: "'", color: '#000000' },
-                { percentage: 32, value: ':', color: '#000000' },
-                { percentage: 40, value: ';', color: '#000000' },
-                { percentage: 48, value: 'i', color: '#000000' },
-                { percentage: 56, value: 'l', color: '#000000' },
-                { percentage: 64, value: 'x', color: '#000000' },
-                { percentage: 72, value: 'o', color: '#000000' },
-                { percentage: 80, value: 'X', color: '#000000' },
-                { percentage: 88, value: '#', color: '#000000' },
-                { percentage: 94, value: '@', color: '#000000' },
-                { percentage: 100, value: 'M', color: '#000000' }
-            ],
-            dense: [
-                { percentage: 0, value: ' ', color: '#000000' },
-                { percentage: 5, value: '.', color: '#000000' },
-                { percentage: 10, value: "'", color: '#000000' },
-                { percentage: 15, value: '`', color: '#000000' },
-                { percentage: 20, value: '^', color: '#000000' },
-                { percentage: 25, value: '"', color: '#000000' },
-                { percentage: 30, value: ',', color: '#000000' },
-                { percentage: 35, value: ':', color: '#000000' },
-                { percentage: 40, value: ';', color: '#000000' },
-                { percentage: 45, value: 'I', color: '#000000' },
-                { percentage: 50, value: 'l', color: '#000000' },
-                { percentage: 55, value: '!', color: '#000000' },
-                { percentage: 60, value: 'i', color: '#000000' },
-                { percentage: 65, value: '>', color: '#000000' },
-                { percentage: 70, value: '<', color: '#000000' },
-                { percentage: 75, value: '~', color: '#000000' },
-                { percentage: 80, value: '+', color: '#000000' },
-                { percentage: 85, value: 'x', color: '#000000' },
-                { percentage: 90, value: 'X', color: '#000000' },
-                { percentage: 95, value: '#', color: '#000000' },
-                { percentage: 100, value: '@', color: '#000000' }
-            ]
+        const charPresets = {
+            basic: ' .:-=+*#%@',
+            blocks: ' ░▒▓█',
+            detailed: ' .`\'^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$',
+            typewriter: ' .,\'":;ilxoX#@M',
+            dense: ' .\'`^",:;Ill!i><~+xX#@',
+            rounds: ' .oO0@',
+            dots: ' .·•●',
+            braille: '⠀⣀⣄⣤⣦⣶⣷⣿',
         };
 
-        if (presets[preset]) {
-            this.stops = JSON.parse(JSON.stringify(presets[preset]));
-            this.chars = null; // Force rebuild
+        if (charPresets[preset]) {
+            this.loadFromCharString(charPresets[preset]);
         }
+    },
+
+    /**
+     * Load character set from plain string
+     */
+    loadFromCharString(str) {
+        if (!str || str.length === 0) return;
+
+        const chars = str.split('');
+        this.stops = chars.map((char, i) => ({
+            percentage: chars.length > 1 ? Math.round(i / (chars.length - 1) * 100) : 0,
+            value: char,
+            color: '#000000'
+        }));
+        this.chars = null; // Force rebuild
+    },
+
+    /**
+     * Get current character string
+     */
+    getCharacterString() {
+        return this.stops.map(s => s.value).join('');
     }
 };
 

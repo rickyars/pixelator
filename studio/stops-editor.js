@@ -18,7 +18,7 @@ class StopsEditor {
     init() {
         // Add stop button
         this.addBtn.addEventListener('click', () => {
-            if (this.currentMode === 'ascii') {
+            if (this.currentMode === 'ascii' || this.currentMode === 'fullCustom') {
                 AsciiMode.addStop(50, '.', '#000000', '#ffffff');
             } else if (this.currentMode === 'typewriter') {
                 TypewriterMode.stops.push({ percentage: 50, value: '.', color: '#000000' });
@@ -43,7 +43,13 @@ class StopsEditor {
 
     open(mode) {
         this.currentMode = mode;
-        this.title.textContent = mode === 'ascii' ? 'Edit ASCII Stops' : 'Edit Typewriter Stops';
+        if (mode === 'ascii') {
+            this.title.textContent = 'Edit ASCII Stops';
+        } else if (mode === 'fullCustom') {
+            this.title.textContent = 'Edit Full Custom Stops';
+        } else if (mode === 'typewriter') {
+            this.title.textContent = 'Edit Typewriter Stops';
+        }
         this.modal.classList.add('active');
         this.render();
     }
@@ -56,9 +62,12 @@ class StopsEditor {
     render() {
         this.list.innerHTML = '';
 
-        const stops = this.currentMode === 'ascii'
-            ? AsciiMode.stops
-            : TypewriterMode.stops;
+        let stops;
+        if (this.currentMode === 'ascii' || this.currentMode === 'fullCustom') {
+            stops = AsciiMode.stops;
+        } else if (this.currentMode === 'typewriter') {
+            stops = TypewriterMode.stops;
+        }
 
         if (!stops || !Array.isArray(stops)) {
             return;
@@ -142,7 +151,7 @@ class StopsEditor {
         percentInput.value = stop.percentage;
         percentInput.addEventListener('change', (e) => {
             stop.percentage = parseInt(e.target.value);
-            if (this.currentMode === 'ascii') {
+            if (this.currentMode === 'ascii' || this.currentMode === 'fullCustom') {
                 AsciiMode.stops.sort((a, b) => a.percentage - b.percentage);
             } else {
                 TypewriterMode.stops.sort((a, b) => a.percentage - b.percentage);
@@ -169,7 +178,7 @@ class StopsEditor {
         }
         charInput.addEventListener('input', (e) => {
             stop.value = e.target.value;
-            if (this.currentMode === 'ascii') {
+            if (this.currentMode === 'ascii' || this.currentMode === 'fullCustom') {
                 AsciiMode.syncFromStops();
             } else {
                 TypewriterMode.syncFromStops();
@@ -177,9 +186,9 @@ class StopsEditor {
             if (this.onUpdate) this.onUpdate();
         });
 
-        // Image preview (for ASCII mode with uploaded images)
+        // Image preview (for ASCII and Full Custom modes with uploaded images)
         let imagePreview = null;
-        if (this.currentMode === 'ascii' && stop.imageData) {
+        if ((this.currentMode === 'ascii' || this.currentMode === 'fullCustom') && stop.imageData) {
             imagePreview = this.createColorizedPreview(stop.imageData, stop.color || '#000000', stop.bgColor || '#ffffff');
         }
 
@@ -202,8 +211,8 @@ class StopsEditor {
 
         colorPair.appendChild(fgPicker);
 
-        // Background color only for ASCII mode
-        if (this.currentMode === 'ascii') {
+        // Background color only for ASCII and Full Custom modes
+        if (this.currentMode === 'ascii' || this.currentMode === 'fullCustom') {
             const bgPicker = document.createElement('input');
             bgPicker.type = 'color';
             bgPicker.className = 'color-picker';
@@ -219,11 +228,11 @@ class StopsEditor {
             colorPair.appendChild(bgPicker);
         }
 
-        // Image upload button (ASCII mode only)
+        // Image upload button (ASCII and Full Custom modes only)
         let imageBtn = null;
         let clearBtn = null;
         let preserveCheckbox = null;
-        if (this.currentMode === 'ascii') {
+        if (this.currentMode === 'ascii' || this.currentMode === 'fullCustom') {
             imageBtn = document.createElement('button');
             imageBtn.textContent = 'Upload';
             imageBtn.title = 'Upload image';
@@ -282,7 +291,7 @@ class StopsEditor {
         removeBtn.textContent = '×';
         removeBtn.title = 'Remove stop';
         removeBtn.addEventListener('click', () => {
-            if (this.currentMode === 'ascii') {
+            if (this.currentMode === 'ascii' || this.currentMode === 'fullCustom') {
                 AsciiMode.removeStop(stop.id);
             } else {
                 TypewriterMode.stops.splice(index, 1);

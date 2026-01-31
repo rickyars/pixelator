@@ -1,14 +1,10 @@
 /**
- * Shape Mode - Algorithmic shape effects
- * Based on dither-ascii-effect algorithms
+ * Pixel Mode - Square pixel rendering with placement algorithms
+ * Always shows all pixels (no opacity effects)
  */
-const ShapeMode = {
-    // Custom SVG state
-    customSVGPath: null,
-    customSVGViewBox: { x: 0, y: 0, w: 100, h: 100 },
-
+const PixelMode = {
     /**
-     * Render shape mode
+     * Render pixel mode
      */
     render(ctx, canvas, img, params) {
         const prepared = Core.prepareImage(img);
@@ -54,9 +50,9 @@ const ShapeMode = {
                 }
             }
 
-            // Apply algorithm
+            // Apply placement algorithm
             const transform = Algorithms.apply(
-                params.algorithm,
+                params.pixelPlacementAlgo,
                 luma,
                 x, y,
                 params.cellSize,
@@ -67,7 +63,7 @@ const ShapeMode = {
                 idx
             );
 
-            // Apply optional halftone sizing
+            // Apply optional halftone sizing (brightness→size)
             if (params.applyHalftone) {
                 const halftoneScale = luma * params.halftoneIntensity * 1.5;
                 transform.scX *= halftoneScale;
@@ -87,57 +83,23 @@ const ShapeMode = {
             ctx.rotate(transform.rot);
             ctx.scale(transform.scX, transform.scY);
 
-            // Apply gap as a final scale reduction
-            if (params.gap > 0) {
-                const gapScale = Math.max(0, (params.cellSize - params.gap) / params.cellSize);
-                ctx.scale(gapScale, gapScale);
-            }
-
-            // Set color
+            // Set color (always full alpha)
             if (params.useOriginalColor) {
-                ctx.fillStyle = `rgba(${r},${g},${b},${transform.alpha})`;
-                ctx.strokeStyle = `rgba(${r},${g},${b},${transform.alpha})`;
+                ctx.fillStyle = `rgb(${r},${g},${b})`;
+                ctx.strokeStyle = `rgb(${r},${g},${b})`;
             } else {
-                ctx.fillStyle = `rgba(${monoColor.r},${monoColor.g},${monoColor.b},${transform.alpha})`;
-                ctx.strokeStyle = `rgba(${monoColor.r},${monoColor.g},${monoColor.b},${transform.alpha})`;
+                // Grayscale using foreground color and luminance
+                const grayR = Math.round(monoColor.r * luma);
+                const grayG = Math.round(monoColor.g * luma);
+                const grayB = Math.round(monoColor.b * luma);
+                ctx.fillStyle = `rgb(${grayR},${grayG},${grayB})`;
+                ctx.strokeStyle = `rgb(${grayR},${grayG},${grayB})`;
             }
 
-            // Draw shape
-            Shapes.draw(ctx, 0, 0, size, params.shape, this.customSVGPath, this.customSVGViewBox);
+            // Always draw square pixels
+            Shapes.draw(ctx, 0, 0, size, 'square', null, null);
 
             ctx.restore();
         }
-    },
-
-    /**
-     * Load custom SVG
-     */
-    loadSVG(svgContent) {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(svgContent, 'image/svg+xml');
-        const pathElem = doc.querySelector('path');
-        const svgElem = doc.querySelector('svg');
-
-        if (!pathElem) {
-            alert('SVG must contain a <path> element');
-            return false;
-        }
-
-        const d = pathElem.getAttribute('d');
-        this.customSVGPath = new Path2D(d);
-
-        if (svgElem) {
-            const viewBox = svgElem.getAttribute('viewBox');
-            if (viewBox) {
-                const parts = viewBox.split(/\s+|,/).map(parseFloat);
-                this.customSVGViewBox = { x: parts[0], y: parts[1], w: parts[2], h: parts[3] };
-            } else {
-                const w = parseFloat(svgElem.getAttribute('width')) || 100;
-                const h = parseFloat(svgElem.getAttribute('height')) || 100;
-                this.customSVGViewBox = { x: 0, y: 0, w, h };
-            }
-        }
-
-        return true;
     }
 };

@@ -199,7 +199,7 @@ const EmojiMode = {
         const cellSize = params.cellSize || 16;
         const bgColor = params.bgColor || '#000000';
         const scale = params.outputScale || 1;
-        const gap = params.gap || 0;
+        const gap = 0;
 
         // Prepare source image
         const prepared = Core.prepareImage(img);

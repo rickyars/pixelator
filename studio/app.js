@@ -30,23 +30,27 @@ class PixelatorStudio {
         // Parameters
         this.params = {
             // Mode
-            mode: 'shape',
+            mode: 'pixel',
 
             // Common
             cellSize: 10,
-            gap: 0,
             contrast: 0,
             bgColor: '#000000',
             useOriginalColor: true,
             monoColor: '#ffffff',
             outputScale: 1,
 
-            // Shape mode
-            algorithm: 'halftone',
-            baseScale: 0.9,
-            intensity: 1.0,
-            shape: 'circle',
+            // Pixel mode
+            pixelPlacementAlgo: 'none',
             applyHalftone: false,
+
+            // Halftone mode
+            halftoneAlgorithm: 'halftone',
+            halftoneShape: 'circle',
+
+            // Shape rendering
+            baseScale: 1.0,
+            intensity: 1.0,
             halftoneIntensity: 1.0,
             randomErase: false,
             erasePercent: 20,
@@ -54,15 +58,28 @@ class PixelatorStudio {
             // ASCII mode
             fontFamily: 'monospace',
             asciiAlgorithm: 'shadeShape',  // 'brightness', 'shadeShape', 'edge'
+            asciiPreset: 'detailed',
+            asciiCharacters: ' .`\'^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$',
             asciiBlackPoint: 0,   // Values below become black
             asciiWhitePoint: 1,   // Values above become white
-            asciiInvert: false,   // Draw bright areas with dense characters
             asciiUseOriginalColor: false,  // Use image colors for characters
-            asciiForceSquareCells: false,  // Force square cells instead of font metrics
-            asciiEdgeOverlay: false,  // Edge overlay on brightness/shadeShape
-            asciiEdgeCanny: true,  // Use Canny post-processing for cleaner edges
+            asciiEdgeMode: 'none',  // 'none', 'sobel', 'canny'
+            asciiInvert: false,  // Invert density mapping
+
+            // Full Custom mode
+            fullCustomAlgorithm: 'shadeShape',
+            fullCustomCellWidth: 10,
+            fullCustomCellHeight: 10,
+            fullCustomBlackPoint: 0,
+            fullCustomWhitePoint: 1,
+            fullCustomUseOriginalColor: false,
+            fullCustomEdgeMode: 'none',  // 'none', 'sobel', 'canny'
+            fullCustomInvert: false,  // Invert density mapping
+            fullCustomPreset: 'custom',
 
             // Typewriter mode (Jules Kuehn algorithm)
+            typewriterPreset: 'typewriter',
+            typewriterCharacters: ' .,\'":;ilxoX#@M',
             layers: '4x1',  // Layer configuration
             rowLength: 0,   // 0 = auto (match input width)
             numLoops: 5,    // Optimization loops
@@ -105,8 +122,10 @@ class PixelatorStudio {
         pane.addInput(this.params, 'mode', {
             label: 'Mode',
             options: {
-                'Shape': 'shape',
+                'Pixel': 'pixel',
+                'Halftone': 'halftone',
                 'ASCII': 'ascii',
+                'Full Custom': 'fullCustom',
                 'Typewriter': 'typewriter',
                 'Emoji': 'emoji',
                 'Quadtree': 'quadtree'
@@ -116,6 +135,15 @@ class PixelatorStudio {
                 this.params.bgColor = '#ffffff';
                 this.bgColorControl.refresh();
             }
+
+            // Reload character sets when switching to ASCII or Full Custom
+            if (this.params.mode === 'ascii') {
+                AsciiMode.loadPreset(this.params.asciiPreset);
+                this.params.asciiCharacters = AsciiMode.characters;
+            } else if (this.params.mode === 'fullCustom') {
+                AsciiMode.loadPreset(this.params.fullCustomPreset);
+            }
+
             this.updateUIVisibility();
             this.render();
         });
@@ -136,13 +164,6 @@ class PixelatorStudio {
             step: 1
         }).on('change', () => this.render());
 
-        this.gapControl = commonFolder.addInput(this.params, 'gap', {
-            label: 'Gap',
-            min: 0,
-            max: 20,
-            step: 0.25
-        }).on('change', () => this.render());
-
         this.bgColorControl = commonFolder.addInput(this.params, 'bgColor', {
             label: 'Background'
         }).on('change', () => this.render());
@@ -154,92 +175,138 @@ class PixelatorStudio {
             step: 0.5
         }).on('change', () => this.render());
 
-        // Shape mode folder
-        this.shapeFolder = pane.addFolder({ title: 'Shape Settings', expanded: true });
+        // Pixel mode folder
+        this.pixelFolder = pane.addFolder({ title: 'Pixel Settings', expanded: true });
 
-        this.shapeFolder.addInput(this.params, 'contrast', {
+        this.pixelFolder.addInput(this.params, 'contrast', {
             label: 'Contrast',
             min: -100,
             max: 100,
             step: 1
         }).on('change', () => this.render());
 
-        this.shapeFolder.addInput(this.params, 'monoColor', {
+        this.pixelFolder.addInput(this.params, 'monoColor', {
             label: 'Foreground'
         }).on('change', () => this.render());
 
-        this.shapeFolder.addInput(this.params, 'useOriginalColor', {
+        this.pixelFolder.addInput(this.params, 'useOriginalColor', {
             label: 'Original Color'
         }).on('change', () => this.render());
 
-        this.shapeFolder.addSeparator();
+        this.pixelFolder.addSeparator();
 
-        this.shapeFolder.addInput(this.params, 'algorithm', {
+        this.pixelFolder.addInput(this.params, 'pixelPlacementAlgo', {
             label: 'Algorithm',
-            options: Algorithms.getAlgorithmList()
+            options: Algorithms.getPlacementAlgorithmList()
         }).on('change', () => {
             this.updateIntensityVisibility();
             this.render();
         });
 
-        this.shapeFolder.addInput(this.params, 'baseScale', {
+        this.pixelFolder.addInput(this.params, 'baseScale', {
             label: 'Scale',
             min: 0.1,
             max: 3.0,
             step: 0.025
         }).on('change', () => this.render());
 
-        this.intensityControl = this.shapeFolder.addInput(this.params, 'intensity', {
+        this.pixelIntensityControl = this.pixelFolder.addInput(this.params, 'intensity', {
             label: 'Intensity',
             min: 0,
             max: 5.0,
             step: 0.05
         }).on('change', () => this.render());
 
-        this.shapeFolder.addSeparator();
+        this.pixelFolder.addSeparator();
 
-        this.shapeFolder.addInput(this.params, 'applyHalftone', {
+        this.pixelFolder.addInput(this.params, 'applyHalftone', {
             label: 'Brightness → Size'
         }).on('change', () => this.render());
 
-        this.shapeFolder.addInput(this.params, 'halftoneIntensity', {
+        this.pixelFolder.addInput(this.params, 'halftoneIntensity', {
             label: 'Size Intensity',
             min: 0,
             max: 2.0,
             step: 0.05
         }).on('change', () => this.render());
 
-        this.shapeFolder.addSeparator();
+        this.pixelFolder.addSeparator();
 
-        this.shapeFolder.addInput(this.params, 'randomErase', {
+        this.pixelFolder.addInput(this.params, 'randomErase', {
             label: 'Random Erase'
         }).on('change', () => this.render());
 
-        this.shapeFolder.addInput(this.params, 'erasePercent', {
+        this.pixelFolder.addInput(this.params, 'erasePercent', {
             label: 'Erase %',
             min: 0,
             max: 100,
             step: 1
         }).on('change', () => this.render());
 
-        this.shapeFolder.addSeparator();
+        // Halftone mode folder
+        this.halftoneFolder = pane.addFolder({ title: 'Halftone Settings', expanded: true, hidden: true });
 
-        this.shapeFolder.addInput(this.params, 'shape', {
+        this.halftoneFolder.addInput(this.params, 'contrast', {
+            label: 'Contrast',
+            min: -100,
+            max: 100,
+            step: 1
+        }).on('change', () => this.render());
+
+        this.halftoneFolder.addInput(this.params, 'monoColor', {
+            label: 'Foreground'
+        }).on('change', () => this.render());
+
+        this.halftoneFolder.addInput(this.params, 'useOriginalColor', {
+            label: 'Original Color'
+        }).on('change', () => this.render());
+
+        this.halftoneFolder.addSeparator();
+
+        this.halftoneFolder.addInput(this.params, 'halftoneAlgorithm', {
+            label: 'Algorithm',
+            options: Algorithms.getHalftoneAlgorithmList()
+        }).on('change', () => this.render());
+
+        this.halftoneFolder.addInput(this.params, 'halftoneShape', {
             label: 'Shape',
             options: Shapes.getShapeList()
         }).on('change', () => {
-            this.svgButton.hidden = this.params.shape !== 'custom';
+            this.halftoneSvgButton.hidden = this.params.halftoneShape !== 'custom';
             this.render();
         });
 
-        this.svgButton = this.shapeFolder.addButton({
+        this.halftoneFolder.addInput(this.params, 'baseScale', {
+            label: 'Scale',
+            min: 0.1,
+            max: 3.0,
+            step: 0.025
+        }).on('change', () => this.render());
+
+        this.halftoneFolder.addSeparator();
+
+        this.halftoneFolder.addInput(this.params, 'randomErase', {
+            label: 'Random Erase'
+        }).on('change', () => this.render());
+
+        this.halftoneFolder.addInput(this.params, 'erasePercent', {
+            label: 'Erase %',
+            min: 0,
+            max: 100,
+            step: 1
+        }).on('change', () => this.render());
+
+        this.halftoneFolder.addSeparator();
+
+        this.halftoneSvgButton = this.halftoneFolder.addButton({
             title: 'Load SVG...',
             hidden: true
         });
-        this.svgButton.on('click', this.params.loadSVG);
+        this.halftoneSvgButton.on('click', () => this.loadHalftoneSVG());
 
         // ASCII mode folder
         this.asciiFolder = pane.addFolder({ title: 'ASCII Settings', expanded: true, hidden: true });
+
         this.asciiFolder.addInput(this.params, 'asciiAlgorithm', {
             label: 'Algorithm',
             options: {
@@ -247,10 +314,7 @@ class PixelatorStudio {
                 'Shade + Shape': 'shadeShape',
                 'Edge Detection': 'edge'
             }
-        }).on('change', () => {
-            this.updateAsciiEdgeControlsVisibility();
-            this.render();
-        });
+        }).on('change', () => this.render());
 
         this.asciiFolder.addInput(this.params, 'fontFamily', {
             label: 'Font',
@@ -271,7 +335,53 @@ class PixelatorStudio {
         });
         this.asciiFontButton.on('click', this.params.loadFont);
 
-        // Black point / White point (levels adjustment)
+        this.asciiFolder.addInput(this.params, 'asciiPreset', {
+            label: 'Preset',
+            options: {
+                'Detailed': 'detailed',
+                'Typewriter': 'typewriter',
+                'Basic': 'basic',
+                'Blocks': 'blocks',
+                'Braille': 'braille',
+                'Rounds': 'rounds',
+                'Dots': 'dots'
+            }
+        }).on('change', (e) => {
+            AsciiMode.loadPreset(e.value);
+            this.params.asciiCharacters = AsciiMode.characters;
+            this.asciiCharsControl.refresh();
+            this.render();
+        });
+
+        this.asciiCharsControl = this.asciiFolder.addInput(this.params, 'asciiCharacters', {
+            label: 'Characters'
+        }).on('change', (e) => {
+            AsciiMode.loadFromCharString(e.value);
+            this.render();
+        });
+
+        this.asciiFolder.addInput(this.params, 'monoColor', {
+            label: 'Foreground'
+        }).on('change', () => {
+            AsciiMode.fgColor = this.params.monoColor;
+            // Update all stops to use new foreground color
+            for (const stop of AsciiMode.stops) {
+                stop.color = this.params.monoColor;
+            }
+            this.render();
+        });
+
+        this.asciiFolder.addInput(this.params, 'bgColor', {
+            label: 'Background'
+        }).on('change', () => {
+            AsciiMode.bgColor = this.params.bgColor;
+            // Update all stops to use new background color
+            for (const stop of AsciiMode.stops) {
+                stop.bgColor = this.params.bgColor;
+            }
+            this.render();
+        });
+
         this.asciiFolder.addInput(this.params, 'asciiBlackPoint', {
             label: 'Black Point',
             min: 0,
@@ -286,90 +396,107 @@ class PixelatorStudio {
             step: 0.01
         }).on('change', () => this.render());
 
-        this.asciiFolder.addInput(this.params, 'asciiInvert', {
-            label: 'Invert'
-        }).on('change', () => this.render());
-
         this.asciiFolder.addInput(this.params, 'asciiUseOriginalColor', {
             label: 'Original Color'
         }).on('change', () => this.render());
 
-        this.asciiFolder.addInput(this.params, 'asciiForceSquareCells', {
-            label: 'Square Cells'
+        this.asciiFolder.addInput(this.params, 'asciiInvert', {
+            label: 'Invert (Highlights)'
         }).on('change', () => this.render());
 
         this.asciiFolder.addSeparator();
 
-        // Edge overlay controls (only visible for brightness and shadeShape)
-        this.asciiEdgeOverlayControl = this.asciiFolder.addInput(this.params, 'asciiEdgeOverlay', {
-            label: 'Edge Overlay'
-        }).on('change', () => {
-            this.updateAsciiEdgeControlsVisibility();
-            this.render();
-        });
-
-        this.asciiEdgeCannyControl = this.asciiFolder.addInput(this.params, 'asciiEdgeCanny', {
-            label: 'Canny Edges',
-            hidden: true
-        }).on('change', () => this.render());
-
-        this.asciiFolder.addButton({ title: 'Swap Black/White' }).on('click', () => {
-            // Swap colors for each stop individually
-            for (const stop of AsciiMode.stops) {
-                const tmpColor = stop.color;
-                stop.color = stop.bgColor || '#000000';
-                stop.bgColor = tmpColor || '#ffffff';
+        this.asciiFolder.addInput(this.params, 'asciiEdgeMode', {
+            label: 'Edge Overlay',
+            options: {
+                'None': 'none',
+                'Sobel': 'sobel',
+                'Canny': 'canny'
             }
+        }).on('change', () => this.render());
+
+        // Full Custom mode folder
+        this.fullCustomFolder = pane.addFolder({ title: 'Full Custom Settings', expanded: true, hidden: true });
+
+        this.fullCustomFolder.addInput(this.params, 'fullCustomAlgorithm', {
+            label: 'Algorithm',
+            options: {
+                'Brightness': 'brightness',
+                'Shade + Shape': 'shadeShape'
+            }
+        }).on('change', () => this.render());
+
+        this.fullCustomFolder.addInput(this.params, 'fontFamily', {
+            label: 'Font',
+            options: {
+                'Monospace': 'monospace',
+                'Courier New': "'Courier New', monospace",
+                'Consolas': 'Consolas, monospace',
+                'Custom': 'custom'
+            }
+        }).on('change', (e) => {
+            this.fullCustomFontButton.hidden = e.value !== 'custom';
             this.render();
         });
 
-        this.asciiFolder.addSeparator();
+        this.fullCustomFontButton = this.fullCustomFolder.addButton({
+            title: 'Load Font...',
+            hidden: true
+        });
+        this.fullCustomFontButton.on('click', this.params.loadFont);
 
-        // Presets
-        this.asciiFolder.addButton({ title: 'Preset: Detailed' }).on('click', () => {
-            AsciiMode.loadPreset('detailed');
-            this.render();
-        });
-        this.asciiFolder.addButton({ title: 'Preset: Basic' }).on('click', () => {
-            AsciiMode.loadPreset('basic');
-            this.render();
-        });
-        this.asciiFolder.addButton({ title: 'Preset: Minimal' }).on('click', () => {
-            AsciiMode.loadPreset('minimal');
-            this.render();
-        });
-        this.asciiFolder.addButton({ title: 'Preset: Blocks' }).on('click', () => {
-            AsciiMode.loadPreset('blocks');
-            this.render();
-        });
-        this.asciiFolder.addButton({ title: 'Preset: Braille' }).on('click', () => {
-            AsciiMode.loadPreset('braille');
-            this.render();
+        this.fullCustomFolder.addInput(this.params, 'fullCustomPreset', {
+            label: 'Preset',
+            options: {
+                'Minesweeper': 'minesweeper',
+                'Custom': 'custom'
+            }
+        }).on('change', async (e) => {
+            if (e.value === 'minesweeper') {
+                await AsciiMode.applyImagePreset('minesweeper');
+                this.render();
+            }
         });
 
-        this.asciiFolder.addSeparator();
+        this.fullCustomFolder.addInput(this.params, 'fullCustomCellWidth', {
+            label: 'Cell Width',
+            min: 4,
+            max: 64,
+            step: 1
+        }).on('change', () => this.render());
 
-        // Image presets
-        this.asciiFolder.addButton({ title: 'Preset: Minesweeper' }).on('click', async () => {
-            await AsciiMode.applyImagePreset('minesweeper');
-            this.render();
+        this.fullCustomFolder.addInput(this.params, 'fullCustomCellHeight', {
+            label: 'Cell Height',
+            min: 4,
+            max: 64,
+            step: 1
+        }).on('change', () => this.render());
+
+        this.fullCustomFolder.addInput(this.params, 'fullCustomBlackPoint', {
+            label: 'Black Point',
+            min: 0,
+            max: 1,
+            step: 0.01
+        }).on('change', () => this.render());
+
+        this.fullCustomFolder.addInput(this.params, 'fullCustomWhitePoint', {
+            label: 'White Point',
+            min: 0,
+            max: 1,
+            step: 0.01
+        }).on('change', () => this.render());
+
+        this.fullCustomFolder.addInput(this.params, 'fullCustomInvert', {
+            label: 'Invert (Highlights)'
+        }).on('change', () => this.render());
+
+        this.fullCustomFolder.addSeparator();
+
+        this.fullCustomFolder.addButton({ title: 'Edit Stops...' }).on('click', () => {
+            this.stopsEditor.open('fullCustom');
         });
 
-        this.asciiFolder.addSeparator();
-
-        // Custom preset controls
-        this.asciiFolder.addButton({ title: 'New Custom' }).on('click', () => {
-            // Start with minimal default: space at 0% and @ at 100%
-            AsciiMode.stops = [
-                { id: 0, percentage: 0, value: ' ', color: AsciiMode.fgColor, bgColor: AsciiMode.bgColor },
-                { id: 1, percentage: 100, value: '@', color: AsciiMode.fgColor, bgColor: AsciiMode.bgColor }
-            ];
-            AsciiMode.stopIdCounter = 2;
-            AsciiMode.syncFromStops();
-            this.stopsEditor.open('ascii');
-        });
-
-        this.asciiFolder.addButton({ title: 'Import Preset...' }).on('click', () => {
+        this.fullCustomFolder.addButton({ title: 'Import Preset...' }).on('click', () => {
             const input = prompt('Paste JSON preset or plain character string:');
             if (input) {
                 if (AsciiMode.loadCustomPreset(input)) {
@@ -380,7 +507,7 @@ class PixelatorStudio {
             }
         });
 
-        this.asciiFolder.addButton({ title: 'Export Preset' }).on('click', () => {
+        this.fullCustomFolder.addButton({ title: 'Export Preset' }).on('click', () => {
             const preset = {
                 stops: AsciiMode.stops.map(s => ({
                     percentage: s.percentage,
@@ -395,13 +522,6 @@ class PixelatorStudio {
             }).catch(() => {
                 alert('Failed to copy to clipboard:\n\n' + json);
             });
-        });
-
-        this.asciiFolder.addSeparator();
-
-        // Edit characters button
-        this.asciiFolder.addButton({ title: 'Edit Characters...' }).on('click', () => {
-            this.stopsEditor.open('ascii');
         });
 
         // Typewriter mode folder (Jules Kuehn algorithm)
@@ -474,19 +594,35 @@ class PixelatorStudio {
 
         this.typewriterFolder.addSeparator();
 
+        this.typewriterFolder.addInput(this.params, 'typewriterPreset', {
+            label: 'Preset',
+            options: {
+                'Detailed': 'detailed',
+                'Typewriter': 'typewriter',
+                'Dense': 'dense',
+                'Basic': 'basic',
+                'Blocks': 'blocks',
+                'Braille': 'braille',
+                'Rounds': 'rounds',
+                'Dots': 'dots'
+            }
+        }).on('change', (e) => {
+            TypewriterMode.loadPreset(e.value);
+            this.params.typewriterCharacters = TypewriterMode.getCharacterString();
+            this.typewriterCharsControl.refresh();
+            this.render();
+        });
+
+        this.typewriterCharsControl = this.typewriterFolder.addInput(this.params, 'typewriterCharacters', {
+            label: 'Characters'
+        }).on('change', (e) => {
+            TypewriterMode.loadFromCharString(e.value);
+            this.render();
+        });
+
         // Character set controls
         this.typewriterFolder.addButton({ title: 'Edit Characters...' }).on('click', () => {
             this.stopsEditor.open('typewriter');
-        });
-
-        this.typewriterFolder.addButton({ title: 'Preset: Typewriter' }).on('click', () => {
-            TypewriterMode.loadPreset('typewriter');
-            this.render();
-        });
-
-        this.typewriterFolder.addButton({ title: 'Preset: Dense' }).on('click', () => {
-            TypewriterMode.loadPreset('dense');
-            this.render();
         });
 
         // Emoji mode folder
@@ -539,7 +675,6 @@ class PixelatorStudio {
         this.stopsEditor = new StopsEditor(() => this.render());
 
         this.updateUIVisibility();
-        this.updateAsciiEdgeControlsVisibility();
         this.updateIntensityVisibility();
     }
 
@@ -547,20 +682,9 @@ class PixelatorStudio {
      * Update intensity control visibility based on algorithm
      */
     updateIntensityVisibility() {
-        if (this.intensityControl) {
-            this.intensityControl.hidden = !Algorithms.usesIntensity(this.params.algorithm);
+        if (this.pixelIntensityControl) {
+            this.pixelIntensityControl.hidden = !Algorithms.usesIntensity(this.params.pixelPlacementAlgo);
         }
-    }
-
-    /**
-     * Update ASCII edge controls visibility based on algorithm
-     */
-    updateAsciiEdgeControlsVisibility() {
-        const algorithm = this.params.asciiAlgorithm;
-        const showEdgeControls = algorithm === 'brightness' || algorithm === 'shadeShape';
-
-        this.asciiEdgeOverlayControl.hidden = !showEdgeControls;
-        this.asciiEdgeCannyControl.hidden = !showEdgeControls || !this.params.asciiEdgeOverlay;
     }
 
     /**
@@ -569,15 +693,18 @@ class PixelatorStudio {
     updateUIVisibility() {
         const mode = this.params.mode;
 
-        // Cell size not used by quadtree
-        this.cellSizeControl.hidden = mode === 'quadtree';
+        // Cell size not used by quadtree or fullCustom
+        this.cellSizeControl.hidden = mode === 'quadtree' || mode === 'fullCustom';
 
-        // Gap not used by quadtree (uses its own subdivision)
-        this.gapControl.hidden = mode === 'quadtree';
+
+        // Background color hidden in ASCII mode (uses per-character BG in mode settings)
+        this.bgColorControl.hidden = mode === 'ascii';
 
         // Mode folders
-        this.shapeFolder.hidden = mode !== 'shape';
+        this.pixelFolder.hidden = mode !== 'pixel';
+        this.halftoneFolder.hidden = mode !== 'halftone';
         this.asciiFolder.hidden = mode !== 'ascii';
+        this.fullCustomFolder.hidden = mode !== 'fullCustom';
         this.typewriterFolder.hidden = mode !== 'typewriter';
         this.emojiFolder.hidden = mode !== 'emoji';
         this.quadtreeFolder.hidden = mode !== 'quadtree';
@@ -605,14 +732,14 @@ class PixelatorStudio {
             reader.readAsDataURL(file);
         });
 
-        // SVG upload
+        // SVG upload (for halftone mode)
         this.svgInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             reader.onload = (ev) => {
-                if (ShapeMode.loadSVG(ev.target.result)) {
+                if (HalftoneMode.loadSVG(ev.target.result)) {
                     this.render();
                 }
             };
@@ -756,9 +883,13 @@ class PixelatorStudio {
             try {
                 const mode = this.params.mode;
 
-                if (mode === 'shape') {
-                    ShapeMode.render(this.ctx, this.canvas, this.image, this.params);
+                if (mode === 'pixel') {
+                    PixelMode.render(this.ctx, this.canvas, this.image, this.params);
+                } else if (mode === 'halftone') {
+                    HalftoneMode.render(this.ctx, this.canvas, this.image, this.params);
                 } else if (mode === 'ascii') {
+                    AsciiMode.render(this.ctx, this.canvas, this.image, this.params);
+                } else if (mode === 'fullCustom') {
                     AsciiMode.render(this.ctx, this.canvas, this.image, this.params);
                 } else if (mode === 'typewriter') {
                     TypewriterMode.render(this.ctx, this.canvas, this.image, this.params);
@@ -778,6 +909,13 @@ class PixelatorStudio {
                 this.processing = false;
             }
         }, 50);
+    }
+
+    /**
+     * Load halftone SVG
+     */
+    loadHalftoneSVG() {
+        this.svgInput.click();
     }
 
     /**

@@ -26,8 +26,6 @@ const AsciiMode = {
     // Cache keys
     _lastCellSize: null,
     _lastFont: null,
-    _lastSquareCells: null,
-    _useSquareCells: false,
 
     /**
      * Initialize with default character set
@@ -73,18 +71,11 @@ const AsciiMode = {
      */
     computeDensities(cellSize, fontFamily) {
         const canvas = document.createElement('canvas');
-        let charWidth, charHeight;
-
-        if (this._useSquareCells) {
-            charWidth = cellSize;
-            charHeight = cellSize;
-        } else {
-            const measureCtx = document.createElement('canvas').getContext('2d');
-            measureCtx.font = `${cellSize}px ${fontFamily}`;
-            const metrics = measureCtx.measureText('M');
-            charWidth = Math.ceil(metrics.width);
-            charHeight = cellSize;
-        }
+        const measureCtx = document.createElement('canvas').getContext('2d');
+        measureCtx.font = `${cellSize}px ${fontFamily}`;
+        const metrics = measureCtx.measureText('M');
+        const charWidth = Math.ceil(metrics.width);
+        const charHeight = cellSize;
 
         canvas.width = charWidth;
         canvas.height = charHeight;
@@ -146,18 +137,11 @@ const AsciiMode = {
      */
     computeShapes(cellSize, fontFamily) {
         const canvas = document.createElement('canvas');
-        let charWidth, charHeight;
-
-        if (this._useSquareCells) {
-            charWidth = cellSize;
-            charHeight = cellSize;
-        } else {
-            const measureCtx = document.createElement('canvas').getContext('2d');
-            measureCtx.font = `${cellSize}px ${fontFamily}`;
-            const metrics = measureCtx.measureText('M');
-            charWidth = Math.ceil(metrics.width);
-            charHeight = cellSize;
-        }
+        const measureCtx = document.createElement('canvas').getContext('2d');
+        measureCtx.font = `${cellSize}px ${fontFamily}`;
+        const metrics = measureCtx.measureText('M');
+        const charWidth = Math.ceil(metrics.width);
+        const charHeight = cellSize;
 
         canvas.width = charWidth;
         canvas.height = charHeight;
@@ -222,18 +206,11 @@ const AsciiMode = {
      */
     computeEdgeCharImages(cellSize, fontFamily) {
         const canvas = document.createElement('canvas');
-        let charWidth, charHeight;
-
-        if (this._useSquareCells) {
-            charWidth = cellSize;
-            charHeight = cellSize;
-        } else {
-            const measureCtx = document.createElement('canvas').getContext('2d');
-            measureCtx.font = `${cellSize}px ${fontFamily}`;
-            const metrics = measureCtx.measureText('M');
-            charWidth = Math.ceil(metrics.width);
-            charHeight = cellSize;
-        }
+        const measureCtx = document.createElement('canvas').getContext('2d');
+        measureCtx.font = `${cellSize}px ${fontFamily}`;
+        const metrics = measureCtx.measureText('M');
+        const charWidth = Math.ceil(metrics.width);
+        const charHeight = cellSize;
 
         canvas.width = charWidth;
         canvas.height = charHeight;
@@ -394,8 +371,8 @@ const AsciiMode = {
         }
 
         // Pass 2: Double threshold + hysteresis
-        const lowThreshold = 0.05;
-        const highThreshold = 0.15;
+        const lowThreshold = 0.1;
+        const highThreshold = 0.25;
         const result = new Float32Array(magnitude.length);
         const visited = new Uint8Array(magnitude.length);
 
@@ -501,11 +478,11 @@ const AsciiMode = {
         if (angleDeg < 22.5 || angleDeg >= 157.5) {
             return '-'; // Horizontal edge
         } else if (angleDeg >= 22.5 && angleDeg < 67.5) {
-            return '/'; // Diagonal
+            return '\\'; // Diagonal (top-left to bottom-right)
         } else if (angleDeg >= 67.5 && angleDeg < 112.5) {
             return '|'; // Vertical edge
         } else {
-            return '\\'; // Diagonal
+            return '/'; // Diagonal (bottom-left to top-right)
         }
     },
 
@@ -513,7 +490,9 @@ const AsciiMode = {
      * Main render - delegates to algorithm
      */
     render(ctx, canvas, img, params) {
-        const algorithm = params.asciiAlgorithm || 'shadeShape';
+        const algorithm = params.mode === 'fullCustom'
+            ? (params.fullCustomAlgorithm || 'shadeShape')
+            : (params.asciiAlgorithm || 'shadeShape');
 
         switch (algorithm) {
             case 'brightness':
@@ -712,19 +691,21 @@ const AsciiMode = {
         const prepared = Core.prepareImage(img);
         const { width, height, data } = prepared;
         const scale = params.outputScale || 1;
-        const gap = params.gap || 0;
+        const gap = 0;
 
-        const cellSize = params.cellSize;
+        const isFullCustom = params.mode === 'fullCustom';
         const fontFamily = params.fontFamily || 'monospace';
 
-        // Use square cells ONLY if checkbox is checked
-        const useSquareCells = params.asciiForceSquareCells || false;
+        let cellSize, charWidth, charHeight;
 
-        let charWidth, charHeight;
-        if (useSquareCells) {
-            charWidth = cellSize;
-            charHeight = cellSize;
+        if (isFullCustom) {
+            // Full Custom: explicit pixel dimensions
+            charWidth = params.fullCustomCellWidth || 10;
+            charHeight = params.fullCustomCellHeight || 10;
+            cellSize = charHeight;  // font-size for text rendering
         } else {
+            // ASCII: font-size based (use font metrics)
+            cellSize = params.cellSize;
             ctx.font = `${cellSize}px ${fontFamily}`;
             const metrics = ctx.measureText('M');
             charWidth = Math.ceil(metrics.width);
@@ -747,13 +728,11 @@ const AsciiMode = {
         // Recompute character data if needed
         if (!this.charDensities ||
             this._lastCellSize !== cellSize ||
-            this._lastFont !== fontFamily ||
-            this._lastSquareCells !== useSquareCells) {
-            this._useSquareCells = useSquareCells; // Set before computing
+            this._lastFont !== fontFamily) {
+            this._useSquareCells = false; // No longer using square cells
             this.precomputeCharData(cellSize, fontFamily);
             this._lastCellSize = cellSize;
             this._lastFont = fontFamily;
-            this._lastSquareCells = useSquareCells;
         }
 
         // Fill background
@@ -766,32 +745,49 @@ const AsciiMode = {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // Get levels params
-        const blackPoint = params.asciiBlackPoint || 0;
-        const whitePoint = params.asciiWhitePoint !== undefined ? params.asciiWhitePoint : 1;
-        const invert = params.asciiInvert || false;
-        const useOriginalColor = params.asciiUseOriginalColor || false;
+        // Read mode-specific params
+        const blackPoint = isFullCustom ? (params.fullCustomBlackPoint || 0) : (params.asciiBlackPoint || 0);
+        const whitePoint = isFullCustom
+            ? (params.fullCustomWhitePoint !== undefined ? params.fullCustomWhitePoint : 1)
+            : (params.asciiWhitePoint !== undefined ? params.asciiWhitePoint : 1);
+        const useOriginalColor = isFullCustom
+            ? false
+            : (params.asciiUseOriginalColor || false);
+        const edgeMode = isFullCustom
+            ? 'none'
+            : (params.asciiEdgeMode || 'none');
+        const invert = isFullCustom
+            ? (params.fullCustomInvert || false)
+            : (params.asciiInvert || false);
 
-        return { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor, scale, scaledCharWidth, scaledCharHeight, scaledGap };
+        return {
+            data, width, height,
+            cellSize, charWidth, charHeight,
+            cols, rows,
+            scaledCharWidth, scaledCharHeight, scaledGap,
+            blackPoint, whitePoint,
+            useOriginalColor, edgeMode, invert,
+            fontFamily, gap, scale
+        };
     },
 
     /**
      * Algorithm 1: Simple brightness mapping
      */
     renderBrightness(ctx, canvas, img, params) {
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor, scaledCharWidth, scaledCharHeight, scaledGap } =
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, useOriginalColor, edgeMode, invert, scaledCharWidth, scaledCharHeight, scaledGap } =
             this.setupRender(ctx, canvas, img, params);
 
         // Edge overlay preprocessing
         let edgeMagnitude = null;
         let edgeDirection = null;
-        if (params.asciiEdgeOverlay) {
+        if (edgeMode !== 'none') {
             const result = this.sobelFullImage(data, width, height);
             edgeMagnitude = result.magnitude;
             edgeDirection = result.direction;
 
-            // Optionally apply Canny post-processing
-            if (params.asciiEdgeCanny) {
+            // Apply Canny post-processing if selected
+            if (edgeMode === 'canny') {
                 edgeMagnitude = this.cannyEdges(edgeMagnitude, edgeDirection, width, height);
             }
         }
@@ -821,20 +817,28 @@ const AsciiMode = {
                 // Apply levels adjustment
                 brightness = this.applyLevels(brightness, blackPoint, whitePoint);
 
-                // Normal: dark areas = dense characters. Invert: bright areas = dense characters
-                const density = invert ? brightness : 1 - brightness;
+                // Map brightness to stop percentage (0-100)
+                // Normal: Dark areas (low brightness) = high percentage stops (dense chars)
+                // Inverted: Bright areas (high brightness) = high percentage stops (dense chars)
+                const percentage = invert ? brightness * 100 : (1 - brightness) * 100;
 
-                // Map to character by density (for color lookup)
-                const charIndex = Math.min(
-                    this.sortedByDensity.length - 1,
-                    Math.floor(density * this.sortedByDensity.length)
-                );
-                const baseChar = this.sortedByDensity[charIndex].char;
+                // Find the closest stop by percentage
+                const sortedStops = [...this.stops].sort((a, b) => a.percentage - b.percentage);
+                let baseChar = sortedStops[0].value;
+                let minDiff = Math.abs(percentage - sortedStops[0].percentage);
+
+                for (const stop of sortedStops) {
+                    const diff = Math.abs(percentage - stop.percentage);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        baseChar = stop.value;
+                    }
+                }
 
                 // Check for edge overlay
                 let char = baseChar;
                 if (edgeMagnitude && edgeDirection) {
-                    const edgeChar = this.getEdgeChar(edgeDirection, edgeMagnitude, width, imgX, imgY, charWidth, charHeight, params.asciiEdgeCanny);
+                    const edgeChar = this.getEdgeChar(edgeDirection, edgeMagnitude, width, imgX, imgY, charWidth, charHeight, edgeMode === 'canny');
                     if (edgeChar) {
                         char = edgeChar;
                     }
@@ -877,19 +881,19 @@ const AsciiMode = {
      * Algorithm 2: Shade + Shape hybrid (asciiart.club style)
      */
     renderShadeShape(ctx, canvas, img, params) {
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor, scaledCharWidth, scaledCharHeight, scaledGap } =
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, useOriginalColor, edgeMode, invert, scaledCharWidth, scaledCharHeight, scaledGap } =
             this.setupRender(ctx, canvas, img, params);
 
         // Edge overlay preprocessing
         let edgeMagnitude = null;
         let edgeDirection = null;
-        if (params.asciiEdgeOverlay) {
+        if (edgeMode !== 'none') {
             const result = this.sobelFullImage(data, width, height);
             edgeMagnitude = result.magnitude;
             edgeDirection = result.direction;
 
-            // Optionally apply Canny post-processing
-            if (params.asciiEdgeCanny) {
+            // Apply Canny post-processing if selected
+            if (edgeMode === 'canny') {
                 edgeMagnitude = this.cannyEdges(edgeMagnitude, edgeDirection, width, height);
             }
         }
@@ -919,26 +923,28 @@ const AsciiMode = {
                 // Apply levels adjustment
                 brightness = this.applyLevels(brightness, blackPoint, whitePoint);
 
-                // Normal: dark areas = dense characters. Invert: bright areas = dense characters
-                const targetDensity = invert ? brightness : 1 - brightness;
+                // Calculate target density based on brightness
+                // Normal: Dark areas = dense characters (1 - brightness)
+                // Inverted: Bright areas = dense characters (brightness)
+                const targetDensity = invert ? brightness : (1 - brightness);
 
-                // Find top 8 candidates by density
+                // Find top 8 candidates by visual density
                 const candidates = this.getCharsByDensity(targetDensity, 8);
 
-                // Phase 2: Get shape vector from image
+                // Get shape vector from image using 6D sampling
                 const imageShape = this.sampleImageShape(
                     data, width, height,
                     imgX, imgY, charWidth, charHeight,
-                    blackPoint, whitePoint, invert
+                    blackPoint, whitePoint
                 );
 
-                // Find best shape match among candidates (for color lookup)
+                // Find best shape match among candidates using Euclidean distance
                 const baseChar = this.findBestShapeMatch(candidates, imageShape);
 
                 // Check for edge overlay
                 let char = baseChar;
                 if (edgeMagnitude && edgeDirection) {
-                    const edgeChar = this.getEdgeChar(edgeDirection, edgeMagnitude, width, imgX, imgY, charWidth, charHeight, params.asciiEdgeCanny);
+                    const edgeChar = this.getEdgeChar(edgeDirection, edgeMagnitude, width, imgX, imgY, charWidth, charHeight, edgeMode === 'canny');
                     if (edgeChar) {
                         char = edgeChar;
                     }
@@ -992,7 +998,7 @@ const AsciiMode = {
     /**
      * Sample 6D shape vector from image region (per-vector normalization)
      */
-    sampleImageShape(data, imgWidth, imgHeight, x, y, cellW, cellH, blackPoint, whitePoint, invert) {
+    sampleImageShape(data, imgWidth, imgHeight, x, y, cellW, cellH, blackPoint, whitePoint) {
         const regions = this._regions;
         const radius = this._radius;
         const vector = [];
@@ -1015,8 +1021,8 @@ const AsciiMode = {
                         let luma = Core.getLuma(data[idx], data[idx + 1], data[idx + 2]);
                         // Apply levels adjustment
                         luma = this.applyLevels(luma, blackPoint, whitePoint);
-                        // Normal: dark = ink. Invert: bright = ink
-                        sum += invert ? luma : 1 - luma;
+                        // Dark = ink
+                        sum += 1 - luma;
                         count++;
                     }
                 }
@@ -1062,7 +1068,7 @@ const AsciiMode = {
      * Runs Sobel on full image, then matches tiles to edge characters
      */
     renderEdge(ctx, canvas, img, params) {
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, invert, useOriginalColor, scaledCharWidth, scaledCharHeight, scaledGap } =
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, useOriginalColor, scaledCharWidth, scaledCharHeight, scaledGap } =
             this.setupRender(ctx, canvas, img, params);
 
         // Step 1: Run Sobel edge detection on full image
@@ -1073,7 +1079,6 @@ const AsciiMode = {
         const binaryEdges = new Float32Array(edges.length);
         for (let i = 0; i < edges.length; i++) {
             let val = this.applyLevels(edges[i], blackPoint, whitePoint);
-            if (invert) val = 1 - val;
             binaryEdges[i] = val > threshold ? 1 : 0;
         }
 
@@ -1207,15 +1212,36 @@ const AsciiMode = {
         this.syncFromStops();
     },
 
+    loadFromCharString(str) {
+        if (!str || str.length === 0) return;
+
+        this.characters = str;
+
+        // Invalidate caches
+        this.charDensities = null;
+        this.charShapes = null;
+        this.sortedByDensity = null;
+        this.edgeCharImages = null;
+
+        // Auto-distribute stops evenly
+        this.stops = str.split('').map((char, i) => ({
+            id: i,
+            percentage: str.length > 1 ? Math.round(i / (str.length - 1) * 100) : 0,
+            value: char,
+            color: this.fgColor,
+            bgColor: this.bgColor
+        }));
+        this.stopIdCounter = this.stops.length;
+    },
+
     // Presets
     loadPreset(preset) {
         const presets = {
             basic: ' .:-=+*#%@',
             blocks: ' ░▒▓█',
             detailed: ' .`\'^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$',
-            minimal: ' .-:=+*#@',
-            dense: '.:;+xX#@',
-            letters: ' .oO0@',
+            typewriter: ' .,\'":;ilxoX#@M',
+            rounds: ' .oO0@',
             dots: ' .·•●',
             braille: '⠀⣀⣄⣤⣦⣶⣷⣿',
         };

@@ -39,6 +39,10 @@ class Algorithms {
 
         switch (mode) {
             // Basic modes
+            case 'none':
+                // Identity transform - no modifications
+                break;
+
             case 'flat':
                 // Static - no modifications
                 break;
@@ -57,11 +61,6 @@ class Algorithms {
             case 'rotation':
                 // Luma-based rotation
                 rot = luma * Math.PI;
-                break;
-
-            case 'random_rot':
-                // Random rotation
-                rot = this.seededRandom(x, y) * Math.PI * 2;
                 break;
 
             // Scale modes
@@ -98,13 +97,6 @@ class Algorithms {
                 // Horizontal stretch
                 scX = luma * baseScale * 3;
                 scY = baseScale * 0.5;
-                break;
-
-            // Crosshatch
-            case 'crosshatch':
-                rot = luma > 0.5 ? Math.PI / 4 : -Math.PI / 4;
-                scY = baseScale * 1.5;
-                scX = baseScale * 0.2;
                 break;
 
             // Position offset modes
@@ -184,6 +176,46 @@ class Algorithms {
     }
 
     /**
+     * Get color algorithms (affect visibility/alpha)
+     */
+    static getColorAlgorithmList() {
+        return {
+            'Flat (All Visible)': 'flat',
+            'Opacity (Bright→Visible)': 'opacity',
+            'Inv. Opacity (Dark→Visible)': 'inv_opacity',
+            'Threshold (Hard Cut)': 'threshold'
+        };
+    }
+
+    /**
+     * Get placement algorithms (affect position/rotation/scale)
+     */
+    static getPlacementAlgorithmList() {
+        return {
+            'None': 'none',
+            'Rotation (Luma→Angle)': 'rotation',
+            'Random Size (Chaos)': 'random_size',
+            'Stretch Vertical': 'stretch_v',
+            'Stretch Horizontal': 'stretch_h',
+            'Glitch (Luma→Offset)': 'glitch',
+            'Pixel Melt (Drip)': 'melt',
+            'Mosaic Jitter (Scatter)': 'jitter',
+            'Flow Field (Direction)': 'flow',
+            'Edge Detect (Outline)': 'edges'
+        };
+    }
+
+    /**
+     * Get halftone algorithms (brightness→size only)
+     */
+    static getHalftoneAlgorithmList() {
+        return {
+            'Halftone (Bright→Size)': 'halftone',
+            'Inverse (Dark→Size)': 'inv_halftone'
+        };
+    }
+
+    /**
      * Get all available algorithms
      */
     static getAlgorithmList() {
@@ -195,7 +227,6 @@ class Algorithms {
 
             // Rotation
             'Rotation (Luma→Angle)': 'rotation',
-            'Random Rotation': 'random_rot',
 
             // Scale
             'Random Size (Chaos)': 'random_size',
@@ -210,7 +241,6 @@ class Algorithms {
             // Stretch
             'Stretch Vertical': 'stretch_v',
             'Stretch Horizontal': 'stretch_h',
-            'Crosshatch': 'crosshatch',
 
             // Position
             'Glitch (Luma→Offset)': 'glitch',

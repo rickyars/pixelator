@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gradient Test Image</title>
+    <style>
+        body {
+            margin: 20px;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gradient Test Image Generator</h1>
+    <p>Use this to test the full range of your ASCII stops.</p>
+
+    <div>
+        <button onclick="generateHorizontal()">Horizontal Gradient</button>
+        <button onclick="generateVertical()">Vertical Gradient</button>
+        <button onclick="download()">Download Image</button>
+    </div>
+
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function generateHorizontal() {
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, '#000000');
+            gradient.addColorStop(1, '#ffffff');
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function generateVertical() {
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#000000');
+            gradient.addColorStop(1, '#ffffff');
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function download() {
+            const link = document.createElement('a');
+            link.download = 'gradient-test.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Generate horizontal gradient by default
+        generateHorizontal();
+    </script>
+</body>
+</html>
