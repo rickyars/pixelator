@@ -38,13 +38,9 @@ class Algorithms {
         let alpha = 1.0;
 
         switch (mode) {
-            // Basic modes
             case 'none':
-                // Identity transform - no modifications
-                break;
-
             case 'flat':
-                // Static - no modifications
+                // Identity transform - no modifications
                 break;
 
             case 'halftone':
@@ -176,18 +172,6 @@ class Algorithms {
     }
 
     /**
-     * Get color algorithms (affect visibility/alpha)
-     */
-    static getColorAlgorithmList() {
-        return {
-            'Flat (All Visible)': 'flat',
-            'Opacity (Bright→Visible)': 'opacity',
-            'Inv. Opacity (Dark→Visible)': 'inv_opacity',
-            'Threshold (Hard Cut)': 'threshold'
-        };
-    }
-
-    /**
      * Get placement algorithms (affect position/rotation/scale)
      */
     static getPlacementAlgorithmList() {
@@ -215,41 +199,4 @@ class Algorithms {
         };
     }
 
-    /**
-     * Get all available algorithms
-     */
-    static getAlgorithmList() {
-        return {
-            // Basic
-            'Static (Flat)': 'flat',
-            'Halftone (Bright→Size)': 'halftone',
-            'Inverse (Dark→Size)': 'inv_halftone',
-
-            // Rotation
-            'Rotation (Luma→Angle)': 'rotation',
-
-            // Scale
-            'Random Size (Chaos)': 'random_size',
-
-            // Opacity
-            'Opacity (Luma→Alpha)': 'opacity',
-            'Inv. Opacity (Dark→Alpha)': 'inv_opacity',
-
-            // Threshold
-            'Threshold (Hard Cut)': 'threshold',
-
-            // Stretch
-            'Stretch Vertical': 'stretch_v',
-            'Stretch Horizontal': 'stretch_h',
-
-            // Position
-            'Glitch (Luma→Offset)': 'glitch',
-            'Pixel Melt (Drip)': 'melt',
-            'Mosaic Jitter (Scatter)': 'jitter',
-
-            // Advanced
-            'Flow Field (Direction)': 'flow',
-            'Edge Detect (Outline)': 'edges'
-        };
-    }
 }

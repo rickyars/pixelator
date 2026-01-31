@@ -78,22 +78,13 @@ const QuadTreeMode = {
             return rgb;
         }
 
-        // Calculate luminance
-        const lum = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
-        const normalized = lum / 255;
+        const luma = Core.getLuma(rgb.r, rgb.g, rgb.b);
+        const mono = Core.hexToRgb(params.quadtreeMonoColor || '#ffffff');
 
-        // Parse mono color
-        const monoColor = params.quadtreeMonoColor || '#ffffff';
-        const hex = monoColor.replace('#', '');
-        const monoR = parseInt(hex.substring(0, 2), 16);
-        const monoG = parseInt(hex.substring(2, 4), 16);
-        const monoB = parseInt(hex.substring(4, 6), 16);
-
-        // Apply luminance to mono color
         return {
-            r: Math.round(monoR * normalized),
-            g: Math.round(monoG * normalized),
-            b: Math.round(monoB * normalized)
+            r: Math.round(mono.r * luma),
+            g: Math.round(mono.g * luma),
+            b: Math.round(mono.b * luma)
         };
     }
 };

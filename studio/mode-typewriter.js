@@ -269,18 +269,14 @@ const TypewriterMode = {
 
         console.log(`Optimization: ${((performance.now() - startTime) / 1000).toFixed(2)}s`);
 
-        // Render to canvas (scaled, with gaps)
+        // Render to canvas
         const scale = params.outputScale || 1;
-        const gap = 0;
-        const scaledGap = gap * scale;
-        const scaledCharWidth = this.charWidth * scale;
-        const scaledCharHeight = this.charHeight * scale;
 
-        canvas.width = numCols * scaledCharWidth + (numCols - 1) * scaledGap;
-        canvas.height = numRows * scaledCharHeight + (numRows - 1) * scaledGap;
+        canvas.width = numCols * this.charWidth * scale;
+        canvas.height = numRows * this.charHeight * scale;
 
         this.renderMockup(ctx, mockup, paddedWidth, targetWidth, targetHeight, params, scale,
-            numCols, numRows, this.charWidth, this.charHeight, scaledGap);
+            numCols, numRows, this.charWidth, this.charHeight);
     },
 
     /**
@@ -488,8 +484,7 @@ const TypewriterMode = {
     /**
      * Render mockup to canvas
      */
-    renderMockup(ctx, mockup, mockupWidth, targetWidth, targetHeight, params, scale = 1,
-                 numCols = 0, numRows = 0, charWidth = 0, charHeight = 0, scaledGap = 0) {
+    renderMockup(ctx, mockup, mockupWidth, targetWidth, targetHeight, params, scale = 1) {
         // Paper color (background) and ink color
         const paper = Core.hexToRgb(params.bgColor || '#ffffff');
         const ink = { r: 0, g: 0, b: 0 }; // Typewriter ink is always black
@@ -498,65 +493,25 @@ const TypewriterMode = {
         ctx.fillStyle = params.bgColor || '#ffffff';
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-        const scaledCharWidth = charWidth * scale;
-        const scaledCharHeight = charHeight * scale;
+        const scaledWidth = targetWidth * scale;
+        const scaledHeight = targetHeight * scale;
+        const imageData = ctx.createImageData(scaledWidth, scaledHeight);
 
-        // If no gap info provided, render without gaps (legacy behavior)
-        if (numCols === 0 || scaledGap === 0) {
-            const scaledWidth = targetWidth * scale;
-            const scaledHeight = targetHeight * scale;
-            const imageData = ctx.createImageData(scaledWidth, scaledHeight);
+        for (let y = 0; y < scaledHeight; y++) {
+            for (let x = 0; x < scaledWidth; x++) {
+                const srcX = Math.floor(x / scale);
+                const srcY = Math.floor(y / scale);
+                const srcIdx = srcY * mockupWidth + srcX;
+                const dstIdx = (y * scaledWidth + x) * 4;
 
-            for (let y = 0; y < scaledHeight; y++) {
-                for (let x = 0; x < scaledWidth; x++) {
-                    const srcX = Math.floor(x / scale);
-                    const srcY = Math.floor(y / scale);
-                    const srcIdx = srcY * mockupWidth + srcX;
-                    const dstIdx = (y * scaledWidth + x) * 4;
-
-                    const value = mockup[srcIdx];
-                    imageData.data[dstIdx] = Math.round(ink.r * (1 - value) + paper.r * value);
-                    imageData.data[dstIdx + 1] = Math.round(ink.g * (1 - value) + paper.g * value);
-                    imageData.data[dstIdx + 2] = Math.round(ink.b * (1 - value) + paper.b * value);
-                    imageData.data[dstIdx + 3] = 255;
-                }
-            }
-            ctx.putImageData(imageData, 0, 0);
-            return;
-        }
-
-        // Render with gaps between character cells
-        for (let row = 0; row < numRows; row++) {
-            for (let col = 0; col < numCols; col++) {
-                // Source position in mockup
-                const srcStartX = col * charWidth;
-                const srcStartY = row * charHeight;
-
-                // Destination position with gaps
-                const dstStartX = col * (scaledCharWidth + scaledGap);
-                const dstStartY = row * (scaledCharHeight + scaledGap);
-
-                // Create imageData for this cell
-                const cellData = ctx.createImageData(scaledCharWidth, scaledCharHeight);
-
-                for (let py = 0; py < scaledCharHeight; py++) {
-                    for (let px = 0; px < scaledCharWidth; px++) {
-                        const srcX = srcStartX + Math.floor(px / scale);
-                        const srcY = srcStartY + Math.floor(py / scale);
-                        const srcIdx = srcY * mockupWidth + srcX;
-                        const dstIdx = (py * scaledCharWidth + px) * 4;
-
-                        const value = mockup[srcIdx];
-                        cellData.data[dstIdx] = Math.round(ink.r * (1 - value) + paper.r * value);
-                        cellData.data[dstIdx + 1] = Math.round(ink.g * (1 - value) + paper.g * value);
-                        cellData.data[dstIdx + 2] = Math.round(ink.b * (1 - value) + paper.b * value);
-                        cellData.data[dstIdx + 3] = 255;
-                    }
-                }
-
-                ctx.putImageData(cellData, dstStartX, dstStartY);
+                const value = mockup[srcIdx];
+                imageData.data[dstIdx] = Math.round(ink.r * (1 - value) + paper.r * value);
+                imageData.data[dstIdx + 1] = Math.round(ink.g * (1 - value) + paper.g * value);
+                imageData.data[dstIdx + 2] = Math.round(ink.b * (1 - value) + paper.b * value);
+                imageData.data[dstIdx + 3] = 255;
             }
         }
+        ctx.putImageData(imageData, 0, 0);
     },
 
     /**

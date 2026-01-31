@@ -490,6 +490,19 @@ class PixelatorStudio {
             label: 'Invert (Highlights)'
         }).on('change', () => this.render());
 
+        this.fullCustomFolder.addInput(this.params, 'fullCustomUseOriginalColor', {
+            label: 'Original Color'
+        }).on('change', () => this.render());
+
+        this.fullCustomFolder.addInput(this.params, 'fullCustomEdgeMode', {
+            label: 'Edge Mode',
+            options: {
+                'None': 'none',
+                'Sobel': 'sobel',
+                'Canny': 'canny'
+            }
+        }).on('change', () => this.render());
+
         this.fullCustomFolder.addSeparator();
 
         this.fullCustomFolder.addButton({ title: 'Edit Stops...' }).on('click', () => {
@@ -668,7 +681,6 @@ class PixelatorStudio {
             label: 'Prioritize Large'
         }).on('change', () => this.render());
 
-
         this.pane = pane;
 
         // Initialize stops editor
@@ -696,7 +708,6 @@ class PixelatorStudio {
         // Cell size not used by quadtree or fullCustom
         this.cellSizeControl.hidden = mode === 'quadtree' || mode === 'fullCustom';
 
-
         // Background color hidden in ASCII mode (uses per-character BG in mode settings)
         this.bgColorControl.hidden = mode === 'ascii';
 
@@ -708,7 +719,6 @@ class PixelatorStudio {
         this.typewriterFolder.hidden = mode !== 'typewriter';
         this.emojiFolder.hidden = mode !== 'emoji';
         this.quadtreeFolder.hidden = mode !== 'quadtree';
-
     }
 
     /**
@@ -881,22 +891,19 @@ class PixelatorStudio {
 
         setTimeout(() => {
             try {
-                const mode = this.params.mode;
+                const renderers = {
+                    pixel: PixelMode,
+                    halftone: HalftoneMode,
+                    ascii: AsciiMode,
+                    fullCustom: AsciiMode,
+                    typewriter: TypewriterMode,
+                    emoji: EmojiMode,
+                    quadtree: QuadTreeMode
+                };
 
-                if (mode === 'pixel') {
-                    PixelMode.render(this.ctx, this.canvas, this.image, this.params);
-                } else if (mode === 'halftone') {
-                    HalftoneMode.render(this.ctx, this.canvas, this.image, this.params);
-                } else if (mode === 'ascii') {
-                    AsciiMode.render(this.ctx, this.canvas, this.image, this.params);
-                } else if (mode === 'fullCustom') {
-                    AsciiMode.render(this.ctx, this.canvas, this.image, this.params);
-                } else if (mode === 'typewriter') {
-                    TypewriterMode.render(this.ctx, this.canvas, this.image, this.params);
-                } else if (mode === 'emoji') {
-                    EmojiMode.render(this.ctx, this.canvas, this.image, this.params);
-                } else if (mode === 'quadtree') {
-                    QuadTreeMode.render(this.ctx, this.canvas, this.image, this.params);
+                const renderer = renderers[this.params.mode];
+                if (renderer) {
+                    renderer.render(this.ctx, this.canvas, this.image, this.params);
                 }
 
                 this.renderedCanvas = true;

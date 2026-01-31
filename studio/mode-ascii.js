@@ -47,14 +47,38 @@ const AsciiMode = {
     },
 
     /**
-     * Set character set
+     * Invalidate all precomputed character caches
      */
-    setCharacters(chars) {
-        this.characters = chars;
+    invalidateCache() {
         this.charDensities = null;
         this.charShapes = null;
         this.sortedByDensity = null;
         this.edgeCharImages = null;
+    },
+
+    /**
+     * Set character set
+     */
+    setCharacters(chars) {
+        this.characters = chars;
+        this.invalidateCache();
+    },
+
+    /**
+     * Create a canvas sized for a single character glyph
+     */
+    createCharCanvas(cellSize, fontFamily) {
+        const measureCtx = document.createElement('canvas').getContext('2d');
+        measureCtx.font = `${cellSize}px ${fontFamily}`;
+        const charWidth = Math.ceil(measureCtx.measureText('M').width);
+        const charHeight = cellSize;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = charWidth;
+        canvas.height = charHeight;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        return { canvas, ctx, charWidth, charHeight };
     },
 
     /**
@@ -70,16 +94,7 @@ const AsciiMode = {
      * Compute character densities (ink coverage)
      */
     computeDensities(cellSize, fontFamily) {
-        const canvas = document.createElement('canvas');
-        const measureCtx = document.createElement('canvas').getContext('2d');
-        measureCtx.font = `${cellSize}px ${fontFamily}`;
-        const metrics = measureCtx.measureText('M');
-        const charWidth = Math.ceil(metrics.width);
-        const charHeight = cellSize;
-
-        canvas.width = charWidth;
-        canvas.height = charHeight;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const { canvas, ctx, charWidth, charHeight } = this.createCharCanvas(cellSize, fontFamily);
 
         this.charDensities = new Map();
         const densityList = [];
@@ -136,16 +151,7 @@ const AsciiMode = {
      * Compute 6D shape vectors (per-vector normalization)
      */
     computeShapes(cellSize, fontFamily) {
-        const canvas = document.createElement('canvas');
-        const measureCtx = document.createElement('canvas').getContext('2d');
-        measureCtx.font = `${cellSize}px ${fontFamily}`;
-        const metrics = measureCtx.measureText('M');
-        const charWidth = Math.ceil(metrics.width);
-        const charHeight = cellSize;
-
-        canvas.width = charWidth;
-        canvas.height = charHeight;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const { canvas, ctx, charWidth, charHeight } = this.createCharCanvas(cellSize, fontFamily);
 
         // 6 sampling regions (2 cols × 3 rows)
         const regions = [
@@ -205,16 +211,7 @@ const AsciiMode = {
      * Compute binary edge images for edge-friendly characters
      */
     computeEdgeCharImages(cellSize, fontFamily) {
-        const canvas = document.createElement('canvas');
-        const measureCtx = document.createElement('canvas').getContext('2d');
-        measureCtx.font = `${cellSize}px ${fontFamily}`;
-        const metrics = measureCtx.measureText('M');
-        const charWidth = Math.ceil(metrics.width);
-        const charHeight = cellSize;
-
-        canvas.width = charWidth;
-        canvas.height = charHeight;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const { canvas, ctx, charWidth, charHeight } = this.createCharCanvas(cellSize, fontFamily);
 
         this.edgeCharImages = new Map();
         this._edgeCharWidth = charWidth;
@@ -520,12 +517,40 @@ const AsciiMode = {
     getStopData(char) {
         const stop = this.stops.find(s => s.value === char);
         return {
-            fg: stop && stop.color ? stop.color : this.fgColor,
-            bg: stop && stop.bgColor ? stop.bgColor : this.bgColor,
+            fg: stop && stop.color != null ? stop.color : this.fgColor,
+            bg: stop && stop.bgColor != null ? stop.bgColor : this.bgColor,
             image: stop ? stop.image : null,
             imageData: stop ? stop.imageData : null,
             preserveOriginalColors: stop ? stop.preserveOriginalColors : false
         };
+    },
+
+    /**
+     * Find the best stop for a character based on target percentage
+     * Used when multiple stops have the same character value
+     */
+    getStopByCharAndPercentage(char, targetPercentage) {
+        const matchingStops = this.stops.filter(s => s.value === char);
+        if (matchingStops.length === 0) {
+            return this.stops[0]; // Fallback
+        }
+        if (matchingStops.length === 1) {
+            return matchingStops[0];
+        }
+
+        // Multiple stops with same char - pick closest by percentage
+        let bestStop = matchingStops[0];
+        let minDiff = Math.abs(targetPercentage - matchingStops[0].percentage);
+
+        for (const stop of matchingStops) {
+            const diff = Math.abs(targetPercentage - stop.percentage);
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestStop = stop;
+            }
+        }
+
+        return bestStop;
     },
 
     /**
@@ -593,12 +618,7 @@ const AsciiMode = {
     },
 
     parseColor(hex) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16)
-        } : { r: 0, g: 0, b: 0 };
+        return Core.hexToRgb(hex);
     },
 
     /**
@@ -619,15 +639,7 @@ const AsciiMode = {
                     const imageData = ctx.getImageData(0, 0, img.width, img.height);
 
                     // Store in stop
-                    const stop = this.stops.find(s => s.id === stopId);
-                    if (stop) {
-                        stop.image = img;
-                        stop.imageData = imageData;
-                        // Recompute densities since we have a new "character"
-                        this.charDensities = null;
-                        this.charShapes = null;
-                        this.sortedByDensity = null;
-                    }
+                    this.setStopImageData(stopId, img, imageData);
                     resolve();
                 };
                 img.onerror = reject;
@@ -653,21 +665,24 @@ const AsciiMode = {
                 ctx.drawImage(img, 0, 0);
                 const imageData = ctx.getImageData(0, 0, img.width, img.height);
 
-                // Store in stop
-                const stop = this.stops.find(s => s.id === stopId);
-                if (stop) {
-                    stop.image = img;
-                    stop.imageData = imageData;
-                    // Recompute densities since we have a new "character"
-                    this.charDensities = null;
-                    this.charShapes = null;
-                    this.sortedByDensity = null;
-                }
+                this.setStopImageData(stopId, img, imageData);
                 resolve();
             };
             img.onerror = () => reject(new Error(`Failed to load image from ${url}`));
             img.src = url;
         });
+    },
+
+    /**
+     * Store image data on a stop and invalidate caches
+     */
+    setStopImageData(stopId, img, imageData) {
+        const stop = this.stops.find(s => s.id === stopId);
+        if (stop) {
+            stop.image = img;
+            stop.imageData = imageData;
+            this.invalidateCache();
+        }
     },
 
     /**
@@ -678,9 +693,7 @@ const AsciiMode = {
         if (stop) {
             stop.image = null;
             stop.imageData = null;
-            this.charDensities = null;
-            this.charShapes = null;
-            this.sortedByDensity = null;
+            this.invalidateCache();
         }
     },
 
@@ -691,7 +704,6 @@ const AsciiMode = {
         const prepared = Core.prepareImage(img);
         const { width, height, data } = prepared;
         const scale = params.outputScale || 1;
-        const gap = 0;
 
         const isFullCustom = params.mode === 'fullCustom';
         const fontFamily = params.fontFamily || 'monospace';
@@ -715,21 +727,18 @@ const AsciiMode = {
         const cols = Math.floor(width / charWidth);
         const rows = Math.floor(height / charHeight);
 
-        // Scaled dimensions for rendering (including gap)
+        // Scaled dimensions for rendering
         const scaledCharWidth = charWidth * scale;
         const scaledCharHeight = charHeight * scale;
         const scaledCellSize = cellSize * scale;
-        const scaledGap = gap * scale;
 
-        // Canvas includes gaps between cells
-        canvas.width = cols * scaledCharWidth + (cols - 1) * scaledGap;
-        canvas.height = rows * scaledCharHeight + (rows - 1) * scaledGap;
+        canvas.width = cols * scaledCharWidth;
+        canvas.height = rows * scaledCharHeight;
 
         // Recompute character data if needed
         if (!this.charDensities ||
             this._lastCellSize !== cellSize ||
             this._lastFont !== fontFamily) {
-            this._useSquareCells = false; // No longer using square cells
             this.precomputeCharData(cellSize, fontFamily);
             this._lastCellSize = cellSize;
             this._lastFont = fontFamily;
@@ -751,10 +760,10 @@ const AsciiMode = {
             ? (params.fullCustomWhitePoint !== undefined ? params.fullCustomWhitePoint : 1)
             : (params.asciiWhitePoint !== undefined ? params.asciiWhitePoint : 1);
         const useOriginalColor = isFullCustom
-            ? false
+            ? (params.fullCustomUseOriginalColor || false)
             : (params.asciiUseOriginalColor || false);
         const edgeMode = isFullCustom
-            ? 'none'
+            ? (params.fullCustomEdgeMode || 'none')
             : (params.asciiEdgeMode || 'none');
         const invert = isFullCustom
             ? (params.fullCustomInvert || false)
@@ -764,115 +773,136 @@ const AsciiMode = {
             data, width, height,
             cellSize, charWidth, charHeight,
             cols, rows,
-            scaledCharWidth, scaledCharHeight, scaledGap,
+            scaledCharWidth, scaledCharHeight,
             blackPoint, whitePoint,
             useOriginalColor, edgeMode, invert,
-            fontFamily, gap, scale
+            fontFamily, scale
         };
+    },
+
+    /**
+     * Compute edge data for overlay (shared by brightness and shadeShape algorithms)
+     */
+    computeEdgeOverlay(edgeMode, data, width, height) {
+        if (edgeMode === 'none') return { edgeMagnitude: null, edgeDirection: null };
+
+        const result = this.sobelFullImage(data, width, height);
+        let edgeMagnitude = result.magnitude;
+        const edgeDirection = result.direction;
+
+        if (edgeMode === 'canny') {
+            edgeMagnitude = this.cannyEdges(edgeMagnitude, edgeDirection, width, height);
+        }
+
+        return { edgeMagnitude, edgeDirection };
+    },
+
+    /**
+     * Sample a cell's average brightness and color
+     */
+    sampleCell(data, width, height, imgX, imgY, charWidth, charHeight) {
+        let brightness = 0;
+        let rSum = 0, gSum = 0, bSum = 0;
+        let count = 0;
+
+        for (let py = 0; py < charHeight && imgY + py < height; py++) {
+            for (let px = 0; px < charWidth && imgX + px < width; px++) {
+                const idx = ((imgY + py) * width + (imgX + px)) * 4;
+                const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+                brightness += Core.getLuma(r, g, b);
+                rSum += r; gSum += g; bSum += b;
+                count++;
+            }
+        }
+
+        return {
+            brightness: count > 0 ? brightness / count : 1,
+            rSum, gSum, bSum, count
+        };
+    },
+
+    /**
+     * Draw a character cell with proper colors and background
+     */
+    drawCell(ctx, char, baseStop, col, row, cellColor, setup) {
+        const { scaledCharWidth, scaledCharHeight, useOriginalColor } = setup;
+
+        const drawX = col * scaledCharWidth;
+        const drawY = row * scaledCharHeight;
+
+        // Determine colors from the selected stop
+        let fgColor = baseStop.color != null ? baseStop.color : this.fgColor;
+        const bgColor = baseStop.bgColor != null ? baseStop.bgColor : this.bgColor;
+        if (useOriginalColor && cellColor.count > 0) {
+            const r = Math.round(cellColor.rSum / cellColor.count);
+            const g = Math.round(cellColor.gSum / cellColor.count);
+            const b = Math.round(cellColor.bSum / cellColor.count);
+            fgColor = `rgb(${r},${g},${b})`;
+        }
+
+        // Draw cell background
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(drawX, drawY, scaledCharWidth, scaledCharHeight);
+
+        if (char && char !== ' ') {
+            if (baseStop.image) {
+                this.drawImageStop(ctx, baseStop, drawX, drawY, scaledCharWidth, scaledCharHeight);
+            } else {
+                ctx.fillStyle = fgColor;
+                ctx.fillText(char, drawX + scaledCharWidth / 2, drawY + scaledCharHeight / 2);
+            }
+        }
+    },
+
+    /**
+     * Apply edge overlay to a base character if edges are detected
+     */
+    applyEdgeOverlay(baseChar, edgeMagnitude, edgeDirection, width, imgX, imgY, charWidth, charHeight, edgeMode) {
+        if (!edgeMagnitude || !edgeDirection) return baseChar;
+
+        const edgeChar = this.getEdgeChar(edgeDirection, edgeMagnitude, width, imgX, imgY, charWidth, charHeight, edgeMode === 'canny');
+        return edgeChar || baseChar;
     },
 
     /**
      * Algorithm 1: Simple brightness mapping
      */
     renderBrightness(ctx, canvas, img, params) {
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, useOriginalColor, edgeMode, invert, scaledCharWidth, scaledCharHeight, scaledGap } =
-            this.setupRender(ctx, canvas, img, params);
+        const setup = this.setupRender(ctx, canvas, img, params);
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, edgeMode, invert } = setup;
 
-        // Edge overlay preprocessing
-        let edgeMagnitude = null;
-        let edgeDirection = null;
-        if (edgeMode !== 'none') {
-            const result = this.sobelFullImage(data, width, height);
-            edgeMagnitude = result.magnitude;
-            edgeDirection = result.direction;
+        const { edgeMagnitude, edgeDirection } = this.computeEdgeOverlay(edgeMode, data, width, height);
 
-            // Apply Canny post-processing if selected
-            if (edgeMode === 'canny') {
-                edgeMagnitude = this.cannyEdges(edgeMagnitude, edgeDirection, width, height);
-            }
-        }
+        // Sort stops once outside the loop
+        const sortedStops = [...this.stops].sort((a, b) => a.percentage - b.percentage);
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
                 const imgX = col * charWidth;
                 const imgY = row * charHeight;
 
-                // Get average brightness and color of cell
-                let brightness = 0;
-                let rSum = 0, gSum = 0, bSum = 0;
-                let count = 0;
-
-                for (let py = 0; py < charHeight && imgY + py < height; py++) {
-                    for (let px = 0; px < charWidth && imgX + px < width; px++) {
-                        const idx = ((imgY + py) * width + (imgX + px)) * 4;
-                        const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-                        const luma = Core.getLuma(r, g, b);
-                        brightness += luma;
-                        rSum += r; gSum += g; bSum += b;
-                        count++;
-                    }
-                }
-                brightness = count > 0 ? brightness / count : 1;
-
-                // Apply levels adjustment
-                brightness = this.applyLevels(brightness, blackPoint, whitePoint);
+                const cellColor = this.sampleCell(data, width, height, imgX, imgY, charWidth, charHeight);
+                const brightness = this.applyLevels(cellColor.brightness, blackPoint, whitePoint);
 
                 // Map brightness to stop percentage (0-100)
-                // Normal: Dark areas (low brightness) = high percentage stops (dense chars)
-                // Inverted: Bright areas (high brightness) = high percentage stops (dense chars)
+                // Normal: Dark areas = high percentage (dense chars)
+                // Inverted: Bright areas = high percentage (dense chars)
                 const percentage = invert ? brightness * 100 : (1 - brightness) * 100;
 
                 // Find the closest stop by percentage
-                const sortedStops = [...this.stops].sort((a, b) => a.percentage - b.percentage);
-                let baseChar = sortedStops[0].value;
+                let baseStop = sortedStops[0];
                 let minDiff = Math.abs(percentage - sortedStops[0].percentage);
 
                 for (const stop of sortedStops) {
                     const diff = Math.abs(percentage - stop.percentage);
                     if (diff < minDiff) {
                         minDiff = diff;
-                        baseChar = stop.value;
+                        baseStop = stop;
                     }
                 }
 
-                // Check for edge overlay
-                let char = baseChar;
-                if (edgeMagnitude && edgeDirection) {
-                    const edgeChar = this.getEdgeChar(edgeDirection, edgeMagnitude, width, imgX, imgY, charWidth, charHeight, edgeMode === 'canny');
-                    if (edgeChar) {
-                        char = edgeChar;
-                    }
-                }
-
-                // Always use colors from the base character
-                const stopData = this.getStopData(baseChar);
-                const drawX = col * (scaledCharWidth + scaledGap);
-                const drawY = row * (scaledCharHeight + scaledGap);
-
-                // Determine colors
-                let fgColor = stopData.fg;
-                let bgColor = stopData.bg;
-                if (useOriginalColor && count > 0) {
-                    const r = Math.round(rSum / count);
-                    const g = Math.round(gSum / count);
-                    const b = Math.round(bSum / count);
-                    fgColor = `rgb(${r},${g},${b})`;
-                }
-
-                // Draw cell background
-                ctx.fillStyle = bgColor;
-                ctx.fillRect(drawX, drawY, scaledCharWidth, scaledCharHeight);
-
-                if (char !== ' ') {
-                    if (stopData.image) {
-                        // Draw uploaded image
-                        this.drawImageStop(ctx, stopData, drawX, drawY, scaledCharWidth, scaledCharHeight);
-                    } else {
-                        // Draw text character
-                        ctx.fillStyle = fgColor;
-                        ctx.fillText(char, drawX + scaledCharWidth / 2, drawY + scaledCharHeight / 2);
-                    }
-                }
+                const char = this.applyEdgeOverlay(baseStop.value, edgeMagnitude, edgeDirection, width, imgX, imgY, charWidth, charHeight, edgeMode);
+                this.drawCell(ctx, char, baseStop, col, row, cellColor, setup);
             }
         }
     },
@@ -881,104 +911,37 @@ const AsciiMode = {
      * Algorithm 2: Shade + Shape hybrid (asciiart.club style)
      */
     renderShadeShape(ctx, canvas, img, params) {
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, useOriginalColor, edgeMode, invert, scaledCharWidth, scaledCharHeight, scaledGap } =
-            this.setupRender(ctx, canvas, img, params);
+        const setup = this.setupRender(ctx, canvas, img, params);
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, edgeMode, invert } = setup;
 
-        // Edge overlay preprocessing
-        let edgeMagnitude = null;
-        let edgeDirection = null;
-        if (edgeMode !== 'none') {
-            const result = this.sobelFullImage(data, width, height);
-            edgeMagnitude = result.magnitude;
-            edgeDirection = result.direction;
-
-            // Apply Canny post-processing if selected
-            if (edgeMode === 'canny') {
-                edgeMagnitude = this.cannyEdges(edgeMagnitude, edgeDirection, width, height);
-            }
-        }
+        const { edgeMagnitude, edgeDirection } = this.computeEdgeOverlay(edgeMode, data, width, height);
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
                 const imgX = col * charWidth;
                 const imgY = row * charHeight;
 
-                // Phase 1: Get cell brightness and color
-                let brightness = 0;
-                let rSum = 0, gSum = 0, bSum = 0;
-                let count = 0;
+                const cellColor = this.sampleCell(data, width, height, imgX, imgY, charWidth, charHeight);
+                const brightness = this.applyLevels(cellColor.brightness, blackPoint, whitePoint);
 
-                for (let py = 0; py < charHeight && imgY + py < height; py++) {
-                    for (let px = 0; px < charWidth && imgX + px < width; px++) {
-                        const idx = ((imgY + py) * width + (imgX + px)) * 4;
-                        const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-                        const luma = Core.getLuma(r, g, b);
-                        brightness += luma;
-                        rSum += r; gSum += g; bSum += b;
-                        count++;
-                    }
-                }
-                brightness = count > 0 ? brightness / count : 1;
-
-                // Apply levels adjustment
-                brightness = this.applyLevels(brightness, blackPoint, whitePoint);
-
-                // Calculate target density based on brightness
-                // Normal: Dark areas = dense characters (1 - brightness)
-                // Inverted: Bright areas = dense characters (brightness)
+                // Target density: dark areas = dense characters, inverted = bright areas dense
                 const targetDensity = invert ? brightness : (1 - brightness);
 
-                // Find top 8 candidates by visual density
+                // Find top 8 candidates by visual density, then pick best shape match
                 const candidates = this.getCharsByDensity(targetDensity, 8);
-
-                // Get shape vector from image using 6D sampling
                 const imageShape = this.sampleImageShape(
                     data, width, height,
                     imgX, imgY, charWidth, charHeight,
                     blackPoint, whitePoint
                 );
-
-                // Find best shape match among candidates using Euclidean distance
                 const baseChar = this.findBestShapeMatch(candidates, imageShape);
 
-                // Check for edge overlay
-                let char = baseChar;
-                if (edgeMagnitude && edgeDirection) {
-                    const edgeChar = this.getEdgeChar(edgeDirection, edgeMagnitude, width, imgX, imgY, charWidth, charHeight, edgeMode === 'canny');
-                    if (edgeChar) {
-                        char = edgeChar;
-                    }
-                }
+                // Map brightness to percentage and find the best stop for this character
+                const percentage = invert ? brightness * 100 : (1 - brightness) * 100;
+                const baseStop = this.getStopByCharAndPercentage(baseChar, percentage);
 
-                // Always use colors from the base character
-                const stopData = this.getStopData(baseChar);
-                const drawX = col * (scaledCharWidth + scaledGap);
-                const drawY = row * (scaledCharHeight + scaledGap);
-
-                // Determine colors
-                let fgColor = stopData.fg;
-                let bgColor = stopData.bg;
-                if (useOriginalColor && count > 0) {
-                    const r = Math.round(rSum / count);
-                    const g = Math.round(gSum / count);
-                    const b = Math.round(bSum / count);
-                    fgColor = `rgb(${r},${g},${b})`;
-                }
-
-                // Draw cell background
-                ctx.fillStyle = bgColor;
-                ctx.fillRect(drawX, drawY, scaledCharWidth, scaledCharHeight);
-
-                if (char !== ' ') {
-                    if (stopData.image) {
-                        // Draw uploaded image
-                        this.drawImageStop(ctx, stopData, drawX, drawY, scaledCharWidth, scaledCharHeight);
-                    } else {
-                        // Draw text character
-                        ctx.fillStyle = fgColor;
-                        ctx.fillText(char, drawX + scaledCharWidth / 2, drawY + scaledCharHeight / 2);
-                    }
-                }
+                const char = this.applyEdgeOverlay(baseChar, edgeMagnitude, edgeDirection, width, imgX, imgY, charWidth, charHeight, edgeMode);
+                this.drawCell(ctx, char, baseStop, col, row, cellColor, setup);
             }
         }
     },
@@ -1068,8 +1031,8 @@ const AsciiMode = {
      * Runs Sobel on full image, then matches tiles to edge characters
      */
     renderEdge(ctx, canvas, img, params) {
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, useOriginalColor, scaledCharWidth, scaledCharHeight, scaledGap } =
-            this.setupRender(ctx, canvas, img, params);
+        const setup = this.setupRender(ctx, canvas, img, params);
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, useOriginalColor } = setup;
 
         // Step 1: Run Sobel edge detection on full image
         const { magnitude: edges } = this.sobelFullImage(data, width, height);
@@ -1117,34 +1080,14 @@ const AsciiMode = {
                 // Find best matching edge character
                 const char = this.matchEdgeTile(tile, edgeCount);
 
-                const stopData = this.getStopData(char);
-                const drawX = col * (scaledCharWidth + scaledGap);
-                const drawY = row * (scaledCharHeight + scaledGap);
+                // Sample brightness to find appropriate stop for this character
+                const cellBrightness = this.sampleCell(data, width, height, imgX, imgY, charWidth, charHeight);
+                const brightness = this.applyLevels(cellBrightness.brightness, blackPoint, whitePoint);
+                const percentage = (1 - brightness) * 100;
+                const baseStop = this.getStopByCharAndPercentage(char, percentage);
 
-                // Determine colors
-                let fgColor = stopData.fg;
-                let bgColor = stopData.bg;
-                if (useOriginalColor && colorCount > 0) {
-                    const r = Math.round(rSum / colorCount);
-                    const g = Math.round(gSum / colorCount);
-                    const b = Math.round(bSum / colorCount);
-                    fgColor = `rgb(${r},${g},${b})`;
-                }
-
-                // Draw cell background
-                ctx.fillStyle = bgColor;
-                ctx.fillRect(drawX, drawY, scaledCharWidth, scaledCharHeight);
-
-                if (char !== ' ') {
-                    if (stopData.image) {
-                        // Draw uploaded image
-                        this.drawImageStop(ctx, stopData, drawX, drawY, scaledCharWidth, scaledCharHeight);
-                    } else {
-                        // Draw text character
-                        ctx.fillStyle = fgColor;
-                        ctx.fillText(char, drawX + scaledCharWidth / 2, drawY + scaledCharHeight / 2);
-                    }
-                }
+                const cellColor = { rSum, gSum, bSum, count: colorCount };
+                this.drawCell(ctx, char, baseStop, col, row, cellColor, setup);
             }
         }
     },
@@ -1185,10 +1128,7 @@ const AsciiMode = {
     syncFromStops() {
         if (this.stops.length > 0) {
             this.characters = this.stops.map(s => s.value).join('');
-            this.charDensities = null;
-            this.charShapes = null;
-            this.sortedByDensity = null;
-            this.edgeCharImages = null;
+            this.invalidateCache();
         }
     },
 
@@ -1216,12 +1156,7 @@ const AsciiMode = {
         if (!str || str.length === 0) return;
 
         this.characters = str;
-
-        // Invalidate caches
-        this.charDensities = null;
-        this.charShapes = null;
-        this.sortedByDensity = null;
-        this.edgeCharImages = null;
+        this.invalidateCache();
 
         // Auto-distribute stops evenly
         this.stops = str.split('').map((char, i) => ({
@@ -1248,10 +1183,7 @@ const AsciiMode = {
 
         if (presets[preset]) {
             this.characters = presets[preset];
-            this.charDensities = null;
-            this.charShapes = null;
-            this.sortedByDensity = null;
-            this.edgeCharImages = null;
+            this.invalidateCache();
 
             this.stops = this.characters.split('').map((char, i) => ({
                 id: i,
@@ -1280,9 +1212,9 @@ const AsciiMode = {
                     stops = parsed.stops.map((s, i) => ({
                         id: i,
                         percentage: s.percentage !== undefined ? s.percentage : 0,
-                        value: s.value || ' ',
-                        color: s.color || this.fgColor,
-                        bgColor: s.bgColor || this.bgColor
+                        value: s.value !== undefined ? s.value : ' ',
+                        color: s.color != null ? s.color : this.fgColor,
+                        bgColor: s.bgColor != null ? s.bgColor : this.bgColor
                     }));
                 } else {
                     throw new Error('Invalid JSON format');
@@ -1306,6 +1238,7 @@ const AsciiMode = {
 
             // Apply the stops
             this.stops = stops;
+            this.stops.sort((a, b) => a.percentage - b.percentage);
             this.stopIdCounter = stops.length;
             this.syncFromStops();
 
@@ -1360,24 +1293,12 @@ const AsciiMode = {
                 }
             }
 
-            // Update characters string
+            // Update characters string and invalidate caches
             this.characters = this.stops.map(s => s.value).join('');
-
-            // Clear cached data
-            this.charDensities = null;
-            this.charShapes = null;
-            this.sortedByDensity = null;
-            this.edgeCharImages = null;
+            this.invalidateCache();
         }
     },
 
-    randomizePositions() {
-        // No-op for new system
-    },
-
-    evenSpacing() {
-        // No-op for new system
-    }
 };
 
 AsciiMode.init();

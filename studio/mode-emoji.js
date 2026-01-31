@@ -199,7 +199,6 @@ const EmojiMode = {
         const cellSize = params.cellSize || 16;
         const bgColor = params.bgColor || '#000000';
         const scale = params.outputScale || 1;
-        const gap = 0;
 
         // Prepare source image
         const prepared = Core.prepareImage(img);
@@ -211,11 +210,10 @@ const EmojiMode = {
         const cols = Math.floor(srcWidth / cellSize);
         const rows = Math.floor(srcHeight / cellSize);
 
-        // Set canvas size (scaled, with gaps)
+        // Set canvas size (scaled)
         const scaledCellSize = cellSize * scale;
-        const scaledGap = gap * scale;
-        canvas.width = cols * scaledCellSize + (cols - 1) * scaledGap;
-        canvas.height = rows * scaledCellSize + (rows - 1) * scaledGap;
+        canvas.width = cols * scaledCellSize;
+        canvas.height = rows * scaledCellSize;
 
         // Fill background
         ctx.fillStyle = bgColor;
@@ -239,9 +237,9 @@ const EmojiMode = {
                 // Find matching emoji
                 const emoji = this.findClosestEmoji(r, g, b);
 
-                // Draw emoji centered in cell (scaled coordinates with gap)
-                const x = col * (scaledCellSize + scaledGap) + scaledCellSize / 2;
-                const y = row * (scaledCellSize + scaledGap) + scaledCellSize / 2;
+                // Draw emoji centered in cell
+                const x = col * scaledCellSize + scaledCellSize / 2;
+                const y = row * scaledCellSize + scaledCellSize / 2;
                 ctx.fillText(emoji, x, y);
             }
         }
