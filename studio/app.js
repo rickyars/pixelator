@@ -65,6 +65,10 @@ class PixelatorStudio {
             asciiUseOriginalColor: false,  // Use image colors for characters
             asciiEdgeMode: 'none',  // 'none', 'sobel', 'canny'
             asciiInvert: false,  // Invert density mapping
+            asciiUseBackground: false,  // Layer ASCII over original image
+            asciiBackgroundBlur: 0,  // Blur amount for background (0-20)
+            asciiTextOffsetX: 0,  // Horizontal offset for text in pixels
+            asciiTextOffsetY: 0,  // Vertical offset for text in pixels
 
             // Full Custom mode
             fullCustomAlgorithm: 'shadeShape',
@@ -413,6 +417,33 @@ class PixelatorStudio {
                 'Sobel': 'sobel',
                 'Canny': 'canny'
             }
+        }).on('change', () => this.render());
+
+        this.asciiFolder.addSeparator();
+
+        this.asciiFolder.addInput(this.params, 'asciiUseBackground', {
+            label: 'Show Background'
+        }).on('change', () => this.render());
+
+        this.asciiBackgroundBlurControl = this.asciiFolder.addInput(this.params, 'asciiBackgroundBlur', {
+            label: 'Background Blur',
+            min: 0,
+            max: 20,
+            step: 0.5
+        }).on('change', () => this.render());
+
+        this.asciiTextOffsetXControl = this.asciiFolder.addInput(this.params, 'asciiTextOffsetX', {
+            label: 'Text Offset X',
+            min: -100,
+            max: 100,
+            step: 1
+        }).on('change', () => this.render());
+
+        this.asciiTextOffsetYControl = this.asciiFolder.addInput(this.params, 'asciiTextOffsetY', {
+            label: 'Text Offset Y',
+            min: -100,
+            max: 100,
+            step: 1
         }).on('change', () => this.render());
 
         // Full Custom mode folder

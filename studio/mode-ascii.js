@@ -491,16 +491,71 @@ const AsciiMode = {
             ? (params.fullCustomAlgorithm || 'shadeShape')
             : (params.asciiAlgorithm || 'shadeShape');
 
+        // Check if we need to render background image (ASCII mode only)
+        const useBackground = params.mode === 'ascii' && params.asciiUseBackground;
+
+        if (useBackground) {
+            this.renderWithBackground(ctx, canvas, img, params, algorithm);
+        } else {
+            switch (algorithm) {
+                case 'brightness':
+                    return this.renderBrightness(ctx, canvas, img, params);
+                case 'shadeShape':
+                    return this.renderShadeShape(ctx, canvas, img, params);
+                case 'edge':
+                    return this.renderEdge(ctx, canvas, img, params);
+                default:
+                    return this.renderShadeShape(ctx, canvas, img, params);
+            }
+        }
+    },
+
+    /**
+     * Render with background image layer
+     */
+    renderWithBackground(ctx, canvas, img, params, algorithm) {
+        // First, render ASCII to a temporary canvas with transparent background
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+        // Render the ASCII normally to temp canvas (will have transparent background)
         switch (algorithm) {
             case 'brightness':
-                return this.renderBrightness(ctx, canvas, img, params);
+                this.renderBrightness(tempCtx, tempCanvas, img, params);
+                break;
             case 'shadeShape':
-                return this.renderShadeShape(ctx, canvas, img, params);
+                this.renderShadeShape(tempCtx, tempCanvas, img, params);
+                break;
             case 'edge':
-                return this.renderEdge(ctx, canvas, img, params);
+                this.renderEdge(tempCtx, tempCanvas, img, params);
+                break;
             default:
-                return this.renderShadeShape(ctx, canvas, img, params);
+                this.renderShadeShape(tempCtx, tempCanvas, img, params);
         }
+
+        // Now setup the main canvas
+        canvas.width = tempCanvas.width;
+        canvas.height = tempCanvas.height;
+
+        const scale = params.outputScale || 1;
+        const blurAmount = params.asciiBackgroundBlur || 0;
+        const textOffsetX = params.asciiTextOffsetX || 0;
+        const textOffsetY = params.asciiTextOffsetY || 0;
+
+        // Draw background image (potentially blurred)
+        if (blurAmount > 0) {
+            // Apply CSS filter for blur
+            ctx.filter = `blur(${blurAmount}px)`;
+        }
+
+        // Scale the original image to match the canvas size
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Reset filter
+        ctx.filter = 'none';
+
+        // Draw ASCII layer on top with X and Y offset
+        ctx.drawImage(tempCanvas, textOffsetX, textOffsetY);
     },
 
     /**
@@ -744,9 +799,17 @@ const AsciiMode = {
             this._lastFont = fontFamily;
         }
 
-        // Fill background
-        ctx.fillStyle = params.bgColor || this.bgColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Check if using background layer (only in ASCII mode)
+        const useBackground = params.mode === 'ascii' && params.asciiUseBackground;
+
+        // Fill background (transparent if using background image)
+        if (useBackground) {
+            // Clear to transparent
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        } else {
+            ctx.fillStyle = params.bgColor || this.bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
         // Setup font (scaled)
         ctx.fillStyle = params.monoColor || this.fgColor;
@@ -776,7 +839,8 @@ const AsciiMode = {
             scaledCharWidth, scaledCharHeight,
             blackPoint, whitePoint,
             useOriginalColor, edgeMode, invert,
-            fontFamily, scale
+            fontFamily, scale,
+            useTransparentBg: useBackground
         };
     },
 
@@ -824,7 +888,7 @@ const AsciiMode = {
     /**
      * Draw a character cell with proper colors and background
      */
-    drawCell(ctx, char, baseStop, col, row, cellColor, setup) {
+    drawCell(ctx, char, baseStop, col, row, cellColor, setup, useTransparentBg = false) {
         const { scaledCharWidth, scaledCharHeight, useOriginalColor } = setup;
 
         const drawX = col * scaledCharWidth;
@@ -840,9 +904,11 @@ const AsciiMode = {
             fgColor = `rgb(${r},${g},${b})`;
         }
 
-        // Draw cell background
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(drawX, drawY, scaledCharWidth, scaledCharHeight);
+        // Draw cell background (skip if using transparent background)
+        if (!useTransparentBg) {
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(drawX, drawY, scaledCharWidth, scaledCharHeight);
+        }
 
         if (char && char !== ' ') {
             if (baseStop.image) {
@@ -869,7 +935,7 @@ const AsciiMode = {
      */
     renderBrightness(ctx, canvas, img, params) {
         const setup = this.setupRender(ctx, canvas, img, params);
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, edgeMode, invert } = setup;
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, edgeMode, invert, useTransparentBg } = setup;
 
         const { edgeMagnitude, edgeDirection } = this.computeEdgeOverlay(edgeMode, data, width, height);
 
@@ -902,7 +968,7 @@ const AsciiMode = {
                 }
 
                 const char = this.applyEdgeOverlay(baseStop.value, edgeMagnitude, edgeDirection, width, imgX, imgY, charWidth, charHeight, edgeMode);
-                this.drawCell(ctx, char, baseStop, col, row, cellColor, setup);
+                this.drawCell(ctx, char, baseStop, col, row, cellColor, setup, useTransparentBg);
             }
         }
     },
@@ -912,7 +978,7 @@ const AsciiMode = {
      */
     renderShadeShape(ctx, canvas, img, params) {
         const setup = this.setupRender(ctx, canvas, img, params);
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, edgeMode, invert } = setup;
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, edgeMode, invert, useTransparentBg } = setup;
 
         const { edgeMagnitude, edgeDirection } = this.computeEdgeOverlay(edgeMode, data, width, height);
 
@@ -941,7 +1007,7 @@ const AsciiMode = {
                 const baseStop = this.getStopByCharAndPercentage(baseChar, percentage);
 
                 const char = this.applyEdgeOverlay(baseChar, edgeMagnitude, edgeDirection, width, imgX, imgY, charWidth, charHeight, edgeMode);
-                this.drawCell(ctx, char, baseStop, col, row, cellColor, setup);
+                this.drawCell(ctx, char, baseStop, col, row, cellColor, setup, useTransparentBg);
             }
         }
     },
@@ -1032,7 +1098,7 @@ const AsciiMode = {
      */
     renderEdge(ctx, canvas, img, params) {
         const setup = this.setupRender(ctx, canvas, img, params);
-        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, useOriginalColor } = setup;
+        const { data, width, height, charWidth, charHeight, cols, rows, blackPoint, whitePoint, useOriginalColor, useTransparentBg } = setup;
 
         // Step 1: Run Sobel edge detection on full image
         const { magnitude: edges } = this.sobelFullImage(data, width, height);
@@ -1087,7 +1153,7 @@ const AsciiMode = {
                 const baseStop = this.getStopByCharAndPercentage(char, percentage);
 
                 const cellColor = { rSum, gSum, bSum, count: colorCount };
-                this.drawCell(ctx, char, baseStop, col, row, cellColor, setup);
+                this.drawCell(ctx, char, baseStop, col, row, cellColor, setup, useTransparentBg);
             }
         }
     },
