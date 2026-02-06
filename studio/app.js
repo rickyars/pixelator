@@ -100,6 +100,10 @@ class PixelatorStudio {
             quadtreeMonoColor: '#000000',
             quadtreeUseOriginalColor: true,
 
+            // Post-processing
+            posterizeEnabled: false,
+            posterizeLevels: 8,
+
             // Actions
             uploadImage: () => this.imageInput.click(),
             loadSVG: () => this.svgInput.click(),
@@ -712,6 +716,20 @@ class PixelatorStudio {
             label: 'Prioritize Large'
         }).on('change', () => this.render());
 
+        // Post-processing folder
+        this.postProcessingFolder = pane.addFolder({ title: 'Post-Processing', expanded: false });
+
+        this.postProcessingFolder.addInput(this.params, 'posterizeEnabled', {
+            label: 'Enable Posterize'
+        }).on('change', () => this.render());
+
+        this.posterizeLevelsControl = this.postProcessingFolder.addInput(this.params, 'posterizeLevels', {
+            label: 'Levels',
+            min: 2,
+            max: 32,
+            step: 1
+        }).on('change', () => this.render());
+
         this.pane = pane;
 
         // Initialize stops editor
@@ -750,6 +768,11 @@ class PixelatorStudio {
         this.typewriterFolder.hidden = mode !== 'typewriter';
         this.emojiFolder.hidden = mode !== 'emoji';
         this.quadtreeFolder.hidden = mode !== 'quadtree';
+
+        // Halftone custom SVG button visibility
+        if (this.halftoneSvgButton) {
+            this.halftoneSvgButton.hidden = this.params.halftoneShape !== 'custom';
+        }
     }
 
     /**
@@ -907,6 +930,30 @@ class PixelatorStudio {
     }
 
     /**
+     * Apply posterization post-processing effect
+     */
+    applyPosterization() {
+        if (!this.params.posterizeEnabled) return;
+
+        const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        const data = imageData.data;
+        const levels = Math.max(2, this.params.posterizeLevels);
+        const step = 256 / levels;
+
+        for (let i = 0; i < data.length; i += 4) {
+            // Posterize red channel
+            data[i] = Math.floor(data[i] / step) * step;
+            // Posterize green channel
+            data[i + 1] = Math.floor(data[i + 1] / step) * step;
+            // Posterize blue channel
+            data[i + 2] = Math.floor(data[i + 2] / step) * step;
+            // Alpha channel (i + 3) remains unchanged
+        }
+
+        this.ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
      * Render current mode
      */
     render() {
@@ -936,6 +983,9 @@ class PixelatorStudio {
                 if (renderer) {
                     renderer.render(this.ctx, this.canvas, this.image, this.params);
                 }
+
+                // Apply post-processing effects
+                this.applyPosterization();
 
                 this.renderedCanvas = true;
                 this.applyTransform();
