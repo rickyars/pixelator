@@ -61,7 +61,7 @@ class PixelatorStudio {
             asciiPreset: 'detailed',
             asciiCharacters: ' .`\'^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$',
             asciiBlackPoint: 0,   // Values below become black
-            asciiWhitePoint: 1,   // Values above become white
+            asciiWhitePoint: 0.5,   // Values above become white
             asciiUseOriginalColor: false,  // Use image colors for characters
             asciiEdgeMode: 'none',  // 'none', 'sobel', 'canny'
             asciiInvert: false,  // Invert density mapping
@@ -75,11 +75,11 @@ class PixelatorStudio {
             fullCustomCellWidth: 10,
             fullCustomCellHeight: 10,
             fullCustomBlackPoint: 0,
-            fullCustomWhitePoint: 1,
+            fullCustomWhitePoint: 0.5,
             fullCustomUseOriginalColor: false,
             fullCustomEdgeMode: 'none',  // 'none', 'sobel', 'canny'
             fullCustomInvert: false,  // Invert density mapping
-            fullCustomPreset: 'custom',
+            fullCustomPreset: 'minesweeper',
 
             // Typewriter mode (Jules Kuehn algorithm)
             typewriterPreset: 'typewriter',
@@ -99,6 +99,10 @@ class PixelatorStudio {
             quadtreeSizeSensitive: false,
             quadtreeMonoColor: '#000000',
             quadtreeUseOriginalColor: true,
+
+            // Post-processing
+            posterizeEnabled: false,
+            posterizeLevels: 8,
 
             // Actions
             uploadImage: () => this.imageInput.click(),
@@ -145,7 +149,11 @@ class PixelatorStudio {
                 AsciiMode.loadPreset(this.params.asciiPreset);
                 this.params.asciiCharacters = AsciiMode.characters;
             } else if (this.params.mode === 'fullCustom') {
-                AsciiMode.loadPreset(this.params.fullCustomPreset);
+                if (this.params.fullCustomPreset === 'minesweeper') {
+                    AsciiMode.applyImagePreset('minesweeper').then(() => this.render());
+                } else {
+                    AsciiMode.loadPreset(this.params.fullCustomPreset);
+                }
             }
 
             this.updateUIVisibility();
@@ -155,7 +163,7 @@ class PixelatorStudio {
         pane.addSeparator();
 
         // Image actions
-        const imgFolder = pane.addFolder({ title: 'Image', expanded: false });
+        const imgFolder = pane.addFolder({ title: 'Image', expanded: true });
         imgFolder.addButton({ title: 'Upload Image' }).on('click', this.params.uploadImage);
         imgFolder.addButton({ title: 'Save PNG' }).on('click', this.params.save);
 
@@ -712,6 +720,20 @@ class PixelatorStudio {
             label: 'Prioritize Large'
         }).on('change', () => this.render());
 
+        // Post-processing folder
+        this.postProcessingFolder = pane.addFolder({ title: 'Post-Processing', expanded: false });
+
+        this.postProcessingFolder.addInput(this.params, 'posterizeEnabled', {
+            label: 'Enable Posterize'
+        }).on('change', () => this.render());
+
+        this.posterizeLevelsControl = this.postProcessingFolder.addInput(this.params, 'posterizeLevels', {
+            label: 'Levels',
+            min: 2,
+            max: 32,
+            step: 1
+        }).on('change', () => this.render());
+
         this.pane = pane;
 
         // Initialize stops editor
@@ -750,6 +772,11 @@ class PixelatorStudio {
         this.typewriterFolder.hidden = mode !== 'typewriter';
         this.emojiFolder.hidden = mode !== 'emoji';
         this.quadtreeFolder.hidden = mode !== 'quadtree';
+
+        // Halftone custom SVG button visibility
+        if (this.halftoneSvgButton) {
+            this.halftoneSvgButton.hidden = this.params.halftoneShape !== 'custom';
+        }
     }
 
     /**
@@ -907,6 +934,30 @@ class PixelatorStudio {
     }
 
     /**
+     * Apply posterization post-processing effect
+     */
+    applyPosterization() {
+        if (!this.params.posterizeEnabled) return;
+
+        const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        const data = imageData.data;
+        const levels = Math.max(2, this.params.posterizeLevels);
+        const step = 256 / levels;
+
+        for (let i = 0; i < data.length; i += 4) {
+            // Posterize red channel
+            data[i] = Math.floor(data[i] / step) * step;
+            // Posterize green channel
+            data[i + 1] = Math.floor(data[i + 1] / step) * step;
+            // Posterize blue channel
+            data[i + 2] = Math.floor(data[i + 2] / step) * step;
+            // Alpha channel (i + 3) remains unchanged
+        }
+
+        this.ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
      * Render current mode
      */
     render() {
@@ -936,6 +987,9 @@ class PixelatorStudio {
                 if (renderer) {
                     renderer.render(this.ctx, this.canvas, this.image, this.params);
                 }
+
+                // Apply post-processing effects
+                this.applyPosterization();
 
                 this.renderedCanvas = true;
                 this.applyTransform();
