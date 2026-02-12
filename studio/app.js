@@ -61,7 +61,7 @@ class PixelatorStudio {
             asciiPreset: 'detailed',
             asciiCharacters: ' .`\'^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$',
             asciiBlackPoint: 0,   // Values below become black
-            asciiWhitePoint: 1,   // Values above become white
+            asciiWhitePoint: 0.5,   // Values above become white
             asciiUseOriginalColor: false,  // Use image colors for characters
             asciiEdgeMode: 'none',  // 'none', 'sobel', 'canny'
             asciiInvert: false,  // Invert density mapping
@@ -75,11 +75,11 @@ class PixelatorStudio {
             fullCustomCellWidth: 10,
             fullCustomCellHeight: 10,
             fullCustomBlackPoint: 0,
-            fullCustomWhitePoint: 1,
+            fullCustomWhitePoint: 0.5,
             fullCustomUseOriginalColor: false,
             fullCustomEdgeMode: 'none',  // 'none', 'sobel', 'canny'
             fullCustomInvert: false,  // Invert density mapping
-            fullCustomPreset: 'custom',
+            fullCustomPreset: 'minesweeper',
 
             // Typewriter mode (Jules Kuehn algorithm)
             typewriterPreset: 'typewriter',
@@ -149,7 +149,11 @@ class PixelatorStudio {
                 AsciiMode.loadPreset(this.params.asciiPreset);
                 this.params.asciiCharacters = AsciiMode.characters;
             } else if (this.params.mode === 'fullCustom') {
-                AsciiMode.loadPreset(this.params.fullCustomPreset);
+                if (this.params.fullCustomPreset === 'minesweeper') {
+                    AsciiMode.applyImagePreset('minesweeper').then(() => this.render());
+                } else {
+                    AsciiMode.loadPreset(this.params.fullCustomPreset);
+                }
             }
 
             this.updateUIVisibility();
@@ -159,7 +163,7 @@ class PixelatorStudio {
         pane.addSeparator();
 
         // Image actions
-        const imgFolder = pane.addFolder({ title: 'Image', expanded: false });
+        const imgFolder = pane.addFolder({ title: 'Image', expanded: true });
         imgFolder.addButton({ title: 'Upload Image' }).on('click', this.params.uploadImage);
         imgFolder.addButton({ title: 'Save PNG' }).on('click', this.params.save);
 
