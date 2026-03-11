@@ -103,6 +103,23 @@ class PixelatorStudio {
             // Post-processing
             posterizeEnabled: false,
             posterizeLevels: 8,
+            paletteEnabled: false,
+            palettePreset: 'gameboy',
+            bloomEnabled: false,
+            bloomThreshold: 0.6,
+            bloomRadius: 8,
+            bloomStrength: 0.8,
+            scanlinesEnabled: false,
+            scanlinesSpacing: 4,
+            scanlinesOpacity: 0.3,
+            chromaEnabled: false,
+            chromaOffset: 2,
+            vignetteEnabled: false,
+            vignetteStrength: 0.6,
+            vignetteRadius: 0.7,
+            ditherEnabled: false,
+            ditherAlgorithm: 'floydSteinberg',
+            ditherStrength: 1.0,
 
             // Actions
             uploadImage: () => this.imageInput.click(),
@@ -350,13 +367,14 @@ class PixelatorStudio {
         this.asciiFolder.addInput(this.params, 'asciiPreset', {
             label: 'Preset',
             options: {
-                'Detailed': 'detailed',
-                'Typewriter': 'typewriter',
                 'Basic': 'basic',
                 'Blocks': 'blocks',
                 'Braille': 'braille',
+                'Dots': 'dots',
                 'Rounds': 'rounds',
-                'Dots': 'dots'
+                'Detailed': 'detailed',
+                'Typewriter': 'typewriter',
+                'Unicode': 'unicode'
             }
         }).on('change', (e) => {
             AsciiMode.loadPreset(e.value);
@@ -734,6 +752,129 @@ class PixelatorStudio {
             step: 1
         }).on('change', () => this.render());
 
+        this.postProcessingFolder.addSeparator();
+
+        this.postProcessingFolder.addInput(this.params, 'paletteEnabled', {
+            label: 'Enable Palette'
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'palettePreset', {
+            label: 'Palette',
+            options: {
+                'Game Boy': 'gameboy',
+                'Synthwave': 'synthwave',
+                'Terminal': 'terminal',
+                'Ink': 'ink',
+                'Gold': 'gold',
+                'Cyberpunk': 'cyberpunk',
+                'Noir': 'noir',
+                'Campfire': 'campfire',
+                'Deep Sea': 'deepsea',
+            }
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'ditherEnabled', {
+            label: 'Enable Dither'
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'ditherAlgorithm', {
+            label: 'Algorithm',
+            options: {
+                'Floyd-Steinberg': 'floydSteinberg',
+                'Atkinson': 'atkinson',
+                'Stucki': 'stucki',
+                'Burkes': 'burkes',
+                'Sierra Lite': 'sierraLite',
+            }
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'ditherStrength', {
+            label: 'Strength',
+            min: 0.1,
+            max: 1.0,
+            step: 0.05
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addSeparator();
+
+        this.postProcessingFolder.addInput(this.params, 'bloomEnabled', {
+            label: 'Enable Bloom'
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'bloomThreshold', {
+            label: 'Threshold',
+            min: 0.0,
+            max: 1.0,
+            step: 0.05
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'bloomRadius', {
+            label: 'Radius',
+            min: 2,
+            max: 60,
+            step: 1
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'bloomStrength', {
+            label: 'Strength',
+            min: 0.1,
+            max: 1.5,
+            step: 0.05
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addSeparator();
+
+        this.postProcessingFolder.addInput(this.params, 'scanlinesEnabled', {
+            label: 'Enable Scanlines'
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'scanlinesSpacing', {
+            label: 'Spacing',
+            min: 2,
+            max: 12,
+            step: 1
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'scanlinesOpacity', {
+            label: 'Opacity',
+            min: 0.05,
+            max: 0.8,
+            step: 0.05
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addSeparator();
+
+        this.postProcessingFolder.addInput(this.params, 'chromaEnabled', {
+            label: 'Enable Chroma'
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'chromaOffset', {
+            label: 'Offset',
+            min: 1,
+            max: 8,
+            step: 1
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addSeparator();
+
+        this.postProcessingFolder.addInput(this.params, 'vignetteEnabled', {
+            label: 'Enable Vignette'
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'vignetteStrength', {
+            label: 'Strength',
+            min: 0.1,
+            max: 1.0,
+            step: 0.05
+        }).on('change', () => this.render());
+
+        this.postProcessingFolder.addInput(this.params, 'vignetteRadius', {
+            label: 'Radius',
+            min: 0.3,
+            max: 1.0,
+            step: 0.05
+        }).on('change', () => this.render());
+
         this.pane = pane;
 
         // Initialize stops editor
@@ -958,6 +1099,221 @@ class PixelatorStudio {
     }
 
     /**
+     * Apply palette mapping post-processing effect
+     * Maps each pixel's luminance to a color from the selected palette (dark → light order)
+     */
+    applyPalette() {
+        if (!this.params.paletteEnabled) return;
+
+        const palettes = {
+            gameboy:   ['#0f380f', '#306130', '#8bac0f', '#9bbc0f'],
+            synthwave: ['#0d0221', '#7b2d8b', '#ff00ff', '#00e5ff'],
+            terminal:  ['#0a0a0a', '#003b00', '#00a800', '#00ff41'],
+            ink:       ['#1a1a1a', '#f5f5dc'],
+            gold:      ['#3b1a00', '#7a3b00', '#c8860a', '#ffd700'],
+            cyberpunk: ['#0d0208', '#003b00', '#ff003c', '#f5d300'],
+            noir:      ['#1a1a1a', '#4a4a4a', '#9a9a9a', '#f0f0f0'],
+            campfire:  ['#1a0500', '#7a1e00', '#c0540a', '#f5c842'],
+            deepsea:   ['#000814', '#003566', '#0077b6', '#90e0ef'],
+        };
+
+        const palette = palettes[this.params.palettePreset] || palettes.gameboy;
+
+        // Parse hex colors to RGB arrays once
+        const colors = palette.map(hex => {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return [r, g, b];
+        });
+
+        const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        const data = imageData.data;
+        const len = colors.length;
+
+        for (let i = 0; i < data.length; i += 4) {
+            const luma = (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255;
+            const idx = Math.min(Math.floor(luma * len), len - 1);
+            data[i]     = colors[idx][0];
+            data[i + 1] = colors[idx][1];
+            data[i + 2] = colors[idx][2];
+        }
+
+        this.ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
+     * Apply error diffusion dithering post-processing effect
+     * Spreads quantization error to neighboring pixels using classic kernel matrices.
+     * Run after palette so it blends between palette colors.
+     */
+    applyDither() {
+        if (!this.params.ditherEnabled) return;
+
+        const KERNELS = {
+            floydSteinberg: { kernel: [[1,0,7],[-1,1,3],[0,1,5],[1,1,1]], divisor: 16 },
+            atkinson:       { kernel: [[1,0,1],[2,0,1],[-1,1,1],[0,1,1],[1,1,1],[0,2,1]], divisor: 8 },
+            stucki:         { kernel: [[1,0,8],[2,0,4],[-2,1,2],[-1,1,4],[0,1,8],[1,1,4],[2,1,2],[-2,2,1],[-1,2,2],[0,2,4],[1,2,2],[2,2,1]], divisor: 42 },
+            burkes:         { kernel: [[1,0,8],[2,0,4],[-2,1,2],[-1,1,4],[0,1,8],[1,1,4],[2,1,2]], divisor: 32 },
+            sierraLite:     { kernel: [[1,0,2],[-1,1,1],[0,1,1]], divisor: 4 },
+        };
+
+        const { kernel, divisor } = KERNELS[this.params.ditherAlgorithm] || KERNELS.floydSteinberg;
+        const strength = this.params.ditherStrength;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        const imageData = this.ctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+
+        // Float32 buffer to accumulate error without integer clamping
+        const buf = new Float32Array(data);
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const i = (y * w + x) * 4;
+                for (let c = 0; c < 3; c++) {
+                    const oldVal = buf[i + c];
+                    const newVal = oldVal < 128 ? 0 : 255;
+                    const err = (oldVal - newVal) * strength;
+                    buf[i + c] = newVal;
+                    for (const [dx, dy, weight] of kernel) {
+                        const nx = x + dx, ny = y + dy;
+                        if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                            buf[(ny * w + nx) * 4 + c] += err * weight / divisor;
+                        }
+                    }
+                }
+            }
+        }
+
+        for (let i = 0; i < data.length; i++) data[i] = Math.max(0, Math.min(255, buf[i]));
+        this.ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
+     * Apply bloom post-processing effect
+     * Extracts bright pixels, runs a cascade of blurs at increasing radii (like Unreal bloom),
+     * then additively composites back. Multiple passes give a tight core glow + wide soft halo.
+     */
+    applyBloom() {
+        if (!this.params.bloomEnabled) return;
+
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const threshold = this.params.bloomThreshold;
+        const radius = this.params.bloomRadius;
+
+        // Step 1: Extract bright pixels at full color intensity
+        const src = this.ctx.getImageData(0, 0, w, h);
+        const brightCanvas = document.createElement('canvas');
+        brightCanvas.width = w;
+        brightCanvas.height = h;
+        const brightCtx = brightCanvas.getContext('2d');
+        const brightData = brightCtx.createImageData(w, h);
+
+        for (let i = 0; i < src.data.length; i += 4) {
+            const r = src.data[i], g = src.data[i + 1], b = src.data[i + 2];
+            const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+            if (luma >= threshold) {
+                brightData.data[i]     = r;
+                brightData.data[i + 1] = g;
+                brightData.data[i + 2] = b;
+                brightData.data[i + 3] = 255;
+            }
+        }
+        brightCtx.putImageData(brightData, 0, 0);
+
+        // Step 2: Cascade blur passes at increasing radii - tight core + wide halo
+        // Each pass contributes equally to the final glow
+        const passes = [radius * 0.5, radius, radius * 2, radius * 4];
+        const passAlpha = this.params.bloomStrength / passes.length;
+
+        for (const blurRadius of passes) {
+            const blurCanvas = document.createElement('canvas');
+            blurCanvas.width = w;
+            blurCanvas.height = h;
+            const blurCtx = blurCanvas.getContext('2d');
+            blurCtx.filter = `blur(${blurRadius}px)`;
+            blurCtx.drawImage(brightCanvas, 0, 0);
+            blurCtx.filter = 'none';
+
+            // Step 3: Additively composite each pass onto the main canvas
+            this.ctx.globalCompositeOperation = 'lighter';
+            this.ctx.globalAlpha = passAlpha;
+            this.ctx.drawImage(blurCanvas, 0, 0);
+        }
+
+        this.ctx.globalCompositeOperation = 'source-over';
+        this.ctx.globalAlpha = 1;
+    }
+
+    /**
+     * Apply scanlines post-processing effect
+     * Draws semi-transparent black horizontal bands to simulate CRT phosphor rows
+     */
+    applyScanlines() {
+        if (!this.params.scanlinesEnabled) return;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        this.ctx.fillStyle = '#000000';
+        this.ctx.globalAlpha = this.params.scanlinesOpacity;
+        for (let y = 0; y < h; y += this.params.scanlinesSpacing) {
+            this.ctx.fillRect(0, y, w, 1);
+        }
+        this.ctx.globalAlpha = 1;
+    }
+
+    /**
+     * Apply chromatic aberration post-processing effect
+     * Shifts red channel right and blue channel left, simulating cheap lens optics
+     */
+    applyChromaAberration() {
+        if (!this.params.chromaEnabled) return;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const offset = Math.round(this.params.chromaOffset);
+        const src = this.ctx.getImageData(0, 0, w, h);
+        const dst = this.ctx.createImageData(w, h);
+        const s = src.data;
+        const d = dst.data;
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const i  = (y * w + x) * 4;
+                const iR = (y * w + Math.min(x + offset, w - 1)) * 4;
+                const iB = (y * w + Math.max(x - offset, 0)) * 4;
+                d[i]     = s[iR];
+                d[i + 1] = s[i + 1];
+                d[i + 2] = s[iB + 2];
+                d[i + 3] = s[i + 3];
+            }
+        }
+        this.ctx.putImageData(dst, 0, 0);
+    }
+
+    /**
+     * Apply vignette post-processing effect
+     * Darkens edges with a radial gradient overlay
+     */
+    applyVignette() {
+        if (!this.params.vignetteEnabled) return;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const outerRadius = Math.sqrt(cx * cx + cy * cy);
+        const innerRadius = outerRadius * this.params.vignetteRadius;
+
+        const gradient = this.ctx.createRadialGradient(cx, cy, innerRadius, cx, cy, outerRadius);
+        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+        gradient.addColorStop(1, `rgba(0,0,0,${this.params.vignetteStrength})`);
+
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, w, h);
+    }
+
+    /**
      * Render current mode
      */
     render() {
@@ -990,6 +1346,12 @@ class PixelatorStudio {
 
                 // Apply post-processing effects
                 this.applyPosterization();
+                this.applyPalette();
+                this.applyDither();
+                this.applyBloom();
+                this.applyScanlines();
+                this.applyChromaAberration();
+                this.applyVignette();
 
                 this.renderedCanvas = true;
                 this.applyTransform();

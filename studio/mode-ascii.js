@@ -70,8 +70,13 @@ const AsciiMode = {
     createCharCanvas(cellSize, fontFamily) {
         const measureCtx = document.createElement('canvas').getContext('2d');
         measureCtx.font = `${cellSize}px ${fontFamily}`;
-        const charWidth = Math.ceil(measureCtx.measureText('M').width);
-        const charHeight = cellSize;
+        const metrics = measureCtx.measureText('M');
+        const charWidth = Math.ceil(metrics.width);
+        const charHeight = Math.ceil(
+            (metrics.fontBoundingBoxAscent != null && metrics.fontBoundingBoxDescent != null)
+                ? metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
+                : cellSize
+        );
 
         const canvas = document.createElement('canvas');
         canvas.width = charWidth;
@@ -776,7 +781,12 @@ const AsciiMode = {
             ctx.font = `${cellSize}px ${fontFamily}`;
             const metrics = ctx.measureText('M');
             charWidth = Math.ceil(metrics.width);
-            charHeight = cellSize;
+            // Use actual line height from font metrics if available, else fall back to cellSize
+            charHeight = Math.ceil(
+                (metrics.fontBoundingBoxAscent != null && metrics.fontBoundingBoxDescent != null)
+                    ? metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
+                    : cellSize
+            );
         }
 
         const cols = Math.floor(width / charWidth);
@@ -939,7 +949,6 @@ const AsciiMode = {
 
         const { edgeMagnitude, edgeDirection } = this.computeEdgeOverlay(edgeMode, data, width, height);
 
-        // Sort stops once outside the loop
         const sortedStops = [...this.stops].sort((a, b) => a.percentage - b.percentage);
 
         for (let row = 0; row < rows; row++) {
@@ -949,22 +958,13 @@ const AsciiMode = {
 
                 const cellColor = this.sampleCell(data, width, height, imgX, imgY, charWidth, charHeight);
                 const brightness = this.applyLevels(cellColor.brightness, blackPoint, whitePoint);
-
-                // Map brightness to stop percentage (0-100)
-                // Normal: Dark areas = high percentage (dense chars)
-                // Inverted: Bright areas = high percentage (dense chars)
                 const percentage = invert ? brightness * 100 : (1 - brightness) * 100;
 
-                // Find the closest stop by percentage
                 let baseStop = sortedStops[0];
                 let minDiff = Math.abs(percentage - sortedStops[0].percentage);
-
                 for (const stop of sortedStops) {
                     const diff = Math.abs(percentage - stop.percentage);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        baseStop = stop;
-                    }
+                    if (diff < minDiff) { minDiff = diff; baseStop = stop; }
                 }
 
                 const char = this.applyEdgeOverlay(baseStop.value, edgeMagnitude, edgeDirection, width, imgX, imgY, charWidth, charHeight, edgeMode);
@@ -1240,11 +1240,12 @@ const AsciiMode = {
         const presets = {
             basic: ' .:-=+*#%@',
             blocks: ' ░▒▓█',
+            braille: '⠀⣀⣄⣤⣦⣶⣷⣿',
+            dots: ' .·•●',
+            rounds: ' .oO0@',
             detailed: ' .`\'^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$',
             typewriter: ' .,\'":;ilxoX#@M',
-            rounds: ' .oO0@',
-            dots: ' .·•●',
-            braille: '⠀⣀⣄⣤⣦⣶⣷⣿',
+            unicode: ' ·.,\'`^":;-_~+*=<>!?/\\|()[]{}⌐⌠⌡°º∙«»≈¡¬Γ▒▐▌▄▀▓█■',
         };
 
         if (presets[preset]) {
